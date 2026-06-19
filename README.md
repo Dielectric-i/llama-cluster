@@ -80,9 +80,19 @@ ctx-size 40000
 ```text
 /opt/llama-cluster/docker-compose.yaml
 /opt/llama-cluster/docker-compose.stage1-baseline.yaml
+/opt/llama-cluster/README.md
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+Основные документы:
+
+```text
 /opt/llama-cluster/docs/passport.md
 /opt/llama-cluster/docs/runbook.md
-/opt/llama-cluster/scripts/cluster-status.sh
+/opt/llama-cluster/docs/architecture.md
+/opt/llama-cluster/docs/decisions.md
+/opt/llama-cluster/docs/changelog.md
+/opt/llama-cluster/docs/stage2-summary.md
 ```
 
 ## Директории
@@ -172,14 +182,13 @@ git commit -m "Describe change"
 
 ## Документы
 
-Подробное описание стенда:
+| Документ                                         | Назначение                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| [README.md](README.md)                           | быстрый вход в проект                                              |
+| [docs/passport.md](docs/passport.md)             | паспорт текущего стенда: железо, сервисы, порты, роли              |
+| [docs/runbook.md](docs/runbook.md)               | ежедневная эксплуатация, диагностика, перезапуск, типовые проблемы |
+| [docs/architecture.md](docs/architecture.md)     | целевая архитектура ПО: gateway, память, агенты, Telegram          |
+| [docs/decisions.md](docs/decisions.md)           | журнал архитектурных решений и компромиссов                        |
+| [docs/changelog.md](docs/changelog.md)           | фактическая история изменений, проверок и измерений                |
+| [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline                                  |
 
-```text
-docs/passport.md
-```
-
-Ежедневная эксплуатация и диагностика:
-
-```text
-docs/runbook.md
-```

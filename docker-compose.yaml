@@ -100,6 +100,7 @@ services:
       - OPENAI_API_KEYS=dummy;dummy
       - WEBUI_AUTH=False
       - ENABLE_PERSISTENT_CONFIG=False
+      - ENABLE_OLLAMA_API=False
 
     volumes:
       - open-webui:/app/backend/data

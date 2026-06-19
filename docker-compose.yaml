@@ -1,0 +1,108 @@
+services:
+  llama-architect:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    runtime: nvidia
+    container_name: llama-architect
+#    restart: unless-stopped
+
+    # Разрешаем mlock: llama.cpp сможет закреплять память,
+    # если используется флаг --mlock.
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+    environment:
+      # GPU 0 и 2 — карты на ограниченных PCIe-линиях.
+      # На них запускается тяжёлая 27B-модель.
+      - NVIDIA_VISIBLE_DEVICES=0,2
+      - GGML_CUDA_NO_VMM=1
+      - GGML_LOG_LEVEL=INFO
+
+    volumes:
+      - /opt/llama-cluster/models:/models:ro
+      - /opt/llama-cluster/cache/architect:/cache
+
+    ports:
+      - "8080:8080"
+
+    command: >
+      --host 0.0.0.0
+      --port 8080
+      --model /models/Qwen3.6-27B-UD-Q4_K_XL.gguf
+      --ctx-size 40000
+      --flash-attn on
+      --gpu-layers 999
+      --parallel 1
+      --main-gpu 0
+      --tensor-split 1,1
+      --split-mode layer
+      --no-mmap
+      --mlock
+      --metrics
+      --cache-type-k q8_0
+      --cache-type-v q8_0
+      --cache-ram 0
+
+  llama-coder:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    runtime: nvidia
+    container_name: llama-coder
+    restart: unless-stopped
+
+    # Разрешаем mlock: llama.cpp сможет закреплять память,
+    # если используется флаг --mlock.
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+    environment:
+      # GPU 1 — карта в основном PCIe x16.
+      # На ней запускается быстрая 9B-модель.
+      - NVIDIA_VISIBLE_DEVICES=1
+      - GGML_CUDA_NO_VMM=1
+      - GGML_LOG_LEVEL=INFO
+
+    volumes:
+      - /opt/llama-cluster/models:/models:ro
+      - /opt/llama-cluster/cache/coder:/cache
+
+    ports:
+      - "8081:8080"
+
+    command: >
+      --host 0.0.0.0
+      --port 8080
+      --model /models/Qwen3.5-9B-UD-Q4_K_XL.gguf
+      --ctx-size 40000
+      --flash-attn on
+      --gpu-layers 999
+      --parallel 1
+      --main-gpu 0
+      --no-mmap
+      --mlock
+      --metrics
+      --cache-type-k q8_0
+      --cache-type-v q8_0
+      --cache-ram 0
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+
+    ports:
+      - "3000:8080"
+
+    environment:
+      - OPENAI_API_BASE_URLS=http://llama-coder:8080/v1;http://llama-architect:8080/v1
+      - OPENAI_API_KEYS=dummy;dummy
+      - WEBUI_AUTH=False
+      - ENABLE_PERSISTENT_CONFIG=False
+
+    volumes:
+      - open-webui:/app/backend/data
+
+volumes:
+  open-webui:

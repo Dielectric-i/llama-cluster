@@ -1,0 +1,49 @@
+# Large model files
+models/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Runtime/cache data
+cache/
+data/
+logs/
+tmp/
+temp/
+
+# Open WebUI / app data if later moved from Docker volume to bind mount
+open-webui/
+webui-data/
+
+# Agent workdirs / cloned repos / generated outputs
+repos/
+workdir/
+workspace/
+outputs/
+artifacts/
+
+# Secrets and local env
+.env
+*.env
+secrets/
+*.key
+*.pem
+*.crt
+*.token
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Python noise for future scripts
+__pycache__/
+*.pyc
+.venv/
+venv/

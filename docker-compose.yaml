@@ -87,6 +87,32 @@ services:
       --cache-type-v q8_0
       --cache-ram 0
 
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      - LITELLM_LOG=INFO
+
+    volumes:
+      - /opt/llama-cluster/config/litellm.config.yaml:/app/config.yaml:ro
+
+    ports:
+      - "4000:4000"
+
+    command: >
+      --config /app/config.yaml
+      --host 0.0.0.0
+      --port 4000
+
+    depends_on:
+      - llama-coder
+      - llama-architect
+
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui

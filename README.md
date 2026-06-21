@@ -25,6 +25,7 @@
 | ----------------- | -----: | ------------------------------- |
 | `llama-architect` | `8080` | 27B architect / сложные решения |
 | `llama-coder`     | `8081` | 9B coder / быстрый исполнитель  |
+| `litellm`         | `4000` | LLM Gateway / Router            |
 | `open-webui`      | `3000` | ручной WebUI                    |
 
 ## Адреса
@@ -45,6 +46,17 @@ http://192.168.1.6:8080/v1
 
 ```text
 http://192.168.1.6:8081/v1
+```
+
+LiteLLM Gateway:
+
+```text
+http://192.168.1.6:4000/v1
+
+Gateway model names:
+
+slowrig/coder
+slowrig/architect
 ```
 
 ## GPU mapping
@@ -82,6 +94,14 @@ ctx-size 40000
 /opt/llama-cluster/docker-compose.stage1-baseline.yaml
 /opt/llama-cluster/README.md
 /opt/llama-cluster/scripts/cluster-status.sh
+/opt/llama-cluster/config/litellm.config.yaml
+/opt/llama-cluster/.env.example
+```
+
+Локальный файл секретов, не хранится в git:
+
+```text
+/opt/llama-cluster/.env
 ```
 
 Основные документы:

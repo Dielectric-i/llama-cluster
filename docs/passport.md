@@ -225,6 +225,56 @@ http://192.168.1.6:3000
 
 ---
 
+### 5.4 `litellm`
+
+Роль: единая OpenAI-compatible точка входа для клиентов и будущих агентских сценариев.
+
+Порт на хосте:
+
+```text
+4000
+```
+
+API:
+
+```text
+http://192.168.1.6:4000/v1
+```
+
+Назначение:
+
+* маршрутизация запросов к локальным LLM backend-ам;
+* единая точка входа для будущих клиентов;
+* подготовка к Telegram bot;
+* подготовка к CrewAI / OpenClaw;
+* подготовка к IDE-ассистентам;
+* будущая авторизация и API keys;
+* будущие логи запросов и политики доступа.
+
+Текущие модели в gateway:
+
+| Gateway model name | Backend | Роль |
+| --- | --- | --- |
+| slowrig/coder | llama-coder | быстрая 9B-модель |
+| slowrig/architect | llama-architect | тяжёлая 27B-модель |
+
+Текущий статус:
+
+* LiteLLM запущен отдельным контейнером litellm;
+* порт 4000 опубликован на хосте;
+* прямые backend-порты 8080 и 8081 пока оставлены для диагностики;
+* Open WebUI пока может оставаться подключённым напрямую к backend-ам или позже быть переключён на gateway.
+
+Файлы:
+
+```text
+/opt/llama-cluster/config/litellm.config.yaml
+/opt/llama-cluster/.env
+/opt/llama-cluster/.env.example
+```
+
+---
+
 ## 6. Текущий baseline Stage 1
 
 Stage 1 считается завершённым.

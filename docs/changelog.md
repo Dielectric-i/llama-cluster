@@ -111,6 +111,78 @@ Stage 1 считается завершённым.
 
 ---
 
+## 2026-06-19 — LiteLLM Gateway added
+
+### Изменено
+
+Добавлен gateway-сервис:
+
+* `litellm`
+
+Порт:
+
+* `4000`
+
+Назначение:
+
+* единая OpenAI-compatible точка входа;
+* маршрутизация к локальным llama.cpp backend-ам;
+* подготовка к Telegram;
+* подготовка к CrewAI / OpenClaw;
+* подготовка к IDE-клиентам;
+* будущие API keys, логи и политики доступа.
+
+Конфигурация
+
+Созданы файлы:
+
+* `.env`
+* `.env.example`
+* `config/litellm.config.yaml`
+
+`.env` содержит реальные секреты и не хранится в git.
+
+`.env.example` хранится в git как шаблон.
+
+`config/litellm.config.yaml` содержит локальные модели:
+
+Gateway model name	Backend
+slowrig/coder	http://llama-coder:8080/v1
+slowrig/architect	http://llama-architect:8080/v1
+
+### Проверено
+
+Проверено напрямую через LiteLLM:
+
+* `/v1/models` на порту `4000`;
+* chat request к `slowrig/coder`;
+* chat request к `slowrig/architect`.
+
+Также обновлён:
+
+* `scripts/cluster-status.sh`
+
+Теперь он проверяет:
+
+* прямой backend `8080`;
+* прямой backend `8081`;
+* Open WebUI `3000`;
+* LiteLLM `/v1/models` на `4000`;
+* chat-запрос через LiteLLM к `slowrig/coder`;
+* chat-запрос через LiteLLM к `slowrig/architect`.
+
+### Результат
+
+Stage 3 gateway baseline работает.
+
+Open WebUI пока не обязан быть переключён на gateway. Прямой доступ к `8080` и `8081` оставлен для диагностики.
+
+### Замечания
+
+`cluster-status.sh` теперь делает реальные короткие LLM-запросы через gateway. Это подходит для ручной диагностики, но не должно использоваться как частый автоматический healthcheck.
+
+---
+
 ## 2026-06-19 — Stage 2 documentation started
 
 ### Изменено

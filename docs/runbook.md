@@ -142,9 +142,120 @@ curl http://127.0.0.1:8081/v1/models
 
 ---
 
-## 5. Логи
+## 5. Проверка LiteLLM Gateway
 
-### 5.1 Логи 27B
+LiteLLM Gateway работает на порту `4000`.
+
+Gateway используется как единая OpenAI-compatible точка входа для локальных моделей.
+
+### 5.1 Проверить список моделей через gateway
+
+Перед проверкой загрузить ключ из `.env`:
+
+```bash
+cd /opt/llama-cluster
+set -a
+source .env
+set +a
+```
+
+Проверить `/v1/models`:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
+  http://127.0.0.1:4000/v1/models
+```
+
+Ожидаемо должны быть доступны:
+
+```text
+slowrig/coder
+slowrig/architect
+```
+
+### 5.2 Проверить 9B через gateway
+
+```bash
+curl -sS http://127.0.0.1:4000/v1/chat/completions \
+  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "slowrig/coder",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Ответь одним словом: OK"
+      }
+    ],
+    "temperature": 0,
+    "max_tokens": 8
+  }'
+```
+
+### 5.3 Проверить 27B через gateway
+
+```bash
+curl -sS http://127.0.0.1:4000/v1/chat/completions \
+  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "slowrig/architect",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Ответь одним словом: OK"
+      }
+    ],
+    "temperature": 0,
+    "max_tokens": 8
+  }'
+```
+
+### 5.4 Проверить gateway через status script
+
+```bash
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+Ожидаемо:
+
+```text
+litellm gateway -> http://127.0.0.1:4000/v1/models : OK
+litellm chat 9B (slowrig/coder) : OK
+litellm chat 27B (slowrig/architect) : OK
+```
+
+### 5.5 Если gateway не работает
+
+Проверить контейнер:
+
+```bash
+sudo docker ps --filter name=litellm
+```
+
+Проверить логи:
+
+```bash
+sudo docker logs --tail=160 litellm
+```
+
+Проверить, что backend-и живы напрямую:
+
+```bash
+curl http://127.0.0.1:8080/v1/models
+curl http://127.0.0.1:8081/v1/models
+```
+
+Если `8080` и `8081` работают, а `4000` нет — проблема в LiteLLM или его конфиге.
+
+Если `8080` или `8081` не работают — проблема ниже gateway, в llama.cpp backend-е.
+
+---
+
+## 6. Логи
+
+### 6.1 Логи 27B
 
 ```bash
 sudo docker logs --tail=120 llama-architect
@@ -161,7 +272,7 @@ sudo docker logs --tail=120 llama-architect
 
 ---
 
-### 5.2 Логи 9B
+### 6.2 Логи 9B
 
 ```bash
 sudo docker logs --tail=120 llama-coder
@@ -177,13 +288,11 @@ sudo docker logs --tail=120 llama-coder
 
 ---
 
-### 5.3 Логи Open WebUI
+### 6.3 Логи Open WebUI
 
 ```bash
 sudo docker logs --tail=120 open-webui
 ```
-
-Смотреть на:
 
 * ошибки подключения к backend-ам;
 * ошибки API;
@@ -192,9 +301,9 @@ sudo docker logs --tail=120 open-webui
 
 ---
 
-## 6. Безопасный перезапуск
+## 7. Безопасный перезапуск
 
-### 6.1 Перезапустить только 9B
+### 7.1 Перезапустить только 9B
 
 Использовать, если проблема только с `llama-coder`.
 
@@ -213,7 +322,7 @@ sudo docker logs --tail=80 llama-coder
 
 ---
 
-### 6.2 Перезапустить только 27B
+### 7.2 Перезапустить только 27B
 
 Использовать, если проблема только с `llama-architect`.
 

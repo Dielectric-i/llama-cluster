@@ -3,7 +3,7 @@ services:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
     runtime: nvidia
     container_name: llama-architect
-#    restart: unless-stopped
+    restart: unless-stopped
 
     # Разрешаем mlock: llama.cpp сможет закреплять память,
     # если используется флаг --mlock.

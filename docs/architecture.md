@@ -1,451 +1,388 @@
-# slowrig AI Cluster — Target Architecture v0.1
+# slowrig AI Cluster — Architecture v0.2
+
+Дата актуализации: 2026-06-22
+Статус: текущая и целевая архитектура проекта
 
 ## 1. Назначение документа
 
-Этот документ описывает целевую программную архитектуру `slowrig AI Cluster`.
-
-Он не заменяет:
-
-* `passport.md` — описание текущего стенда;
-* `runbook.md` — эксплуатационные инструкции;
-* `README.md` — быстрый вход в проект.
+Этот документ описывает программную архитектуру `slowrig AI Cluster`.
 
 `architecture.md` отвечает на вопросы:
 
-* какие программные слои должны появиться;
-* какие роли у 9B и 27B моделей;
-* как будут подключаться WebUI, Telegram, IDE и агенты;
-* где должна жить память;
-* где должен быть gateway/router;
+* какие архитектурные слои уже есть;
+* какие слои должны появиться позже;
+* как должны взаимодействовать WebUI, gateway, модели, память, Telegram, IDE и агенты;
 * какие компоненты нельзя смешивать в один слой;
-* в каком порядке развивать кластер.
+* какие направления развития являются следующими;
+* какие subsystem-ы требуют отдельного design stage перед внедрением.
+
+Этот документ не заменяет:
+
+* `README.md` — быстрый вход и индекс документации;
+* `docs/passport.md` — фактический паспорт стенда;
+* `docs/runbook.md` — эксплуатационные команды, диагностика и rollback;
+* `docs/gateway.md` — подробности LiteLLM Gateway;
+* `docs/decisions.md` — архитектурные решения и причины;
+* `docs/changelog.md` — фактическую историю изменений и проверок.
 
 ---
 
-## 2. Текущий базовый слой
+## 2. Текущий архитектурный статус
 
-На текущем этапе уже работает inference-база:
+Текущий baseline:
 
 ```text
-Open WebUI
-    |
-    v
-LiteLLM Gateway
-    |
-    +--> llama-coder / 9B / port 8081 / GPU 1 x16
-    |
-    +--> llama-architect / 27B / port 8080 / GPU 0 + GPU 2
+Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 ```
 
-Сервисы:
+Статус этапов:
 
-| Сервис            |   Порт | Роль                     |
-| ----------------- | -----: | ------------------------ |
-| `llama-coder`     | `8081` | быстрая рабочая модель   |
-| `llama-architect` | `8080` | тяжёлая reasoning-модель |
-| `litellm`         | `4000` | LLM Gateway / Router     |
-| `open-webui`      | `3000` | ручной интерфейс через gateway |
+| Stage   | Название                        | Статус                 |
+| ------- | ------------------------------- | ---------------------- |
+| Stage 1 | Inference baseline              | завершён               |
+| Stage 2 | Operational foundation          | завершён               |
+| Stage 3 | Gateway baseline                | завершён               |
+| Stage 4 | Memory / RAG                    | следующий design stage |
+| Stage 5 | Telegram bot                    | запланировано          |
+| Stage 6 | Agent framework                 | запланировано          |
+| Stage 7 | Monitoring / Security / Backups | запланировано          |
 
-Обе модели работают с `ctx-size 40000`.
+Ключевое текущее состояние:
+
+* локальные llama.cpp backend-и работают;
+* LiteLLM внедрён как gateway;
+* Open WebUI подключён через LiteLLM;
+* прямые backend-порты сохранены для диагностики;
+* memory/RAG ещё не внедрены;
+* Telegram bot ещё не внедрён;
+* agent framework ещё не внедрён;
+* полноценный monitoring/security/backups stage ещё не внедрён.
 
 ---
 
 ## 3. Главный архитектурный принцип
 
-Кластер не должен быть просто набором контейнеров с моделями.
+`slowrig` не должен быть просто набором контейнеров с моделями.
 
 Целевая архитектура должна разделять роли:
 
 ```text
-Интерфейсы пользователя
+User Interfaces
         |
         v
 Gateway / Router
         |
         v
-Inference backends
+Inference Backends
         |
-        v
-Memory / Tools / Logs / Agents
+        +--> Memory / RAG
+        +--> Tools
+        +--> Agent State
+        +--> Logs / Monitoring
 ```
 
-Каждый слой должен отвечать только за свою задачу.
+Каждый слой должен иметь понятную ответственность.
+
+Правило:
+
+```text
+один слой — одна основная роль
+```
+
+Нельзя превращать gateway, WebUI, Telegram bot или agent framework в “комбайн”, который одновременно отвечает за routing, память, shell-доступ, хранение истории, мониторинг и безопасность.
 
 ---
 
-## 4. Целевая схема
+## 4. Текущая реализованная схема
 
 ```text
                         +----------------+
-                        |   Web Browser  |
                         |   Open WebUI   |
+                        |   port 3000    |
                         +--------+-------+
                                  |
-                        +--------v-------+
-                        |    LLM Gateway |
-                        | Router / Auth  |
-                        | Limits / Logs  |
+                                 v
+                        +--------+-------+
+                        | LiteLLM Gateway|
+                        |   port 4000    |
                         +--------+-------+
                                  |
               +------------------+------------------+
               |                                     |
-      +-------v--------+                    +-------v----------+
+              v                                     v
+      +-------+--------+                    +-------+----------+
       | llama-coder    |                    | llama-architect  |
       | 9B / fast      |                    | 27B / deep       |
-      | port 8081      |                    | port 8080        |
-      +-------+--------+                    +-------+----------+
-              |                                     |
-              +------------------+------------------+
-                                 |
-                        +--------v--------+
-                        | Memory / Storage|
-                        | History / RAG   |
-                        | Logs / Tasks    |
-                        +-----------------+
+      | host port 8081 |                    | host port 8080   |
+      +----------------+                    +------------------+
 ```
 
-Будущие дополнительные входы:
+Текущие gateway model names:
 
 ```text
-Telegram Bot
-IDE / coding assistant
-CrewAI
-OpenClaw
-custom scripts
-repo auditor
-documentation worker
+slowrig/coder
+slowrig/architect
 ```
 
-Все они должны идти не напрямую в модели, а через gateway/router.
+Обычный клиентский путь:
+
+```text
+Client -> LiteLLM Gateway -> llama.cpp backend
+```
+
+Диагностический путь:
+
+```text
+Client -> direct backend port 8080/8081
+```
+
+Прямой доступ к `8080` и `8081` нужен для диагностики, но не должен становиться нормальным клиентским путём.
 
 ---
 
-## 5. Роли моделей
+## 5. Архитектурные слои
 
-### 5.1 `llama-coder` — 9B fast worker
+## 5.1 User Interface layer
 
-Модель:
+Назначение:
 
-```text
-Qwen3.5-9B-UD-Q4_K_XL.gguf
-```
+* дать пользователю удобный способ взаимодействия с моделями;
+* не хранить критическую архитектурную логику;
+* не знать внутренние детали backend-ов без необходимости.
 
-Порт:
-
-```text
-8081
-```
-
-GPU:
+Текущий реализованный интерфейс:
 
 ```text
-host GPU 1 / PCIe x16
+Open WebUI
 ```
 
-Роль:
+Будущие интерфейсы:
+
+```text
+Telegram bot
+IDE / coding assistant
+custom scripts
+agent control UI
+```
+
+Правило:
+
+```text
+User-facing clients should use LiteLLM Gateway.
+```
+
+Исключение:
+
+```text
+direct backend access is allowed for diagnostics and rollback only.
+```
+
+---
+
+## 5.2 Gateway / Router layer
+
+Текущая реализация:
+
+```text
+LiteLLM Proxy
+```
+
+Назначение gateway:
+
+* единая OpenAI-compatible точка входа;
+* стабильные public model names;
+* routing к `llama-coder` и `llama-architect`;
+* подготовка к Telegram, IDE и агентам;
+* будущие API keys, access policies, logs, limits и queues.
+
+Текущий routing:
+
+```text
+manual model selection by model name
+```
+
+Реализованные model names:
+
+```text
+slowrig/coder
+slowrig/architect
+```
+
+Не реализовано:
+
+```text
+automatic task classification
+9B -> 27B pipeline
+slowrig/default alias
+slowrig/fast alias
+slowrig/deep alias
+gateway-level memory
+agent orchestration
+```
+
+Подробности gateway baseline находятся в:
+
+```text
+docs/gateway.md
+```
+
+---
+
+## 5.3 Inference backend layer
+
+Текущий backend engine:
+
+```text
+llama.cpp server
+```
+
+Текущие backend-и:
+
+| Backend           | Роль                       | Нормальный доступ         |
+| ----------------- | -------------------------- | ------------------------- |
+| `llama-coder`     | fast worker / coder        | через `slowrig/coder`     |
+| `llama-architect` | deep reasoning / architect | через `slowrig/architect` |
+
+Архитектурная роль `llama-coder`:
 
 * быстрые ответы;
-* Telegram-ответы;
-* предварительный анализ;
-* суммаризация;
+* короткие и средние задачи;
+* первичный анализ;
+* summaries;
 * подготовка контекста;
-* разбор логов;
-* простые кодовые задачи;
-* обработка коротких и средних запросов;
-* worker для агентских задач.
+* будущий default backend для Telegram;
+* future fast worker для агентов.
 
-Приоритеты:
-
-* скорость;
-* отзывчивость;
-* стабильность;
-* низкая задержка;
-* частые короткие задачи.
-
-Не основная задача:
-
-* сложные архитектурные решения;
-* глубокий reasoning;
-* финальное решение по сложным DevOps/ML-проблемам.
-
----
-
-### 5.2 `llama-architect` — 27B deep reasoning
-
-Модель:
-
-```text
-Qwen3.6-27B-UD-Q4_K_XL.gguf
-```
-
-Порт:
-
-```text
-8080
-```
-
-GPU:
-
-```text
-host GPU 0 + host GPU 2
-```
-
-Роль:
+Архитектурная роль `llama-architect`:
 
 * сложные решения;
+* deep reasoning;
 * архитектура;
-* планирование;
 * ревью сложного кода;
 * анализ больших задач;
-* выбор стратегии;
-* поиск компромиссов;
-* постановка задач для других агентов;
-* финальное рассуждение после подготовки контекста.
+* финальные выводы после подготовки контекста.
 
-Приоритеты:
-
-* качество;
-* глубина анализа;
-* способность работать с большим контекстом;
-* устойчивость reasoning.
-
-Не основная задача:
-
-* быстрые Telegram-ответы;
-* частые мелкие запросы;
-* массовая параллельная обработка;
-* задачи, где достаточно 9B.
-
----
-
-## 6. Gateway / Router
-
-### 6.1 Зачем нужен gateway
-
-Open WebUI удобен для ручной работы, но он не должен быть главным центром архитектуры.
-
-Статус: LiteLLM Proxy внедрён как первый gateway.
-
-Gateway нужен для:
-
-* единой OpenAI-compatible точки входа;
-* выбора модели под задачу;
-* логирования запросов;
-* ограничения доступа;
-* будущей авторизации;
-* rate limit;
-* очередей;
-* подключения памяти;
-* подключения Telegram;
-* подключения CrewAI/OpenClaw;
-* скрытия внутренних портов `8080` и `8081`.
-
-### 6.2 Логика маршрутизации
-
-LiteLLM сейчас выполняет routing по явно выбранному model name. Автоматический pipeline `9B -> 27B` пока не реализован.
-
-Примеры будущих маршрутов:
-
-| Тип задачи                   | Модель    |
-| ---------------------------- | --------- |
-| короткий вопрос              | 9B        |
-| Telegram chat                | 9B        |
-| простой код                  | 9B        |
-| суммаризация лога            | 9B        |
-| подготовка контекста         | 9B        |
-| архитектурное решение        | 27B       |
-| сложный баг                  | 27B       |
-| ревью большого изменения     | 27B       |
-| анализ репозитория           | 9B -> 27B |
-| документация + код + решение | 9B -> 27B |
-
-### 6.3 Возможные реализации gateway
-
-Кандидаты:
-
-1. LiteLLM Proxy.
-2. Собственный FastAPI gateway.
-3. Gateway внутри OpenClaw/agent framework.
-4. Временная ручная маршрутизация через Open WebUI.
-
-Текущий выбор:
+Точные модели, GPU mapping, VRAM и host details фиксируются в:
 
 ```text
-LiteLLM Proxy как первый gateway
+docs/passport.md
 ```
 
-Следующие вопросы для развития gateway:
+Эксплуатационные проверки и диагностика фиксируются в:
 
-* какие клиенты будут подключаться;
-* нужна ли авторизация;
-* нужна ли история запросов;
-* нужна ли очередь;
-* нужна ли маршрутизация по типам задач.
+```text
+docs/runbook.md
+```
 
 ---
 
-## 7. Память
+## 5.4 Memory / RAG layer
 
-### 7.1 Зачем нужна память
+Статус:
 
-Обычной истории чата недостаточно.
+```text
+not implemented
+```
 
-Кластер должен помнить:
+Следующий рекомендуемый stage:
 
-* состояние проектов;
-* принятые решения;
-* ошибки и способы исправления;
-* результаты аудитов;
+```text
+Stage 4.1 — Memory / RAG design
+```
+
+Первый ожидаемый документ:
+
+```text
+docs/memory.md
+```
+
+Memory/RAG слой должен быть отдельным subsystem-ом, а не побочным эффектом Open WebUI, LiteLLM или Telegram bot.
+
+Будущая память должна уметь работать с разными типами данных:
+
+* проектная документация;
+* решения и changelog;
 * summaries репозиториев;
-* архитектурные документы;
-* логи экспериментов;
-* задачи агентов;
-* почему была выбрана конкретная конфигурация.
+* результаты аудитов;
+* history задач;
+* agent state;
+* полезные фрагменты логов;
+* пользовательские заметки;
+* searchable context для RAG.
 
-### 7.2 Типы памяти
+Что нужно решить до внедрения:
 
-#### Краткосрочная память
+* что остаётся в Markdown + Git;
+* что хранится в структурированной БД;
+* что индексируется в векторном виде;
+* какие данные нельзя embedding-ить;
+* как делать backup/restore;
+* как удалять данные;
+* как memory интегрируется с gateway и future agents.
 
-Живёт в рамках одной задачи или одной сессии.
-
-Примеры:
-
-* текущий prompt;
-* текущий лог;
-* текущий набор файлов;
-* текущая гипотеза.
-
-#### Долгосрочная текстовая память
-
-Живёт в Markdown/БД.
-
-Примеры:
-
-* паспорт стенда;
-* runbook;
-* architecture;
-* changelog;
-* notes;
-* decisions.
-
-#### Векторная память
-
-Нужна для поиска по большому объёму текста.
-
-Примеры:
-
-* документация;
-* репозитории;
-* старые логи;
-* истории решений;
-* summaries файлов.
-
-#### Память агентских задач
-
-Нужна для автономной работы.
-
-Примеры:
-
-* что агент уже сделал;
-* какие файлы он читал;
-* какие команды запускал;
-* какие ошибки получил;
-* какой следующий шаг;
-* где требуется подтверждение пользователя.
-
----
-
-## 8. Возможный стек памяти
-
-Кандидаты:
-
-### 8.1 PostgreSQL + pgvector
-
-Плюсы:
-
-* надёжная база;
-* можно хранить и обычные таблицы, и векторы;
-* удобно для истории, задач, пользователей, логов;
-* хорошо подходит для долгосрочной инфраструктуры.
-
-Минусы:
-
-* требует схемы;
-* требует аккуратного проектирования;
-* сложнее, чем простая файловая память.
-
-### 8.2 Qdrant
-
-Плюсы:
-
-* специализированное векторное хранилище;
-* удобно для RAG;
-* хорошо подходит для поиска по документам.
-
-Минусы:
-
-* отдельно нужно хранить обычные сущности: задачи, решения, историю;
-* появляется ещё один сервис.
-
-### 8.3 Chroma / LanceDB
-
-Плюсы:
-
-* проще стартовать;
-* удобно для экспериментов.
-
-Минусы:
-
-* менее предпочтительно как долгосрочная системная база;
-* нужно внимательно смотреть на устойчивость и backup.
-
-### 8.4 Markdown + Git
-
-Плюсы:
-
-* идеально для текущего этапа;
-* прозрачно;
-* легко читать человеку;
-* легко коммитить;
-* можно использовать как источник правды для решений.
-
-Минусы:
-
-* не заменяет векторный поиск;
-* не подходит для больших автоматических логов;
-* не подходит для сложной памяти агентов.
-
-### 8.5 Предварительное решение
-
-На ближайшем этапе:
+Возможные кандидаты для design stage:
 
 ```text
-Markdown + Git
-```
-
-Для следующего этапа памяти:
-
-```text
+Markdown + Git only
 PostgreSQL + pgvector
-или
-Qdrant + отдельная metadata DB
+Qdrant
+PostgreSQL + Qdrant hybrid
+```
+
+До утверждения `docs/memory.md` не устанавливать БД или vector store.
+
+---
+
+## 5.5 Tools layer
+
+Статус:
+
+```text
+not implemented as separate subsystem
+```
+
+Tools layer нужен, чтобы будущие агенты и интерфейсы могли безопасно выполнять ограниченные действия.
+
+Потенциальные tools:
+
+* чтение файлов проекта;
+* подготовка summaries;
+* запуск безопасных diagnostic commands;
+* чтение логов;
+* проверка состояния Docker;
+* чтение git diff;
+* создание patch-файлов;
+* генерация changelog/report.
+
+Опасные tools не должны быть доступны без подтверждения пользователя:
+
+* shell commands;
+* Docker restart/down;
+* изменение compose;
+* изменение firewall;
+* удаление volume/cache;
+* изменение `.env`;
+* изменение GPU/model config;
+* установка пакетов;
+* pull новых образов.
+
+Правило:
+
+```text
+dangerous actions require explicit human approval
 ```
 
 ---
 
-## 9. Агентский слой
+## 5.6 Agent layer
 
-Планируемые кандидаты:
+Статус:
 
-* CrewAI;
-* OpenClaw;
-* собственные worker-скрипты;
-* Telegram bot;
-* repo-auditor;
-* documentation worker;
-* code-review worker.
+```text
+not implemented
+```
 
-Агенты не должны напрямую обращаться к `8080` и `8081`.
+Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
 
 Правильная схема:
 
@@ -453,30 +390,56 @@ Qdrant + отдельная metadata DB
 Agent
   |
   v
-Gateway
+LiteLLM Gateway
   |
-  +--> 9B
-  +--> 27B
-  +--> Memory
+  +--> slowrig/coder
+  +--> slowrig/architect
+  |
+  +--> Memory / RAG
   +--> Tools
+  +--> Task State
 ```
 
-Причины:
+Возможные варианты:
 
-* единые логи;
-* контроль доступа;
-* можно ограничить опасные действия;
-* можно выбирать модель под задачу;
-* можно сохранять результаты;
-* можно добавлять подтверждение пользователя перед risky actions.
+* CrewAI;
+* OpenClaw;
+* custom lightweight orchestrator;
+* repo-auditor;
+* documentation worker;
+* code-review worker;
+* ops diagnostic worker.
+
+До внедрения нужен отдельный документ:
+
+```text
+docs/agents.md
+```
+
+Agent design должен определить:
+
+* какие агенты нужны;
+* какие модели они используют;
+* какие tools им доступны;
+* где хранится task state;
+* как фиксируются результаты;
+* какие действия требуют подтверждения;
+* как выполняется rollback;
+* как предотвращается uncontrolled shell autonomy.
 
 ---
 
-## 10. Telegram bot
+## 5.7 Telegram layer
 
-Telegram должен быть отдельным интерфейсом, а не заменой WebUI.
+Статус:
 
-Базовая схема:
+```text
+not implemented
+```
+
+Telegram bot должен быть отдельным интерфейсом, а не заменой Open WebUI и не agent framework.
+
+Базовая целевая схема:
 
 ```text
 Telegram
@@ -485,233 +448,671 @@ Telegram
 Telegram Bot Service
    |
    v
-Gateway
+LiteLLM Gateway
    |
-   +--> 9B by default
-   +--> 27B for deep tasks
+   +--> slowrig/coder by default
+   +--> slowrig/architect for deep tasks
 ```
 
 Правило по умолчанию:
 
 ```text
-Telegram -> 9B
+Telegram -> slowrig/coder
 ```
 
-27B использовать только если:
+`slowrig/architect` использовать только для:
 
-* пользователь явно просит глубокий анализ;
-* задача сложная;
-* нужно принять архитектурное решение;
-* 9B подготовила summary и передала задачу 27B.
+* явно запрошенного глубокого анализа;
+* сложных задач;
+* архитектурных решений;
+* сценариев, где 9B подготовила summary и нужна финальная проверка 27B.
 
-Telegram bot не должен напрямую иметь доступ к Docker socket, shell или файловой системе без отдельного слоя безопасности.
+Telegram bot не должен иметь произвольный shell-доступ.
+
+До внедрения нужен отдельный документ:
+
+```text
+docs/telegram.md
+```
 
 ---
 
-## 11. Мониторинг
+## 5.8 Monitoring layer
 
-Текущий мониторинг:
+Статус:
+
+```text
+partially manual, not a full monitoring stack
+```
+
+Текущий ручной уровень:
 
 ```text
 scripts/cluster-status.sh
 docker ps
+docker compose ps
 nvidia-smi
 docker logs
-llama.cpp /metrics
+curl checks
 ```
 
-Следующий уровень:
+Важно:
 
+```text
+cluster-status.sh делает реальные короткие LLM-запросы.
+```
+
+Он подходит для ручной диагностики, но не должен использоваться как частый автоматический healthcheck.
+
+Будущий monitoring stage может включать:
+
+* lightweight health script;
 * Prometheus;
 * Grafana;
 * Loki;
 * node_exporter;
-* nvidia-smi/DCGM exporter;
-* alerting.
-
-Но полноценный мониторинг стоит добавлять после стабилизации:
-
-* gateway;
-* памяти;
-* базовых сценариев агентов.
-
-На ближайшем этапе достаточно:
-
-* ручной команды `cluster-status.sh`;
-* git baseline;
-* runbook;
-* понятного README.
-
----
-
-## 12. Безопасность
-
-Текущий режим:
-
-* Open WebUI без авторизации;
-* доступ только из LAN;
-* API моделей доступны в домашней сети.
-
-Будущий режим:
-
-* WebUI с авторизацией;
-* gateway с ключами;
-* Telegram bot с whitelist пользователей;
-* внешний доступ только через VPN или reverse proxy;
-* закрыть прямой доступ к `8080` и `8081` снаружи;
-* секреты хранить в `.env` или secret-хранилище;
-* не давать агентам shell-доступ без подтверждения.
-
----
-
-## 13. Сценарии использования
-
-### 13.1 Open WebUI
-
-```text
-User -> Open WebUI -> LiteLLM -> 9B/27B
-```
-
-### 13.2 Telegram
-
-```text
-Telegram -> Bot -> LiteLLM -> 9B/27B
-```
-
-### 13.3 Agent
-
-```text
-Agent -> LiteLLM -> 9B/27B
-```
-
-### 13.4 IDE
-
-```text
-IDE -> LiteLLM -> 9B/27B
-```
-
-### 13.5 Автономная агентская задача
-
-```text
-User task -> Agent -> Gateway -> 9B/27B -> Tools -> Memory -> Report
-```
-
----
-
-## 14. Порядок развития
-
-### Stage 1 — Inference baseline
-
-Статус: завершён.
-
-* 27B работает на `8080`;
-* 9B работает на `8081`;
-* Open WebUI работает на `3000`;
-* обе модели работают с `ctx-size 40000`.
-
-### Stage 2 — Operational foundation
-
-Статус: завершён.
-
-Сделано:
-
-* `passport.md`;
-* `runbook.md`;
-* `README.md`;
-* git baseline;
-* `cluster-status.sh`.
-
-Следующие шаги:
-
-* закончить `architecture.md`;
-* добавить changelog/decisions;
-* подготовить выбор gateway;
-* подготовить выбор memory stack.
-
-### Stage 3 — Gateway
-
-Статус: gateway baseline implemented / выполняется.
-
-Цель:
-
-* единая точка входа;
-* маршрутизация моделей;
-* логи запросов;
-* ключи доступа;
-* интеграция с WebUI, Telegram и агентами.
-
-### Stage 4 — Memory
-
-Цель:
-
-* история;
-* RAG;
-* summaries проектов;
-* память решений;
-* состояние агентских задач.
-
-### Stage 5 — Telegram
-
-Цель:
-
-* Telegram bot;
-* безопасный доступ из мессенджера;
-* routing через LiteLLM;
-* whitelist пользователей.
-
-### Stage 6 — Agents
-
-Цель:
-
-* CrewAI/OpenClaw;
-* repo-auditor;
-* documentation worker;
-* code worker;
-* контролируемое выполнение задач.
-
-### Stage 7 — Monitoring
-
-Цель:
-
-* Prometheus/Grafana/Loki;
-* метрики GPU и контейнеров;
+* NVIDIA/DCGM exporter;
 * alerting;
-* аккуратные healthcheck-и без частых LLM-запросов.
+* log rotation;
+* retention policy.
+
+До внедрения нужен отдельный документ:
+
+```text
+docs/monitoring.md
+```
 
 ---
 
-## 15. Текущая архитектурная позиция
+## 5.9 Security layer
 
-На текущем этапе не добавлять новые тяжёлые сервисы без причины.
+Статус:
 
-Приоритет:
+```text
+LAN baseline
+```
+
+Текущий baseline рассчитан на домашнюю сеть.
+
+Не открывать наружу без отдельного security stage:
+
+```text
+3000  # Open WebUI
+4000  # LiteLLM Gateway
+8080  # llama-architect direct backend
+8081  # llama-coder direct backend
+```
+
+Будущий security hardening может включать:
+
+* VPN;
+* reverse proxy;
+* auth для Open WebUI;
+* gateway API key policy;
+* firewall restrictions;
+* закрытие direct backend-портов;
+* Telegram user whitelist;
+* secrets rotation;
+* audit logs;
+* backup encryption.
+
+До внедрения нужен отдельный документ:
+
+```text
+docs/security.md
+```
+
+---
+
+## 5.10 Backup layer
+
+Статус:
+
+```text
+not implemented as a documented subsystem
+```
+
+Backup должен быть отдельным stage, потому что разные данные требуют разной стратегии.
+
+Что нужно учитывать:
+
+* compose/config/docs/scripts;
+* `.env` и секреты;
+* GGUF-модели;
+* Open WebUI data;
+* future memory DB;
+* future agent state;
+* logs;
+* changelog and decisions.
+
+До внедрения нужен отдельный документ:
+
+```text
+docs/backups.md
+```
+
+---
+
+## 6. Целевая архитектура
+
+Целевая схема после появления memory, Telegram и agents:
+
+```text
+                         +-------------------+
+                         |     User / IDE    |
+                         +---------+---------+
+                                   |
+              +--------------------+--------------------+
+              |                    |                    |
+              v                    v                    v
+        +-----+------+       +-----+------+       +-----+------+
+        | Open WebUI |       | Telegram   |       | Agents     |
+        +-----+------+       +-----+------+       +-----+------+
+              |                    |                    |
+              +--------------------+--------------------+
+                                   |
+                                   v
+                         +---------+---------+
+                         |  LiteLLM Gateway  |
+                         |  routing / keys   |
+                         +---------+---------+
+                                   |
+              +--------------------+--------------------+
+              |                                         |
+              v                                         v
+       +------+-------+                         +-------+------+
+       | llama-coder  |                         | llama-architect |
+       | 9B / fast    |                         | 27B / deep      |
+       +------+-------+                         +-------+------+
+              |                                         |
+              +--------------------+--------------------+
+                                   |
+                   +---------------+---------------+
+                   |                               |
+                   v                               v
+            +------+-------+               +-------+------+
+            | Memory / RAG |               | Tools / State |
+            +--------------+               +--------------+
+```
+
+Архитектурная идея:
+
+```text
+interfaces are replaceable
+gateway is the stable entry point
+models are backend resources
+memory is separate from chat UI
+agents use controlled tools
+dangerous operations require approval
+```
+
+---
+
+## 7. Сценарии использования
+
+### 7.1 Open WebUI
+
+Статус:
+
+```text
+implemented
+```
+
+Схема:
+
+```text
+User -> Open WebUI -> LiteLLM -> slowrig/coder or slowrig/architect
+```
+
+Назначение:
+
+* ручное тестирование;
+* интерактивная работа;
+* сравнение 9B и 27B;
+* проверка gateway baseline.
+
+---
+
+### 7.2 Direct backend diagnostics
+
+Статус:
+
+```text
+implemented for diagnostics
+```
+
+Схема:
+
+```text
+User/admin -> 8080 -> llama-architect
+User/admin -> 8081 -> llama-coder
+```
+
+Назначение:
+
+* отличить проблему LiteLLM от проблемы backend-а;
+* проверить llama.cpp backend напрямую;
+* выполнить rollback/diagnostic сценарии.
+
+Не использовать как нормальный client path.
+
+---
+
+### 7.3 Telegram
+
+Статус:
+
+```text
+planned
+```
+
+Схема:
+
+```text
+Telegram -> Bot -> LiteLLM -> slowrig/coder / slowrig/architect
+```
+
+Default:
+
+```text
+Telegram -> slowrig/coder
+```
+
+Требуется отдельный design stage.
+
+---
+
+### 7.4 IDE assistant
+
+Статус:
+
+```text
+planned
+```
+
+Схема:
+
+```text
+IDE -> LiteLLM -> slowrig/coder / slowrig/architect
+```
+
+Возможные сценарии:
+
+* code completion-like tasks;
+* code review;
+* summaries;
+* local project Q&A;
+* file-aware assistant через future memory/RAG.
+
+Требуется отдельное решение по клиенту и security/access policy.
+
+---
+
+### 7.5 Agent workflow
+
+Статус:
+
+```text
+planned
+```
+
+Схема:
+
+```text
+User task
+  -> Agent layer
+  -> LiteLLM Gateway
+  -> 9B / 27B
+  -> Memory / Tools
+  -> Report / Patch / Approval
+```
+
+Агенты не должны выполнять опасные действия без подтверждения пользователя.
+
+---
+
+## 8. Что нельзя смешивать
+
+## 8.1 Gateway не должен становиться memory layer
+
+LiteLLM должен маршрутизировать запросы и быть точкой входа.
+
+Долгосрочная память, RAG, task state и embeddings должны проектироваться отдельно.
+
+---
+
+## 8.2 Telegram bot не должен становиться agent framework
+
+Telegram — это интерфейс.
+
+Он может запускать ограниченные команды или отправлять запросы, но не должен самостоятельно владеть всей логикой агентов, memory и shell-доступа.
+
+---
+
+## 8.3 Open WebUI не должен быть центром архитектуры
+
+Open WebUI — удобный ручной интерфейс.
+
+Архитектура должна сохраняться даже если Open WebUI заменить, отключить или использовать только для тестирования.
+
+---
+
+## 8.4 Agent layer не должен обходить gateway
+
+Агенты должны использовать LiteLLM Gateway, чтобы сохранять единый routing, access policy и model naming.
+
+Исключение — диагностика или явно задокументированный rollback.
+
+---
+
+## 8.5 Documentation не должна быть “после”
+
+Документация является частью архитектуры.
+
+Если меняется поведение, routing, service topology, security posture или operational workflow, должны обновляться соответствующие документы.
+
+---
+
+## 9. Порядок развития
+
+## Stage 1 — Inference baseline
+
+Статус:
+
+```text
+completed
+```
+
+Результат:
+
+* `llama-architect` работает;
+* `llama-coder` работает;
+* Open WebUI работает;
+* обе модели работают с большим контекстом;
+* GPU mapping подтверждён;
+* baseline измерения зафиксированы.
+
+---
+
+## Stage 2 — Operational foundation
+
+Статус:
+
+```text
+completed
+```
+
+Результат:
+
+* создан README;
+* создан passport;
+* создан runbook;
+* создан architecture doc;
+* создан decisions log;
+* создан changelog;
+* создан status script;
+* создан git baseline;
+* зафиксирован Stage 1 compose baseline.
+
+---
+
+## Stage 3 — Gateway baseline
+
+Статус:
+
+```text
+completed
+```
+
+Результат:
+
+* LiteLLM Gateway внедрён;
+* Open WebUI подключён через LiteLLM;
+* добавлены model names `slowrig/coder` и `slowrig/architect`;
+* direct backend-порты сохранены для диагностики;
+* `cluster-status.sh` проверяет gateway и обе модели.
+
+---
+
+## Stage 4 — Memory / RAG
+
+Статус:
+
+```text
+next design stage
+```
+
+Первый шаг:
+
+```text
+docs/memory.md
+```
+
+Цель:
+
+* определить memory architecture;
+* выбрать stack;
+* отделить source of truth от searchable index;
+* определить backup/restore;
+* определить privacy boundaries;
+* подготовить future integration с Telegram и agents.
+
+Не начинать с установки базы данных.
+
+---
+
+## Stage 5 — Telegram bot
+
+Статус:
+
+```text
+planned
+```
+
+Первый шаг:
+
+```text
+docs/telegram.md
+```
+
+Цель:
+
+* безопасный Telegram-интерфейс;
+* whitelist пользователей;
+* routing через LiteLLM;
+* default route на `slowrig/coder`;
+* controlled escalation к `slowrig/architect`;
+* отсутствие произвольного shell-доступа.
+
+---
+
+## Stage 6 — Agent framework
+
+Статус:
+
+```text
+planned
+```
+
+Первый шаг:
+
+```text
+docs/agents.md
+```
+
+Цель:
+
+* controlled agent workflows;
+* planner/coder/reviewer/documentation roles;
+* использование LiteLLM Gateway;
+* использование future memory/RAG;
+* tool permissions;
+* human approval for risky actions.
+
+---
+
+## Stage 7 — Monitoring / Security / Backups
+
+Статус:
+
+```text
+planned
+```
+
+Возможные design docs:
+
+```text
+docs/monitoring.md
+docs/security.md
+docs/backups.md
+```
+
+Цель:
+
+* lightweight health checks;
+* metrics/logging;
+* backup/restore;
+* external access strategy;
+* auth and firewall rules;
+* secrets handling;
+* safe operational baseline.
+
+---
+
+## 10. Архитектурные приоритеты
+
+Текущие приоритеты:
 
 ```text
 стабильность > количество компонентов
 понятность > автоматизация
 наблюдаемость > скорость изменений
 контроль > автономность
+rollback > one-way migration
+docs as source of truth > hidden chat context
 ```
 
-Следующее крупное архитектурное решение:
+На текущем этапе не добавлять новые тяжёлые сервисы без design stage.
+
+Правильный порядок для нового subsystem-а:
 
 ```text
-что добавлять первым:
-1. gateway
-2. memory
-3. Telegram
-4. monitoring
-5. agent framework
+design doc
+review
+approval
+small implementation
+manual checks
+docs update
+changelog
 ```
 
-Предварительная рекомендация:
+---
+
+## 11. Открытые архитектурные вопросы
+
+## 11.1 Memory / RAG
+
+Открытые вопросы:
+
+* PostgreSQL + pgvector или Qdrant?
+* нужен ли hybrid stack?
+* что хранить в Markdown, а что в БД?
+* что embedding-ить?
+* как делать backup?
+* как удалять данные?
+* как memory будет использоваться агентами?
+
+---
+
+## 11.2 Gateway routing
+
+Открытые вопросы:
+
+* добавлять ли `slowrig/default`;
+* добавлять ли `slowrig/fast`;
+* добавлять ли `slowrig/deep`;
+* где реализовывать routing по сложности задачи;
+* должен ли pipeline `9B -> 27B` жить в gateway или agent layer.
+
+Текущая позиция:
 
 ```text
-сначала gateway,
-затем memory,
-затем Telegram,
-затем agents,
-затем полноценный monitoring.
+routing по сложности лучше отложить до agent/memory design
 ```
 
-Причина: gateway станет центральной точкой входа, через которую потом проще подключать память, Telegram и агентов.
+---
+
+## 11.3 Telegram
+
+Открытые вопросы:
+
+* polling или webhook;
+* какие команды разрешить;
+* как хранить историю;
+* как подключить whitelist;
+* нужна ли память до Telegram;
+* какие diagnostics можно запускать из Telegram.
+
+---
+
+## 11.4 Agents
+
+Открытые вопросы:
+
+* CrewAI, OpenClaw или custom orchestrator;
+* какие agent roles нужны;
+* где хранить task state;
+* какие tools разрешить;
+* как оформлять approvals;
+* где хранить результаты работы.
+
+---
+
+## 11.5 Security and external access
+
+Открытые вопросы:
+
+* VPN или reverse proxy;
+* когда включать auth в Open WebUI;
+* когда закрывать direct backend-порты;
+* как управлять API keys;
+* как делать secrets rotation;
+* как аудитить внешние запросы.
+
+---
+
+## 12. Когда обновлять этот документ
+
+Обновлять `docs/architecture.md`, если меняется:
+
+* схема взаимодействия сервисов;
+* основной client path;
+* gateway role;
+* model role;
+* stage roadmap;
+* subsystem boundaries;
+* planned architecture;
+* security posture на уровне архитектуры;
+* решение о memory, Telegram, agents, monitoring или backups.
+
+Если изменение является архитектурным решением, также обновить:
+
+```text
+docs/decisions.md
+```
+
+Если изменение фактически применено и проверено, также обновить:
+
+```text
+docs/changelog.md
+```
+
+Если изменение требует новых команд эксплуатации, также обновить:
+
+```text
+docs/runbook.md
+```
+
+Если появляется новый subsystem, создать отдельный документ в `docs/` и добавить его в индекс `README.md`.
+
+---

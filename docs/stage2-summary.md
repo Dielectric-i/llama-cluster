@@ -3,7 +3,7 @@
 Дата: 2026-06-19  
 Статус: Stage 2 operational baseline завершён.
 
-## 1. Что завершено
+## Что завершено
 
 Stage 2 создал эксплуатационную основу вокруг уже работающего inference baseline.
 
@@ -18,7 +18,7 @@ Stage 2 создал эксплуатационную основу вокруг 
 - changelog;
 - целевая архитектура развития.
 
-## 2. Текущий рабочий inference baseline
+## Текущий рабочий inference baseline
 
 Сервисы:
 
@@ -42,7 +42,7 @@ GPU mapping:
 ctx-size 40000
 ```
 
-## 10. После Stage 2
+## После Stage 2
 
 После завершения Stage 2 начат Stage 3 — Gateway / Router.
 

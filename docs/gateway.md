@@ -1,15 +1,39 @@
-# slowrig AI Cluster — Gateway Design and Baseline v0.2
+# slowrig AI Cluster — Gateway
 
-Дата актуализации: 2026-06-19
-Статус: LiteLLM Gateway внедрён и проверен.
+Дата актуализации: 2026-06-22
+Статус: LiteLLM Gateway внедрён и используется как текущий gateway baseline
 
-## 1. Назначение
+## 1. Назначение документа
 
-Этот документ описывает Gateway / Router слой для `slowrig AI Cluster`.
+Этот документ описывает Gateway / Router слой в `slowrig AI Cluster`.
 
-Gateway нужен, чтобы все клиенты обращались не напрямую к моделям, а через единую контролируемую точку входа.
+Gateway отвечает за единую OpenAI-compatible точку входа к локальным LLM backend-ам.
 
-Текущая схема:
+Документ фиксирует:
+
+* зачем нужен gateway;
+* какая схема внедрена сейчас;
+* какие model names использовать клиентам;
+* как Open WebUI подключён к gateway;
+* какие backend-и доступны за gateway;
+* какие ограничения есть у текущего baseline;
+* какие правила безопасности действуют;
+* как временно откатить Open WebUI на direct backend mode.
+
+Этот документ не заменяет:
+
+* `README.md` — быстрый вход и индекс документации;
+* `docs/passport.md` — фактический паспорт стенда;
+* `docs/runbook.md` — команды диагностики, restart и rollback;
+* `docs/architecture.md` — общую архитектуру системы;
+* `docs/decisions.md` — причины архитектурных решений;
+* `docs/changelog.md` — фактическую историю изменений.
+
+---
+
+## 2. Текущая gateway-схема
+
+Текущая основная цепочка:
 
 ```text
 Open WebUI
@@ -17,308 +41,62 @@ Open WebUI
     v
 LiteLLM Gateway / port 4000
     |
-    +--> slowrig/coder      -> llama-coder / 9B / 8081
+    +--> slowrig/coder      -> llama-coder / 9B / host port 8081
     |
-    +--> slowrig/architect  -> llama-architect / 27B / 8080
+    +--> slowrig/architect  -> llama-architect / 27B / host port 8080
 ```
 
----
-
-## 2. Почему gateway нужен
-
-Раньше Open WebUI напрямую знал адреса обоих llama.cpp backend-ов.
-
-Сейчас Open WebUI переключён на LiteLLM Gateway. Это лучше масштабируется, когда появятся:
-
-* Telegram bot;
-* CrewAI;
-* OpenClaw;
-* IDE-ассистенты;
-* repo-auditor;
-* память;
-* RAG;
-* внешние клиенты;
-* разные политики доступа.
-
-Gateway должен стать центральной точкой, которая отвечает за:
-
-* единый OpenAI-compatible API;
-* маршрутизацию между 9B и 27B;
-* будущую авторизацию;
-* API keys;
-* логирование запросов;
-* лимиты;
-* очереди;
-* fallback;
-* подключение памяти;
-* подключение агентских сценариев;
-* сокрытие внутренних портов `8080` и `8081`.
-
----
-
-## 3. Что gateway не должен делать
-
-Gateway не должен становиться “всем сразу”.
-
-Он не должен:
-
-* хранить всю долгосрочную память;
-* быть полноценным агентским фреймворком;
-* выполнять shell-команды;
-* редактировать файлы;
-* заменять Open WebUI;
-* заменять llama.cpp;
-* напрямую управлять GPU;
-* решать все задачи RAG на первом этапе.
-
-Правильная роль gateway:
+Сервис gateway:
 
 ```text
-принять запрос -> выбрать backend -> отправить запрос -> вернуть ответ -> записать минимальные логи
+litellm
 ```
 
----
-
-## 4. Текущие backend-и
-
-### 4.1 `llama-coder`
-
-Адрес внутри Docker-сети:
+Host endpoint:
 
 ```text
-http://llama-coder:8080/v1
+http://192.168.1.6:4000/v1
 ```
 
-Адрес с хоста:
+Docker network endpoint:
 
 ```text
-http://127.0.0.1:8081/v1
+http://litellm:4000/v1
 ```
 
-Роль:
-
-* быстрые ответы;
-* Telegram;
-* summaries;
-* подготовка контекста;
-* простые coding-задачи;
-* первичный анализ файлов и логов.
-
-Рабочее имя в gateway:
-
-```text
-slowrig/coder
-```
-
----
-
-### 4.2 `llama-architect`
-
-Адрес внутри Docker-сети:
-
-```text
-http://llama-architect:8080/v1
-```
-
-Адрес с хоста:
-
-```text
-http://127.0.0.1:8080/v1
-```
-
-Роль:
-
-* сложное reasoning;
-* архитектура;
-* DevOps/ML-решения;
-* ревью сложного кода;
-* финальные выводы после подготовки контекста;
-* планирование задач для агентов.
-
-Рабочее имя в gateway:
-
-```text
-slowrig/architect
-```
-
----
-
-## 5. Кандидаты gateway
-
-### 5.1 LiteLLM Proxy
-
-Плюсы:
-
-* уже является готовым LLM gateway;
-* даёт OpenAI-compatible API;
-* умеет работать с несколькими backend-ами;
-* может подключаться к OpenAI-compatible endpoints;
-* может стать единой точкой для Open WebUI, Telegram, IDE и агентов;
-* проще, чем писать свой router сразу;
-* можно потом добавить API keys, логи, fallback и внешние модели.
-
-Минусы:
-
-* ещё один контейнер;
-* ещё один конфиг;
-* нужно внимательно проверить совместимость с llama.cpp server;
-* добавляет слой диагностики;
-* не решает сам по себе долгосрочную память и RAG.
-
-Статус:
-
-```text
-выбран, внедрён и проверен как первый gateway
-```
-
----
-
-### 5.2 Собственный FastAPI router
-
-Плюсы:
-
-* полный контроль;
-* можно сразу встроить свои правила;
-* можно сделать очень простой и понятный код;
-* удобно для Telegram и будущей памяти.
-
-Минусы:
-
-* нужно писать и поддерживать самому;
-* нужно реализовывать OpenAI-compatible API или адаптер;
-* больше риска ошибок;
-* появится собственный код до того, как стабилизирована общая архитектура.
-
-Предварительный статус:
-
-```text
-хороший вариант позже, если LiteLLM окажется слишком тяжёлым или неудобным
-```
-
----
-
-### 5.3 Gateway внутри OpenClaw / CrewAI
-
-Плюсы:
-
-* ближе к агентской логике;
-* может хорошо лечь на agent workflow;
-* можно сразу учитывать роли агентов.
-
-Минусы:
-
-* слишком рано привязывает инфраструктуру к конкретному agent framework;
-* сложнее использовать из Open WebUI, Telegram и IDE;
-* harder to debug;
-* может смешать слои: gateway, agents, memory и tools.
-
-Предварительный статус:
-
-```text
-не использовать как первый gateway
-```
-
----
-
-### 5.4 Оставить ручную маршрутизацию через Open WebUI
-
-Плюсы:
-
-* ничего не добавлять;
-* всё уже работает;
-* минимальная сложность.
-
-Минусы:
-
-* не подходит для Telegram;
-* не подходит для агентов;
-* нет единой точки логирования;
-* нет нормального routing policy;
-* клиенты должны знать внутренние backend-и.
-
-Предварительный статус:
-
-```text
-допустимо только временно
-```
-
----
-
-## 6. Предварительное решение
-
-Для Stage 3 выбрать:
-
-```text
-LiteLLM Proxy как первый gateway
-```
-
-Причина:
-
-* он подходит под роль центральной OpenAI-compatible точки входа;
-* позволяет подключить обе локальные llama.cpp модели;
-* Open WebUI можно будет подключить уже к LiteLLM, а не напрямую к моделям;
-* позже к нему можно подключить Telegram, IDE и агентские системы;
-* при неудаче его можно убрать, не ломая Stage 1 baseline.
-
-Это решение реализовано как Stage 3 baseline.
-
----
-
-## 7. Целевая Stage 3 схема
-
-```text
-Open WebUI
-    |
-    v
-LiteLLM Gateway / port 4000
-    |
-    +--> slowrig/coder      -> llama-coder      -> 9B  -> GPU 1
-    |
-    +--> slowrig/architect  -> llama-architect  -> 27B -> GPU 0 + GPU 2
-```
-
-Порты после добавления gateway:
-
-| Компонент         |   Порт | Назначение                           |
-| ----------------- | -----: | ------------------------------------ |
-| `open-webui`      | `3000` | ручной интерфейс                     |
-| `litellm`         | `4000` | единая OpenAI-compatible точка входа |
-| `llama-architect` | `8080` | внутренний 27B backend               |
-| `llama-coder`     | `8081` | внутренний 9B backend                |
-
-На первом этапе порты `8080` и `8081` можно оставить открытыми для диагностики.
-
-Позже, когда gateway стабилизируется, можно будет закрыть прямой доступ к backend-ам и оставить внешним клиентам только gateway.
-
----
-
-## 8. Модельные имена
-
-В gateway использовать понятные имена:
+Gateway model names:
 
 ```text
 slowrig/coder
 slowrig/architect
 ```
 
-Не использовать имена GGUF-файлов как публичные имена моделей.
-
-Причина:
-
-* GGUF-файл может измениться;
-* роль модели важнее имени файла;
-* клиентам удобнее использовать стабильные имена;
-* позже можно заменить backend без изменения клиентов.
+Обычные клиенты должны использовать gateway model names, а не имена GGUF-файлов и не прямые backend-порты.
 
 ---
 
-## 9. Предварительные routing policy
+## 3. Зачем нужен gateway
 
-### 9.1 Ручной выбор модели
+Раньше Open WebUI мог обращаться напрямую к llama.cpp backend-ам.
 
-На первом этапе gateway не обязан сам угадывать сложность задачи.
+Текущий baseline использует LiteLLM Gateway, потому что будущие клиенты не должны знать внутреннюю схему моделей и портов.
 
-Клиент явно выбирает:
+Gateway нужен для:
+
+* единой OpenAI-compatible точки входа;
+* стабильных публичных model names;
+* маршрутизации между 9B и 27B backend-ами;
+* подключения Open WebUI, Telegram, IDE и будущих агентов через один слой;
+* будущей авторизации и API keys;
+* будущих access policies;
+* будущих routing policies;
+* будущих логов запросов;
+* будущих лимитов и очередей;
+* возможности заменить backend без изменения клиентов.
+
+Gateway также снижает связанность клиентов с конкретными внутренними сервисами.
+
+Клиент должен знать:
 
 ```text
 model: slowrig/coder
@@ -330,224 +108,370 @@ model: slowrig/coder
 model: slowrig/architect
 ```
 
-Это проще и безопаснее.
-
-### 9.2 Будущий автоматический routing
-
-Позже можно добавить alias:
+Клиент не должен зависеть от:
 
 ```text
-slowrig/fast
-slowrig/deep
-slowrig/default
-```
-
-Предварительная логика:
-
-| Alias                 | Backend            |
-| --------------------- | ------------------ |
-| `slowrig/fast`        | 9B                 |
-| `slowrig/deep`        | 27B                |
-| `slowrig/default`     | 9B                 |
-| `slowrig/code-review` | 27B                |
-| `slowrig/telegram`    | 9B                 |
-| `slowrig/repo-audit`  | 9B -> 27B pipeline |
-
-На первом этапе pipeline `9B -> 27B` не реализовывать внутри gateway. Это задача будущего agent layer.
-
----
-
-## 10. Безопасность Stage 3
-
-На первом этапе gateway будет доступен только в LAN.
-
-Не открывать наружу:
-
-* `3000`;
-* `4000`;
-* `8080`;
-* `8081`.
-
-Для gateway нужен master key или API key.
-
-Секреты не хранить прямо в `docker-compose.yaml`.
-
-Использовать:
-
-```text
-.env
-```
-
-Но `.env` должен быть исключён из git.
-
----
-
-## 11. Что должно быть в git
-
-Можно хранить в git:
-
-* пример конфига gateway без секретов;
-* `litellm.config.yaml`, если в нём нет реальных ключей;
-* compose-сервис без секретов;
-* документацию;
-* инструкции.
-
-Нельзя хранить в git:
-
-* реальные API keys;
-* Telegram bot token;
-* внешние provider keys;
-* пользовательские токены;
-* приватные данные.
-
----
-
-## 12. Минимальная проверка после установки gateway
-
-После добавления gateway нужно проверить:
-
-1. `docker ps` показывает `litellm`.
-2. `litellm` healthy или стабильно `Up`.
-3. `curl http://127.0.0.1:4000/v1/models` отвечает.
-4. Запрос к `slowrig/coder` идёт на 9B.
-5. Запрос к `slowrig/architect` идёт на 27B.
-6. Open WebUI может работать через gateway.
-7. Прямые backend-и `8080` и `8081` по-прежнему работают для диагностики.
-8. `cluster-status.sh` обновлён и проверяет порт `4000`.
-
----
-
-## 13. Риски
-
-### 13.1 Дополнительный слой диагностики
-
-Если ответ не пришёл, нужно будет понимать, где проблема:
-
-```text
-Open WebUI -> LiteLLM -> llama.cpp -> GPU
-```
-
-Поэтому нельзя сразу менять всё.
-
-Правильный порядок:
-
-1. Добавить LiteLLM.
-2. Проверить LiteLLM напрямую через curl.
-3. Только потом переключить Open WebUI на LiteLLM.
-4. Сохранить возможность прямой проверки 8080/8081.
-
----
-
-### 13.2 Несовместимость endpoint-ов
-
-llama.cpp server даёт OpenAI-compatible API, но не обязательно поддерживает все новые OpenAI endpoint-ы.
-
-На первом этапе использовать только базовые chat completions.
-
-Не строить Stage 3 вокруг advanced endpoint-ов, пока они не проверены.
-
----
-
-### 13.3 Ошибки авторизации
-
-Gateway будет использовать API key.
-
-Нужно отдельно проверить:
-
-* что ключ работает;
-* что Open WebUI передаёт ключ;
-* что curl-запросы с ключом проходят;
-* что без ключа доступ запрещён, если так задумано.
-
----
-
-### 13.4 Перегрузка 27B
-
-Gateway не должен отправлять частые мелкие запросы на 27B.
-
-27B — дорогой ресурс.
-
-Правило:
-
-```text
-default -> 9B
-deep/manual -> 27B
+Qwen3.5-9B-UD-Q4_K_XL.gguf
+Qwen3.6-27B-UD-Q4_K_XL.gguf
+http://llama-coder:8080/v1
+http://llama-architect:8080/v1
 ```
 
 ---
 
-## 14. Stage 3 план
+## 4. Что gateway не делает
 
-* Stage 3.1 `docs/gateway.md` — done;
-* Stage 3.2 `.env` and config — done;
-* Stage 3.3 LiteLLM service — done;
-* Stage 3.4 `cluster-status.sh` update — done;
-* Stage 3.5 documentation update — done;
-* Stage 3.6 Open WebUI routed through LiteLLM — done.
+LiteLLM Gateway не должен становиться “всем сразу”.
+
+Gateway не является:
+
+* memory/RAG-слоем;
+* базой данных;
+* агентским фреймворком;
+* системой выполнения shell-команд;
+* системой редактирования файлов;
+* заменой Open WebUI;
+* заменой llama.cpp;
+* мониторингом GPU;
+* владельцем долгосрочного project state.
+
+Правильная роль gateway в текущем baseline:
+
+```text
+принять OpenAI-compatible запрос
+проверить model name
+передать запрос нужному backend-у
+вернуть ответ клиенту
+```
+
+Память, RAG, Telegram, агенты, мониторинг и backup должны проектироваться как отдельные subsystem-ы.
 
 ---
 
-## 15. Текущее решение
+## 5. Backend-и за gateway
 
-На момент актуализации документа:
+### 5.1 `slowrig/coder`
+
+Gateway model name:
 
 ```text
-LiteLLM Gateway внедрён
-Open WebUI подключён к http://litellm:4000/v1
-Прямые backend-порты 8080/8081 сохранены для диагностики
+slowrig/coder
+```
+
+Backend service:
+
+```text
+llama-coder
+```
+
+Backend role:
+
+```text
+9B fast worker / coder backend
+```
+
+Docker network endpoint:
+
+```text
+http://llama-coder:8080/v1
+```
+
+Host diagnostic endpoint:
+
+```text
+http://127.0.0.1:8081/v1
+```
+
+Назначение:
+
+* быстрые ответы;
+* простые coding-задачи;
+* первичный анализ файлов и логов;
+* summaries;
+* подготовка контекста;
+* будущий default backend для Telegram;
+* будущий fast worker для agent workflows.
+
+Ожидаемое использование:
+
+```text
+default / fast / frequent tasks
 ```
 
 ---
 
-## 16. Фактически внедрённая конфигурация
+### 5.2 `slowrig/architect`
 
-Сервис:
-
-```text
-litellm
-```
-
-Порт:
+Gateway model name:
 
 ```text
-4000
+slowrig/architect
 ```
 
-Конфиг:
+Backend service:
 
 ```text
-config/litellm.config.yaml
+llama-architect
 ```
 
-Секреты:
+Backend role:
 
 ```text
-.env
+27B architect / deep reasoning backend
 ```
 
-Шаблон секретов:
+Docker network endpoint:
 
 ```text
-.env.example
+http://llama-architect:8080/v1
 ```
 
-Model names:
+Host diagnostic endpoint:
+
+```text
+http://127.0.0.1:8080/v1
+```
+
+Назначение:
+
+* глубокое reasoning;
+* архитектурные решения;
+* сложный DevOps/ML-анализ;
+* ревью сложного кода;
+* финальные выводы после подготовки контекста;
+* планирование agent workflows.
+
+Ожидаемое использование:
+
+```text
+deep / manual / expensive reasoning tasks
+```
+
+27B backend не должен использоваться как default для частых мелких запросов.
+
+---
+
+## 6. Текущая routing policy
+
+Текущий baseline использует ручной выбор модели.
+
+Клиент явно выбирает одну из моделей:
 
 ```text
 slowrig/coder
 slowrig/architect
 ```
 
-Open WebUI использует:
+Текущий gateway не выполняет автоматическую классификацию сложности задачи.
+
+Текущий gateway не реализует pipeline:
+
+```text
+9B -> 27B
+```
+
+Текущий gateway не реализует автоматическую стратегию:
+
+```text
+сначала summary через 9B
+затем финальное решение через 27B
+```
+
+Такая логика относится к будущему agent layer или отдельному router/orchestrator слою.
+
+---
+
+## 7. Будущие routing policy
+
+В будущем можно добавить стабильные aliases:
+
+```text
+slowrig/default
+slowrig/fast
+slowrig/deep
+slowrig/telegram
+slowrig/code-review
+slowrig/repo-audit
+```
+
+Предварительная логика:
+
+| Alias                 | Предполагаемый backend |
+| --------------------- | ---------------------- |
+| `slowrig/default`     | 9B                     |
+| `slowrig/fast`        | 9B                     |
+| `slowrig/deep`        | 27B                    |
+| `slowrig/telegram`    | 9B                     |
+| `slowrig/code-review` | 27B                    |
+| `slowrig/repo-audit`  | future pipeline        |
+
+Эти aliases пока не являются текущим baseline.
+
+Добавлять их нужно только после отдельного решения и обновления:
+
+* `config/litellm.config.yaml`;
+* `docs/gateway.md`;
+* `docs/runbook.md`;
+* `docs/changelog.md`;
+* при необходимости `docs/decisions.md`.
+
+---
+
+## 8. Open WebUI routing
+
+Open WebUI сейчас подключён к LiteLLM Gateway.
+
+Текущая логика подключения:
+
+```text
+Open WebUI -> http://litellm:4000/v1
+```
+
+Смысловая конфигурация:
 
 ```text
 OPENAI_API_BASE_URLS=http://litellm:4000/v1
 OPENAI_API_KEYS=${LITELLM_MASTER_KEY}
 ```
 
+Фактические значения секретов должны храниться только в:
+
+```text
+.env
+```
+
+Open WebUI не должен в нормальном режиме обращаться напрямую к:
+
+```text
+http://llama-coder:8080/v1
+http://llama-architect:8080/v1
+```
+
+Direct backend mode допустим только как rollback path.
+
 ---
 
-## 17. Rollback: Open WebUI direct backend mode
+## 9. Конфигурационные файлы
+
+Gateway-related files:
+
+```text
+config/litellm.config.yaml
+.env
+.env.example
+docker-compose.yaml
+```
+
+Назначение:
+
+| Файл                         | Назначение                             |
+| ---------------------------- | -------------------------------------- |
+| `config/litellm.config.yaml` | LiteLLM model list and backend mapping |
+| `.env`                       | реальные секреты и runtime values      |
+| `.env.example`               | безопасный шаблон переменных           |
+| `docker-compose.yaml`        | сервис `litellm`, порты, env, mounts   |
+
+`.env` не должен попадать в git.
+
+`.env.example` должен содержать только имена переменных и безопасные placeholders.
+
+В документации можно указывать имена переменных:
+
+```text
+LITELLM_MASTER_KEY
+LITELLM_SALT_KEY
+```
+
+Нельзя указывать реальные значения.
+
+---
+
+## 10. Проверенный Stage 3 baseline
+
+Stage 3 Gateway baseline считается внедрённым.
+
+Фактически внедрено:
+
+* добавлен сервис `litellm`;
+* опубликован host port `4000`;
+* добавлен `config/litellm.config.yaml`;
+* добавлен `.env.example`;
+* реальные секреты вынесены в `.env`;
+* добавлены gateway model names;
+* Open WebUI переключён на LiteLLM Gateway;
+* прямые backend-порты `8080` и `8081` сохранены для диагностики;
+* `scripts/cluster-status.sh` проверяет LiteLLM и обе модели через gateway.
+
+Проверенные gateway model names:
+
+```text
+slowrig/coder
+slowrig/architect
+```
+
+---
+
+## 11. Минимальная диагностика
+
+Подробные команды диагностики живут в:
+
+```text
+docs/runbook.md
+```
+
+Минимальная логика проверки:
+
+1. Проверить, что direct backend-и живы.
+2. Проверить, что LiteLLM отвечает на `/v1/models`.
+3. Проверить короткий запрос к `slowrig/coder`.
+4. Проверить короткий запрос к `slowrig/architect`.
+5. Проверить, что Open WebUI видит модели через gateway.
+
+Главная команда ручной проверки:
+
+```bash
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+Важно:
+
+```text
+cluster-status.sh делает реальные короткие LLM-запросы.
+```
+
+Этот скрипт подходит для ручной диагностики, но не должен использоваться как частый автоматический healthcheck.
+
+---
+
+## 12. Как отличать проблемы gateway от проблем backend
+
+Базовая логика:
+
+```text
+8080/8081 работают, 4000 не работает
+=> проблема в LiteLLM или его конфиге
+
+8080/8081 не работают
+=> проблема ниже gateway, в llama.cpp backend-е
+
+4000 работает, Open WebUI не видит модели
+=> проблема в Open WebUI config или API key
+
+4000 работает, но только одна модель отвечает
+=> проблема в конкретном backend mapping или конкретном backend-е
+```
+
+При диагностике не менять сразу несколько слоёв.
+
+Правильный порядок:
+
+```text
+direct backend -> LiteLLM -> Open WebUI -> client behavior
+```
+
+---
+
+## 13. Rollback: Open WebUI direct backend mode
 
 Если LiteLLM нужно временно обойти, Open WebUI можно вернуть на прямые backend-и.
 
@@ -558,20 +482,112 @@ Direct backend config:
 - OPENAI_API_KEYS=dummy;dummy
 ```
 
-После изменения:
+После изменения применить только Open WebUI:
 
 ```bash
 cd /opt/llama-cluster
 sudo docker compose up -d open-webui
 ```
 
+Этот режим является rollback path.
+
+Он не является предпочтительной архитектурой.
+
+После восстановления LiteLLM нужно вернуть Open WebUI к gateway mode:
+
+```yaml
+- OPENAI_API_BASE_URLS=http://litellm:4000/v1
+- OPENAI_API_KEYS=${LITELLM_MASTER_KEY}
+```
+
 ---
 
-## 18. Known limitations
+## 14. Security baseline
 
-* прямые порты `8080/8081` пока открыты для диагностики;
-* автоматический routing по сложности задачи пока не реализован;
+Текущий gateway baseline рассчитан на домашнюю LAN.
+
+Не открывать наружу без отдельного security stage:
+
+```text
+3000  # Open WebUI
+4000  # LiteLLM Gateway
+8080  # llama-architect direct backend
+8081  # llama-coder direct backend
+```
+
+Для внешнего доступа позже нужен отдельный план:
+
+* VPN;
+* reverse proxy с авторизацией;
+* firewall restrictions;
+* gateway API key policy;
+* включённая авторизация Open WebUI;
+* whitelist для будущих клиентов.
+
+Секреты:
+
+* реальные ключи хранить в `.env`;
+* не печатать `.env`;
+* не просить пользователя присылать `.env`;
+* не коммитить `.env`;
+* не писать реальные ключи в документацию;
+* не писать реальные ключи в commit messages.
+
+---
+
+## 15. Known limitations
+
+Текущие ограничения:
+
+* routing выполняется по явно выбранному model name;
+* автоматический выбор модели по сложности задачи не реализован;
+* aliases `slowrig/default`, `slowrig/fast`, `slowrig/deep` пока не реализованы;
+* pipeline `9B -> 27B` не реализован;
 * LiteLLM не является memory/RAG-слоем;
+* LiteLLM не является agent framework;
 * Telegram ещё не подключён;
+* IDE-клиенты ещё не подключены;
 * CrewAI/OpenClaw ещё не подключены;
-* `cluster-status.sh` делает реальные короткие LLM-запросы, поэтому не использовать его как частый автоматический healthcheck.
+* прямые порты `8080` и `8081` пока оставлены для диагностики;
+* частый автоматический healthcheck через реальные LLM-запросы не настроен и не должен использовать `cluster-status.sh` без упрощения.
+
+---
+
+## 16. Когда обновлять этот документ
+
+Обновлять `docs/gateway.md`, если меняется:
+
+* gateway service;
+* port `4000`;
+* model names;
+* backend mapping;
+* LiteLLM config path;
+* Open WebUI routing;
+* authentication/API key policy;
+* gateway aliases;
+* routing policy;
+* direct backend policy;
+* rollback path;
+* gateway-related security posture.
+
+Если изменение является архитектурным решением, также обновить:
+
+```text
+docs/decisions.md
+```
+
+Если изменение фактически применено и проверено, также обновить:
+
+```text
+docs/changelog.md
+```
+
+Если изменение влияет на команды эксплуатации, также обновить:
+
+```text
+docs/runbook.md
+```
+
+Если появляется новый клиент через gateway, например Telegram или IDE, создать или обновить соответствующий subsystem document.
+
+---

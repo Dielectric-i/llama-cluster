@@ -285,66 +285,37 @@ LAN/VPN first, auth before external exposure, no secrets in git.
 
 ---
 
-## 8. Branch and stage workflow
+## 8. Workflow reminder
 
-For non-trivial stages, use a stage branch instead of working directly on `main`.
+Detailed Codex workflow rules are defined in `AGENTS.md`.
 
-Preferred branch naming:
+This includes:
+
+* required reading order;
+* stage-based workflow;
+* branch naming;
+* git safety rules;
+* validation expectations;
+* documentation update rules;
+* done definition.
+
+This file should not duplicate those rules.
+
+The important project-specific reminder is:
 
 ```text
-codex/<stage-or-task-name>
+slowrig should move in small documented stages,
+with design before new subsystems,
+manual verification for real server changes,
+and human approval before risky actions.
 ```
 
-Examples:
+For non-trivial work, Codex should follow AGENTS.md first, then use this file only as supplemental project context.
 
-```text
-codex/stage-4-memory-design
-codex/telegram-design
-codex/gateway-policy
-codex/runbook-cleanup
-```
-
-Expected workflow:
-
-1. create or switch to a `codex/...` branch;
-2. make the smallest coherent change;
-3. update affected documentation;
-4. provide test commands and rollback;
-5. wait for Александр to run checks or review;
-6. merge to `main` only after approval.
-
-Do not merge automatically unless Александр explicitly asks.
 
 ---
 
-## 9. Context preparation before work
-
-Before non-trivial work, Codex should read:
-
-```text
-README.md
-AGENTS.md
-docs/codex-context.md
-```
-
-Then read task-specific docs.
-
-Examples:
-
-| Task | Read additionally |
-| --- | --- |
-| memory/RAG | `docs/architecture.md`, `docs/decisions.md`, future `docs/memory.md` |
-| gateway/routing | `docs/gateway.md`, `docs/runbook.md`, `docs/changelog.md` |
-| operational command | `docs/runbook.md` |
-| new service | `docs/passport.md`, `docs/architecture.md`, `docs/runbook.md`, `docs/changelog.md` |
-| architectural decision | `docs/decisions.md` |
-| completed stage context | relevant `docs/stage*-summary.md` |
-
-If a required document does not exist and the task introduces a subsystem, start by creating the design document.
-
----
-
-## 10. What belongs in this file
+## 9. What belongs in this file
 
 Keep:
 
@@ -374,7 +345,7 @@ If information becomes important enough to operate, debug, or roll back a subsys
 
 ---
 
-## 11. Privacy and data handling notes
+## 10. Privacy and data handling notes
 
 Do not store or reproduce unnecessary personal details.
 
@@ -394,7 +365,7 @@ When future memory/RAG is designed, explicitly decide:
 
 ---
 
-## 12. How to update this file
+## 11. How to update this file
 
 Update this file only when there is new supplemental context that does not fit better elsewhere.
 

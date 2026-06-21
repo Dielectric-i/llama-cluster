@@ -1,8 +1,11 @@
-# slowrig AI Cluster — Gateway Design v0.1
+# slowrig AI Cluster — Gateway Design and Baseline v0.2
+
+Дата актуализации: 2026-06-19
+Статус: LiteLLM Gateway внедрён и проверен.
 
 ## 1. Назначение
 
-Этот документ описывает проектируемый Gateway / Router слой для `slowrig AI Cluster`.
+Этот документ описывает Gateway / Router слой для `slowrig AI Cluster`.
 
 Gateway нужен, чтобы все клиенты обращались не напрямую к моделям, а через единую контролируемую точку входа.
 
@@ -10,33 +13,22 @@ Gateway нужен, чтобы все клиенты обращались не �
 
 ```text
 Open WebUI
-   |
-   +--> llama-coder / 9B / 8081
-   +--> llama-architect / 27B / 8080
-```
-
-Целевая схема:
-
-```text
-Open WebUI / Telegram / IDE / Agents / Scripts
-                  |
-                  v
-            LLM Gateway
-                  |
-        +---------+----------+
-        |                    |
-        v                    v
-  llama-coder          llama-architect
-  9B / fast            27B / deep
+    |
+    v
+LiteLLM Gateway / port 4000
+    |
+    +--> slowrig/coder      -> llama-coder / 9B / 8081
+    |
+    +--> slowrig/architect  -> llama-architect / 27B / 8080
 ```
 
 ---
 
 ## 2. Почему gateway нужен
 
-Сейчас Open WebUI напрямую знает адреса обоих llama.cpp backend-ов.
+Раньше Open WebUI напрямую знал адреса обоих llama.cpp backend-ов.
 
-Это работает для ручного тестирования, но плохо масштабируется, когда появятся:
+Сейчас Open WebUI переключён на LiteLLM Gateway. Это лучше масштабируется, когда появятся:
 
 * Telegram bot;
 * CrewAI;
@@ -173,10 +165,10 @@ slowrig/architect
 * добавляет слой диагностики;
 * не решает сам по себе долгосрочную память и RAG.
 
-Предварительный статус:
+Статус:
 
 ```text
-главный кандидат для Stage 3
+выбран, внедрён и проверен как первый gateway
 ```
 
 ---
@@ -268,6 +260,8 @@ LiteLLM Proxy как первый gateway
 * позже к нему можно подключить Telegram, IDE и агентские системы;
 * при неудаче его можно убрать, не ломая Stage 1 baseline.
 
+Это решение реализовано как Stage 3 baseline.
+
 ---
 
 ## 7. Целевая Stage 3 схема
@@ -276,7 +270,7 @@ LiteLLM Proxy как первый gateway
 Open WebUI
     |
     v
-LiteLLM Proxy
+LiteLLM Gateway / port 4000
     |
     +--> slowrig/coder      -> llama-coder      -> 9B  -> GPU 1
     |
@@ -484,47 +478,100 @@ deep/manual -> 27B
 
 ## 14. Stage 3 план
 
-### Stage 3.1
-
-Создать `docs/gateway.md`.
-
-### Stage 3.2
-
-Создать безопасный `.env` для gateway-секретов.
-
-### Stage 3.3
-
-Создать конфиг LiteLLM без внешних провайдеров.
-
-### Stage 3.4
-
-Добавить `litellm` в Docker Compose, но не менять Open WebUI.
-
-### Stage 3.5
-
-Проверить LiteLLM через curl.
-
-### Stage 3.6
-
-Обновить `cluster-status.sh`.
-
-### Stage 3.7
-
-Переключить Open WebUI на LiteLLM.
-
-### Stage 3.8
-
-Зафиксировать Stage 3 baseline в git.
+* Stage 3.1 `docs/gateway.md` — done;
+* Stage 3.2 `.env` and config — done;
+* Stage 3.3 LiteLLM service — done;
+* Stage 3.4 `cluster-status.sh` update — done;
+* Stage 3.5 documentation update — done;
+* Stage 3.6 Open WebUI routed through LiteLLM — done.
 
 ---
 
 ## 15. Текущее решение
 
-На момент создания документа:
+На момент актуализации документа:
 
 ```text
-Stage 3.1 = design only
-Новые контейнеры пока не запускаются
-Работающие llama.cpp backend-и не трогаются
-Open WebUI пока остаётся подключён напрямую к 8080/8081
+LiteLLM Gateway внедрён
+Open WebUI подключён к http://litellm:4000/v1
+Прямые backend-порты 8080/8081 сохранены для диагностики
 ```
+
+---
+
+## 16. Фактически внедрённая конфигурация
+
+Сервис:
+
+```text
+litellm
+```
+
+Порт:
+
+```text
+4000
+```
+
+Конфиг:
+
+```text
+config/litellm.config.yaml
+```
+
+Секреты:
+
+```text
+.env
+```
+
+Шаблон секретов:
+
+```text
+.env.example
+```
+
+Model names:
+
+```text
+slowrig/coder
+slowrig/architect
+```
+
+Open WebUI использует:
+
+```text
+OPENAI_API_BASE_URLS=http://litellm:4000/v1
+OPENAI_API_KEYS=${LITELLM_MASTER_KEY}
+```
+
+---
+
+## 17. Rollback: Open WebUI direct backend mode
+
+Если LiteLLM нужно временно обойти, Open WebUI можно вернуть на прямые backend-и.
+
+Direct backend config:
+
+```yaml
+- OPENAI_API_BASE_URLS=http://llama-coder:8080/v1;http://llama-architect:8080/v1
+- OPENAI_API_KEYS=dummy;dummy
+```
+
+После изменения:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose up -d open-webui
+```
+
+---
+
+## 18. Known limitations
+
+* прямые порты `8080/8081` пока открыты для диагностики;
+* автоматический routing по сложности задачи пока не реализован;
+* LiteLLM не является memory/RAG-слоем;
+* Telegram ещё не подключён;
+* CrewAI/OpenClaw ещё не подключены;
+* `cluster-status.sh` делает реальные короткие LLM-запросы, поэтому не использовать его как частый автоматический healthcheck.

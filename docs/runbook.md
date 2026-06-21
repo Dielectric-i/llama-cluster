@@ -18,13 +18,14 @@ Runbook отвечает на вопросы:
 
 ## 2. Нормальное состояние
 
-Нормальное состояние Stage 1:
+Нормальное состояние:
 
 | Сервис            |   Порт | Роль                           |
 | ----------------- | -----: | ------------------------------ |
 | `llama-architect` | `8080` | 27B architect / deep reasoning |
 | `llama-coder`     | `8081` | 9B coder / fast worker         |
-| `open-webui`      | `3000` | ручной WebUI                   |
+| `litellm`         | `4000` | LLM Gateway / Router           |
+| `open-webui`      | `3000` | ручной WebUI через gateway     |
 
 Нормальное распределение GPU:
 
@@ -58,13 +59,14 @@ sudo docker ps
 
 * `llama-architect`;
 * `llama-coder`;
+* `litellm`;
 * `open-webui`.
 
 Нормально:
 
 * статус `Up`;
 * желательно `healthy`;
-* порты `8080`, `8081`, `3000` опубликованы.
+* порты `8080`, `8081`, `4000`, `3000` опубликованы.
 
 Проблема:
 
@@ -301,6 +303,21 @@ sudo docker logs --tail=120 open-webui
 
 ---
 
+### 6.4 Логи LiteLLM
+
+```bash
+sudo docker logs --tail=160 litellm
+```
+
+Смотреть на:
+
+* ошибки загрузки конфига;
+* ошибки авторизации;
+* ошибки подключения к backend-ам;
+* проблемы model names.
+
+---
+
 ## 7. Безопасный перезапуск
 
 ### 7.1 Перезапустить только 9B
@@ -516,23 +533,75 @@ sudo docker logs --tail=160 <container_name>
 
 ---
 
-### 10.2 WebUI не видит модели
+### 10.2 Open WebUI не видит модели
 
-Проверить:
+Проверить логи WebUI:
 
 ```bash
 sudo docker logs --tail=120 open-webui
+```
+
+Проверить логи LiteLLM:
+
+```bash
+sudo docker logs --tail=160 litellm
+```
+
+Проверить gateway:
+
+```bash
+cd /opt/llama-cluster
+set -a
+source .env
+set +a
+
+curl -sS \
+  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
+  http://127.0.0.1:4000/v1/models
+```
+
+Проверить backend-и напрямую:
+
+```bash
 curl http://127.0.0.1:8080/v1/models
 curl http://127.0.0.1:8081/v1/models
 ```
 
-Если API моделей отвечает, а WebUI не видит их — проблема в настройках Open WebUI.
+Если `8080` и `8081` работают, а `4000` нет — проблема в LiteLLM или его конфиге.
 
-Если API не отвечает — проблема в llama.cpp контейнере.
+Если `4000` работает, но WebUI не видит модели — проблема в настройках Open WebUI.
 
 ---
 
-### 10.3 Модель отвечает очень медленно
+### 10.3 Откат Open WebUI на прямые backend-и
+
+Если LiteLLM работает нестабильно, можно временно вернуть Open WebUI на прямое подключение к backend-ам.
+
+В `docker-compose.yaml` для `open-webui` заменить gateway-mode:
+
+```yaml
+# Gateway mode:
+# - OPENAI_API_BASE_URLS=http://litellm:4000/v1
+# - OPENAI_API_KEYS=${LITELLM_MASTER_KEY}
+```
+
+на direct-mode:
+
+```yaml
+- OPENAI_API_BASE_URLS=http://llama-coder:8080/v1;http://llama-architect:8080/v1
+- OPENAI_API_KEYS=dummy;dummy
+```
+
+Перезапустить только WebUI:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose up -d open-webui
+```
+
+---
+
+### 10.4 Модель отвечает очень медленно
 
 Проверить:
 
@@ -554,7 +623,7 @@ sudo docker logs --tail=120 llama-coder
 
 ---
 
-### 10.4 После изменения compose всё сломалось
+### 10.5 После изменения compose всё сломалось
 
 Сравнить с baseline:
 
@@ -589,6 +658,10 @@ nvidia-smi
 * включать CPU layers;
 * запускать третью LLM на GPU 0/2;
 * открывать WebUI наружу;
+* публиковать `LITELLM_MASTER_KEY`;
+* коммитить `.env`;
+* открывать порт `4000` наружу без защиты;
+* удалять диагностические порты `8080/8081`, пока gateway не проверен длительно;
 * удалять Docker volumes;
 * обновлять все образы без backup baseline;
 * менять порядок GPU без проверки `nvidia-smi`;

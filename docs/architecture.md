@@ -30,7 +30,7 @@
 Open WebUI
     |
     v
-llama.cpp OpenAI-compatible API
+LiteLLM Gateway
     |
     +--> llama-coder / 9B / port 8081 / GPU 1 x16
     |
@@ -43,7 +43,8 @@ llama.cpp OpenAI-compatible API
 | ----------------- | -----: | ------------------------ |
 | `llama-coder`     | `8081` | быстрая рабочая модель   |
 | `llama-architect` | `8080` | тяжёлая reasoning-модель |
-| `open-webui`      | `3000` | ручной интерфейс         |
+| `litellm`         | `4000` | LLM Gateway / Router     |
+| `open-webui`      | `3000` | ручной интерфейс через gateway |
 
 Обе модели работают с `ctx-size 40000`.
 
@@ -223,6 +224,8 @@ host GPU 0 + host GPU 2
 
 Open WebUI удобен для ручной работы, но он не должен быть главным центром архитектуры.
 
+Статус: LiteLLM Proxy внедрён как первый gateway.
+
 Gateway нужен для:
 
 * единой OpenAI-compatible точки входа;
@@ -238,6 +241,8 @@ Gateway нужен для:
 * скрытия внутренних портов `8080` и `8081`.
 
 ### 6.2 Логика маршрутизации
+
+LiteLLM сейчас выполняет routing по явно выбранному model name. Автоматический pipeline `9B -> 27B` пока не реализован.
 
 Примеры будущих маршрутов:
 
@@ -263,15 +268,13 @@ Gateway нужен для:
 3. Gateway внутри OpenClaw/agent framework.
 4. Временная ручная маршрутизация через Open WebUI.
 
-Предпочтительный порядок:
+Текущий выбор:
 
 ```text
-сначала ручная маршрутизация через Open WebUI
-потом LiteLLM или простой FastAPI-router
-потом интеграция с агентами
+LiteLLM Proxy как первый gateway
 ```
 
-Не ставить gateway до тех пор, пока не понятно:
+Следующие вопросы для развития gateway:
 
 * какие клиенты будут подключаться;
 * нужна ли авторизация;
@@ -563,28 +566,28 @@ llama.cpp /metrics
 
 ## 13. Сценарии использования
 
-### 13.1 Быстрый вопрос
+### 13.1 Open WebUI
 
 ```text
-Пользователь -> WebUI/Telegram -> 9B -> ответ
+User -> Open WebUI -> LiteLLM -> 9B/27B
 ```
 
-### 13.2 Сложная DevOps-проблема
+### 13.2 Telegram
 
 ```text
-Пользователь -> 9B собирает вводные -> 27B анализирует -> ответ
+Telegram -> Bot -> LiteLLM -> 9B/27B
 ```
 
-### 13.3 Анализ репозитория
+### 13.3 Agent
 
 ```text
-Repo scanner -> 9B summaries -> Memory -> 27B architecture review
+Agent -> LiteLLM -> 9B/27B
 ```
 
-### 13.4 Работа с документацией
+### 13.4 IDE
 
 ```text
-Docs -> chunking -> embeddings -> vector search -> 9B/27B answer
+IDE -> LiteLLM -> 9B/27B
 ```
 
 ### 13.5 Автономная агентская задача
@@ -608,7 +611,7 @@ User task -> Agent -> Gateway -> 9B/27B -> Tools -> Memory -> Report
 
 ### Stage 2 — Operational foundation
 
-Статус: выполняется.
+Статус: завершён.
 
 Сделано:
 
@@ -626,6 +629,8 @@ User task -> Agent -> Gateway -> 9B/27B -> Tools -> Memory -> Report
 * подготовить выбор memory stack.
 
 ### Stage 3 — Gateway
+
+Статус: gateway baseline implemented / выполняется.
 
 Цель:
 
@@ -645,7 +650,16 @@ User task -> Agent -> Gateway -> 9B/27B -> Tools -> Memory -> Report
 * память решений;
 * состояние агентских задач.
 
-### Stage 5 — Agents
+### Stage 5 — Telegram
+
+Цель:
+
+* Telegram bot;
+* безопасный доступ из мессенджера;
+* routing через LiteLLM;
+* whitelist пользователей.
+
+### Stage 6 — Agents
 
 Цель:
 
@@ -653,8 +667,16 @@ User task -> Agent -> Gateway -> 9B/27B -> Tools -> Memory -> Report
 * repo-auditor;
 * documentation worker;
 * code worker;
-* Telegram assistant;
 * контролируемое выполнение задач.
+
+### Stage 7 — Monitoring
+
+Цель:
+
+* Prometheus/Grafana/Loki;
+* метрики GPU и контейнеров;
+* alerting;
+* аккуратные healthcheck-и без частых LLM-запросов.
 
 ---
 

@@ -20,6 +20,54 @@
 
 ---
 
+## 2026-06-19 — Open WebUI routed through LiteLLM Gateway
+
+### Изменено
+
+Open WebUI переключён с прямого подключения к llama.cpp backend-ам на LiteLLM Gateway.
+
+Новая цепочка:
+
+```text
+Open WebUI -> LiteLLM -> llama-coder / llama-architect
+```
+
+### Конфигурация
+
+Open WebUI использует:
+
+```text
+OPENAI_API_BASE_URLS=http://litellm:4000/v1
+OPENAI_API_KEYS=${LITELLM_MASTER_KEY}
+```
+
+LiteLLM использует модели:
+
+| Gateway model name | Backend |
+| --- | --- |
+| `slowrig/coder` | `llama-coder` |
+| `slowrig/architect` | `llama-architect` |
+
+### Проверено
+
+* `litellm` запущен на порту `4000`;
+* `/v1/models` через LiteLLM отвечает;
+* `slowrig/coder` отвечает через LiteLLM;
+* `slowrig/architect` отвечает через LiteLLM;
+* Open WebUI работает через LiteLLM;
+* прямые backend-и `8080` и `8081` сохранены для диагностики;
+* `scripts/cluster-status.sh` проверяет LiteLLM и оба model names.
+
+### Результат
+
+Stage 3 gateway baseline считается рабочим.
+
+### Замечания
+
+LiteLLM пока выполняет routing по явно выбранному model name. Автоматический выбор модели по сложности задачи пока не реализован.
+
+---
+
 ## 2026-06-19 — Stage 1 baseline зафиксирован
 
 ### Изменено

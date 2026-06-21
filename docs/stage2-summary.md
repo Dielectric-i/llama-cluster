@@ -40,3 +40,18 @@ GPU mapping:
 
 ```text
 ctx-size 40000
+```
+
+## 10. После Stage 2
+
+После завершения Stage 2 начат Stage 3 — Gateway / Router.
+
+Текущий выбранный gateway: LiteLLM Proxy.
+
+Подробности Stage 3 описываются в:
+
+```text
+docs/gateway.md
+docs/changelog.md
+docs/decisions.md
+```

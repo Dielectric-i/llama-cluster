@@ -26,7 +26,7 @@
 | `llama-architect` | `8080` | 27B architect / сложные решения |
 | `llama-coder`     | `8081` | 9B coder / быстрый исполнитель  |
 | `litellm`         | `4000` | LLM Gateway / Router            |
-| `open-webui`      | `3000` | ручной WebUI                    |
+| `open-webui`      | `3000` | ручной WebUI через gateway      |
 
 ## Адреса
 
@@ -52,11 +52,19 @@ LiteLLM Gateway:
 
 ```text
 http://192.168.1.6:4000/v1
+```
 
 Gateway model names:
 
+```text
 slowrig/coder
 slowrig/architect
+```
+
+Текущая цепочка:
+
+```text
+Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 ```
 
 ## GPU mapping
@@ -145,6 +153,19 @@ cd /opt/llama-cluster
 sudo docker compose config
 ```
 
+Проверить LiteLLM Gateway:
+
+```bash
+cd /opt/llama-cluster
+set -a
+source .env
+set +a
+
+curl -sS \
+  -H "Authorization: Bearer $LITELLM_MASTER_KEY" \
+  http://127.0.0.1:4000/v1/models
+```
+
 Перезапустить только WebUI:
 
 ```bash
@@ -175,6 +196,10 @@ sudo docker compose restart llama-architect
 * включать Unified Memory как штатный режим;
 * запускать третью LLM на GPU 0/2;
 * открывать порты `3000`, `8080`, `8081` наружу;
+* открывать порт `4000` наружу без VPN/auth/reverse proxy;
+* публиковать `LITELLM_MASTER_KEY`;
+* коммитить `.env`;
+* удалять прямой доступ к `8080` и `8081`, пока gateway не стабилизирован;
 * удалять Docker volumes;
 * обновлять образы без фиксации baseline;
 * менять сразу несколько параметров compose.
@@ -208,6 +233,7 @@ git commit -m "Describe change"
 | [docs/passport.md](docs/passport.md)             | паспорт текущего стенда: железо, сервисы, порты, роли              |
 | [docs/runbook.md](docs/runbook.md)               | ежедневная эксплуатация, диагностика, перезапуск, типовые проблемы |
 | [docs/architecture.md](docs/architecture.md)     | целевая архитектура ПО: gateway, память, агенты, Telegram          |
+| [docs/gateway.md](docs/gateway.md)               | дизайн и baseline LiteLLM Gateway                                  |
 | [docs/decisions.md](docs/decisions.md)           | журнал архитектурных решений и компромиссов                        |
 | [docs/changelog.md](docs/changelog.md)           | фактическая история изменений, проверок и измерений                |
 | [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline                                  |

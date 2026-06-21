@@ -196,7 +196,7 @@ ctx-size 40000
 
 ### 5.3 `open-webui`
 
-Роль: ручной интерфейс для тестирования и интерактивной работы.
+Роль: ручной интерфейс для тестирования и интерактивной работы через LiteLLM Gateway.
 
 Порт на хосте:
 
@@ -214,12 +214,14 @@ http://192.168.1.6:3000
 
 * ручное тестирование моделей;
 * сравнение 9B и 27B;
-* проверка OpenAI-compatible API;
+* проверка OpenAI-compatible API через LiteLLM;
 * временная точка входа для пользователя.
 
 Текущий режим:
 
 * авторизация отключена;
+* Open WebUI теперь подключён к LiteLLM Gateway;
+* Gateway маршрутизирует запросы к `llama-coder` и `llama-architect`;
 * использовать только в домашней сети;
 * не открывать наружу без VPN/auth/reverse proxy.
 
@@ -227,7 +229,7 @@ http://192.168.1.6:3000
 
 ### 5.4 `litellm`
 
-Роль: единая OpenAI-compatible точка входа для клиентов и будущих агентских сценариев.
+Роль: LLM Gateway / Router.
 
 Порт на хосте:
 
@@ -243,27 +245,29 @@ http://192.168.1.6:4000/v1
 
 Назначение:
 
-* маршрутизация запросов к локальным LLM backend-ам;
-* единая точка входа для будущих клиентов;
+* единая OpenAI-compatible точка входа;
+* маршрутизация к `llama-coder` и `llama-architect`;
 * подготовка к Telegram bot;
 * подготовка к CrewAI / OpenClaw;
-* подготовка к IDE-ассистентам;
-* будущая авторизация и API keys;
-* будущие логи запросов и политики доступа.
+* подготовка к IDE-клиентам;
+* будущая авторизация, ключи доступа и политики маршрутизации.
 
 Текущие модели в gateway:
 
 | Gateway model name | Backend | Роль |
 | --- | --- | --- |
-| slowrig/coder | llama-coder | быстрая 9B-модель |
-| slowrig/architect | llama-architect | тяжёлая 27B-модель |
+| `slowrig/coder` | `llama-coder` | 9B fast worker |
+| `slowrig/architect` | `llama-architect` | 27B deep reasoning |
 
 Текущий статус:
 
 * LiteLLM запущен отдельным контейнером litellm;
 * порт 4000 опубликован на хосте;
 * прямые backend-порты 8080 и 8081 пока оставлены для диагностики;
-* Open WebUI пока может оставаться подключённым напрямую к backend-ам или позже быть переключён на gateway.
+* `/v1/models` через LiteLLM отвечает;
+* `slowrig/coder` отвечает через LiteLLM;
+* `slowrig/architect` отвечает через LiteLLM;
+* Open WebUI работает через LiteLLM.
 
 Файлы:
 
@@ -272,6 +276,8 @@ http://192.168.1.6:4000/v1
 /opt/llama-cluster/.env
 /opt/llama-cluster/.env.example
 ```
+
+`.env` содержит реальные секреты и не должен попадать в git.
 
 ---
 
@@ -325,12 +331,17 @@ Stage 1 считается завершённым.
 
 * контейнер `llama-architect` запущен;
 * контейнер `llama-coder` запущен;
+* контейнер `litellm` запущен;
 * контейнер `open-webui` запущен;
 * `llama-coder` и `open-webui` имеют `restart: unless-stopped`;
 * `llama-architect` может быть без автоперезапуска на этапе отладки;
 * GPU 0 и GPU 2 заняты процессом `llama-architect`;
 * GPU 1 занята процессом `llama-coder`;
 * WebUI доступен на порту `3000`;
+* LiteLLM доступен на порту `4000`;
+* `/v1/models` через LiteLLM отвечает;
+* `slowrig/coder` отвечает через LiteLLM;
+* `slowrig/architect` отвечает через LiteLLM;
 * API 27B доступен на порту `8080`;
 * API 9B доступен на порту `8081`.
 
@@ -339,8 +350,11 @@ Stage 1 считается завершённым.
 ```text
 8080 -> тяжёлая модель / architect
 8081 -> быстрая модель / coder
+4000 -> LiteLLM Gateway
 3000 -> WebUI
 ```
+
+Прямые порты `8080` и `8081` пока оставлены для диагностики backend-ов.
 
 ---
 
@@ -382,6 +396,7 @@ sudo docker ps
 
 * `llama-architect`;
 * `llama-coder`;
+* `litellm`;
 * `open-webui`.
 
 ---

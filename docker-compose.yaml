@@ -122,9 +122,14 @@ services:
       - "3000:8080"
 
     environment:
-      #- OPENAI_API_BASE_URLS=http://llama-coder:8080/v1;http://llama-architect:8080/v1
+      # Stage 3: Open WebUI goes through LiteLLM Gateway.
       - OPENAI_API_BASE_URLS=http://litellm:4000/v1
-      - OPENAI_API_KEYS=dummy;dummy
+      - OPENAI_API_KEYS=${LITELLM_MASTER_KEY}
+
+      # Stage 1 direct backend config kept for quick rollback:
+      # - OPENAI_API_BASE_URLS=http://llama-coder:8080/v1;http://llama-architect:8080/v1
+      # - OPENAI_API_KEYS=dummy;dummy
+
       - WEBUI_AUTH=False
       - ENABLE_PERSISTENT_CONFIG=False
       - ENABLE_OLLAMA_API=False

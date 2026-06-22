@@ -76,7 +76,7 @@ ADR-XXX — Название решения
 | ADR-010 | Не хранить модели, кэш, данные и секреты в git          | принято               |
 | ADR-011 | Сначала документация и runbook, затем новые subsystem-ы | принято               |
 | ADR-012 | Gateway нужен, но не добавлять его до Stage 2           | superseded by ADR-015 |
-| ADR-013 | Memory stack пока не выбран                             | открыто               |
+| ADR-013 | Memory stack пока не выбран                             | открыто; Stage 4.1 design создан |
 | ADR-014 | Не открывать внутренние порты наружу                    | принято               |
 | ADR-015 | Использовать LiteLLM Proxy как первый gateway           | принято и внедрено    |
 | ADR-016 | Маршрутизировать Open WebUI через LiteLLM               | принято и внедрено    |
@@ -651,7 +651,7 @@ Gateway понадобится для:
 
 Дата: 2026-06-19
 Статус: открыто
-Связанные документы: `docs/architecture.md`, future `docs/memory.md`
+Связанные документы: `docs/architecture.md`, `docs/memory.md`
 
 ### Контекст
 
@@ -692,7 +692,9 @@ Gateway понадобится для:
 
 Stage 4 — общий блок Memory / RAG. Stage 4.1 — ближайший конкретный design-only этап.
 
-Первым шагом должен быть `docs/memory.md`, а не установка базы данных.
+Первый design-документ создан: `docs/memory.md`.
+
+Перед runtime implementation нужен отдельный Stage 4.2 plan и approval.
 
 ---
 

@@ -62,6 +62,61 @@
 
 ---
 
+## 2026-06-22 — Stage 4.1 Memory / RAG design
+
+### Изменено
+
+Создан design-документ:
+
+```text
+docs/memory.md
+```
+
+Документ фиксирует:
+
+* цели и non-goals Memory / RAG слоя;
+* правило `Markdown + Git` как source of truth;
+* границы derived data и будущего индекса;
+* data policy для документов, логов, чатов и секретов;
+* сравнение вариантов `Markdown + Git only`, `PostgreSQL + pgvector`, `Qdrant`, `PostgreSQL + Qdrant hybrid`;
+* предварительную рекомендацию рассматривать `PostgreSQL + pgvector` как первый runtime-кандидат только после отдельного approval;
+* security/privacy, backup/restore и rollback-вопросы для будущего implementation stage.
+
+Обновлены ссылки и статус Stage 4.1 в:
+
+* `README.md`;
+* `docs/architecture.md`;
+* `docs/codex-context.md`;
+* `docs/decisions.md`;
+* `docs/changelog.md`.
+
+### Проверено
+
+Проверка была документационной.
+
+Runtime/server checks не требовались, потому что:
+
+* `docker-compose.yaml` не менялся;
+* LiteLLM config не менялся;
+* новые Docker services не добавлялись;
+* новые runtime dependencies не устанавливались.
+
+### Результат
+
+Stage 4.1 оформлен как design-only этап.
+
+Следующий возможный этап:
+
+```text
+Stage 4.2 — Memory implementation plan
+```
+
+### Замечания
+
+До Stage 4.2 не устанавливать PostgreSQL, pgvector, Qdrant, embedding service, Telegram bot или agent framework.
+
+---
+
 ## 2026-06-22 — Stage 3.1 documentation consistency audit
 
 ### Изменено

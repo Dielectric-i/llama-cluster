@@ -146,13 +146,13 @@ The preferred next stage is:
 Stage 4.1 — Memory / RAG design
 ```
 
-Expected first artifact:
+Stage 4.1 artifact:
 
 ```text
 docs/memory.md
 ```
 
-Stage 4 is the larger Memory / RAG block. Stage 4.1 is the next concrete step and should begin with design only.
+Stage 4 is the larger Memory / RAG block. Stage 4.1 is the current design step and should remain design only.
 
 Do not add a database, vector store, embedding service, Telegram bot, agent framework, or monitoring stack before the relevant design document exists and Александр approves the direction.
 

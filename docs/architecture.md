@@ -290,7 +290,7 @@ not implemented
 Stage 4.1 — Memory / RAG design
 ```
 
-Первый ожидаемый документ:
+Stage 4.1 design-документ:
 
 ```text
 docs/memory.md
@@ -329,7 +329,7 @@ Qdrant
 PostgreSQL + Qdrant hybrid
 ```
 
-До утверждения `docs/memory.md` не устанавливать БД или vector store.
+До отдельного Stage 4.2 implementation plan не устанавливать БД, vector store или embedding service.
 
 ---
 
@@ -899,6 +899,12 @@ docs/memory.md
 * подготовить future integration с Telegram и agents.
 
 Stage 4.1 не должен начинаться с установки базы данных, vector store или новых runtime-сервисов.
+
+Stage 4.1 design зафиксирован в:
+
+```text
+docs/memory.md
+```
 
 ---
 

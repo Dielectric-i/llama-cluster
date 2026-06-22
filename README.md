@@ -190,6 +190,7 @@ git commit -m "Describe change"
 | [docs/runbook.md](docs/runbook.md) | ежедневная эксплуатация, диагностика, перезапуск, rollback, типовые проблемы |
 | [docs/architecture.md](docs/architecture.md) | текущая и целевая архитектура ПО: gateway, память, агенты, Telegram |
 | [docs/gateway.md](docs/gateway.md) | дизайн и baseline LiteLLM Gateway |
+| [docs/memory.md](docs/memory.md) | Stage 4.1 design для будущего Memory / RAG слоя |
 | [docs/decisions.md](docs/decisions.md) | журнал архитектурных решений и компромиссов |
 | [docs/changelog.md](docs/changelog.md) | фактическая история изменений, проверок и измерений |
 | [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline |

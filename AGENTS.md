@@ -130,13 +130,13 @@ A stage is a small, reviewable unit of progress with a clear goal, limited scope
 For any non-trivial task, Codex should first state:
 
 ```text
-Stage:
-Goal:
-Files expected to change:
-Files to read first:
-Risk level:
-Validation plan:
-Rollback idea:
+Этап:
+Цель:
+Ожидаемые файлы:
+Что прочитать сначала:
+Уровень риска:
+План проверки:
+Идея отката:
 ```
 
 Then make the smallest safe change.
@@ -144,16 +144,16 @@ Then make the smallest safe change.
 After every stage, stop and report:
 
 ```text
-Stage:
-What changed:
-New capability:
-Files changed:
-Required checks:
-Commands for the user to run:
-Expected output:
-Rollback:
-Open questions / forks:
-Recommended next stage:
+Этап:
+Что изменилось:
+Новая возможность:
+Изменённые файлы:
+Проверки:
+Команды для пользователя:
+Ожидаемый результат:
+Откат:
+Открытые вопросы / развилки:
+Рекомендуемый следующий этап:
 ```
 
 Do not silently continue into the next stage unless the user explicitly asks.
@@ -190,11 +190,22 @@ Expected workflow:
 4. update affected documentation;
 5. provide validation commands;
 6. wait for user review and real checks when needed;
-7. merge into `main` only after full verification and user approval.
+7. merge into the repository main branch only after full verification and user approval.
 
 Do not merge automatically unless the user explicitly asks.
 
-Do not work directly on `main` for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
+In this repository the main branch is currently `master`.
+
+Do not work directly on the repository main branch for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
+
+When moving from one stage to the next:
+
+1. finish and review the current stage branch;
+2. merge the completed `codex/...` branch into the repository main branch after user approval;
+3. create the next `codex/...` branch from the updated main branch;
+4. keep only the new stage changes in the new branch.
+
+If next-stage work was started before the previous branch was merged, temporarily stash or otherwise preserve those uncommitted changes, merge the completed branch first, create the new stage branch from updated main, and only then restore the next-stage changes.
 
 ---
 

@@ -43,7 +43,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
-| Stage 5 | Telegram bot                    | запланировано          |
+| Stage 5 | Telegram bot                    | design добавлен; runtime не внедрён |
 | Stage 6 | Agent framework                 | запланировано          |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
 
@@ -54,7 +54,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * Open WebUI подключён через LiteLLM;
 * прямые backend-порты сохранены для диагностики;
 * memory/RAG foundation внедрён, local docs ingestion добавлен;
-* Telegram bot ещё не внедрён;
+* Telegram bot design добавлен, runtime ещё не внедрён;
 * agent framework ещё не внедрён;
 * полноценный monitoring/security/backups stage ещё не внедрён.
 
@@ -388,7 +388,7 @@ dangerous actions require explicit human approval
 Статус:
 
 ```text
-not implemented
+design documented; runtime not implemented
 ```
 
 Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
@@ -443,7 +443,7 @@ Agent design должен определить:
 Статус:
 
 ```text
-not implemented
+design documented; runtime not implemented
 ```
 
 Telegram bot должен быть отдельным интерфейсом, а не заменой Open WebUI и не agent framework.
@@ -483,6 +483,14 @@ Telegram bot не должен иметь произвольный shell-дос�
 ```text
 docs/telegram.md
 ```
+
+Stage 5 design принимает первый вариант:
+
+```text
+Telegram Bot API polling + whitelist -> LiteLLM Gateway -> slowrig/coder
+```
+
+`slowrig/architect` использовать только по явной команде или документированному escalation rule. Telegram history не хранить в Memory/RAG до отдельного privacy/security decision.
 
 ---
 
@@ -712,7 +720,7 @@ User/admin -> 8081 -> llama-coder
 Статус:
 
 ```text
-planned
+design documented; runtime not implemented
 ```
 
 Схема:
@@ -942,6 +950,12 @@ docs/telegram.md
 * controlled escalation к `slowrig/architect`;
 * отсутствие произвольного shell-доступа.
 
+Принятые defaults:
+
+```text
+polling, whitelist, LiteLLM Gateway, default slowrig/coder, explicit slowrig/architect, no shell
+```
+
 ---
 
 ## Stage 6 — Agent framework
@@ -1064,12 +1078,12 @@ routing по сложности лучше отложить до agent/memory de
 
 Открытые вопросы:
 
-* polling или webhook;
-* какие команды разрешить;
-* как хранить историю;
-* как подключить whitelist;
-* нужна ли память до Telegram;
-* какие diagnostics можно запускать из Telegram.
+* какую Python Telegram library использовать;
+* делать ли bot Docker image локально или использовать lightweight base image;
+* нужен ли `/status` только для bot/gateway или ещё для memory;
+* нужен ли `/rag` command для read-only поиска по документации;
+* сколько short context хранить in-memory;
+* какие limits ставить на длину входа и частоту запросов.
 
 ---
 

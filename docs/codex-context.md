@@ -138,7 +138,7 @@ The approved high-level order is:
 Stage 4.2 — Memory implementation plan (done)
 Stage 4.3 — Memory DB foundation (done and server-validated)
 Stage 4.4 — Local RAG ingestion (done and server-validated)
-Stage 5   — Telegram bot
+Stage 5   — Telegram bot design (done; runtime not implemented)
 Stage 6   — Agents
 Stage 7   — Monitoring / Security / Backups
 ```
@@ -217,6 +217,8 @@ First artifact:
 ```text
 docs/telegram.md
 ```
+
+Stage 5 design is now captured in `docs/telegram.md`. Do not add Telegram runtime, packages, services, `.env.example` placeholders, or bot tokens until a separate implementation plan is approved.
 
 ---
 

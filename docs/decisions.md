@@ -87,6 +87,7 @@ ADR-XXX — Название решения
 | ADR-021 | Зафиксировать roadmap defaults после Stage 4.1          | принято               |
 | ADR-022 | Внедрить `memory-db` без host-port как Memory DB foundation | принято; config добавлен |
 | ADR-023 | Использовать локальный `llama.cpp` embedding service для Stage 4.4 | принято и проверено |
+| ADR-024 | Проектировать первый Telegram bot как polling + whitelist клиент LiteLLM | принято; design добавлен |
 
 ---
 
@@ -1329,6 +1330,75 @@ Ingestion script использует `docker compose exec -T memory-db psql` в
 * появится необходимость GPU embedding runtime;
 * понадобится отдельная memory service с PostgreSQL driver и API;
 * endpoint `127.0.0.1:4010` потребуется закрыть даже от host-level clients.
+
+---
+
+## ADR-024 — Проектировать первый Telegram bot как polling + whitelist клиент LiteLLM
+
+Дата: 2026-06-22
+Статус: принято; design добавлен, runtime не внедрён
+Связанные документы: `docs/telegram.md`, `docs/architecture.md`, `docs/codex-context.md`, `docs/changelog.md`
+
+### Контекст
+
+После Stage 4.4 в `slowrig` есть проверенный inference baseline, LiteLLM Gateway и локальный RAG ingestion для проектной документации. Следующий интерфейс — Telegram bot.
+
+Telegram увеличивает security/privacy surface, потому что появляется внешний messaging API, пользовательские сообщения, bot token и потенциальный temptation добавить admin commands. Поэтому перед runtime нужен design-only stage.
+
+### Решение
+
+Первый Telegram bot проектировать как:
+
+```text
+Telegram Bot API polling + whitelist -> LiteLLM Gateway -> slowrig/coder
+```
+
+Defaults:
+
+* polling вместо webhook;
+* deny-by-default whitelist по Telegram user IDs;
+* default model: `slowrig/coder`;
+* `slowrig/architect` только по явной команде или документированному escalation rule;
+* no shell;
+* no Docker access;
+* no arbitrary filesystem access;
+* no Telegram history in Memory/RAG на первом runtime stage;
+* no public inbound port.
+
+Первый design artifact:
+
+```text
+docs/telegram.md
+```
+
+### Причина
+
+Polling не требует public inbound endpoint и лучше соответствует текущему LAN/VPN-first posture.
+
+Whitelist снижает риск случайного доступа к локальному кластеру через Telegram.
+
+LiteLLM остаётся обычной точкой входа для LLM-клиентов, поэтому Telegram не должен обращаться напрямую к `llama-coder` или `llama-architect`.
+
+`slowrig/coder` выбран default route, потому что Telegram требует отзывчивости и обычно получает короткие задачи.
+
+### Компромисс
+
+Polling менее production-like, чем webhook, и может иметь чуть большую latency.
+
+Без хранения истории bot будет менее “памятливым”, но это сохраняет privacy boundary до отдельного решения о retention/delete/backup.
+
+Отсутствие shell/admin commands ограничивает удобство удалённого управления, зато не превращает Telegram в опасный remote ops интерфейс.
+
+### Когда пересмотреть
+
+Пересмотреть, если:
+
+* понадобится публичный webhook за reverse proxy/VPN;
+* появится зрелый admin/security design для Telegram diagnostics;
+* потребуется opt-in хранение истории;
+* потребуется read-only RAG command;
+* появится отдельный bot user/role model;
+* `slowrig/coder` окажется слишком слабым или медленным для Telegram default.
 
 ---
 

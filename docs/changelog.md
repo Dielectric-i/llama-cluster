@@ -62,6 +62,72 @@
 
 ---
 
+## 2026-06-22 — Stage 5 Telegram bot design
+
+### Изменено
+
+Создан design-документ:
+
+```text
+docs/telegram.md
+```
+
+Документ фиксирует первый безопасный Telegram-вариант:
+
+```text
+Telegram Bot API polling + whitelist -> LiteLLM Gateway -> slowrig/coder
+```
+
+Зафиксированы defaults:
+
+* polling вместо webhook;
+* whitelist Telegram user IDs;
+* default model `slowrig/coder`;
+* `slowrig/architect` только по явной команде или escalation rule;
+* без shell/Docker/filesystem access;
+* без public inbound port;
+* без записи Telegram history в Memory/RAG на первом runtime stage.
+
+Обновлены:
+
+* `README.md`;
+* `docs/architecture.md`;
+* `docs/decisions.md`;
+* `docs/codex-context.md`.
+
+Добавлен `ADR-024`:
+
+```text
+Проектировать первый Telegram bot как polling + whitelist клиент LiteLLM
+```
+
+### Проверено
+
+Проверка документационная:
+
+```text
+git diff --stat
+git diff --check
+```
+
+Runtime/server checks не требовались, потому что Stage 5 design не меняет `docker-compose.yaml`, `.env.example`, LiteLLM config, ports, volumes, scripts или running services.
+
+### Результат
+
+Stage 5 design подготовил безопасную форму будущего Telegram bot без добавления runtime dependencies.
+
+### Замечания
+
+Следующий этап:
+
+```text
+Stage 5.1 — Telegram bot implementation plan
+```
+
+На Stage 5.1 сначала выбрать library/container strategy, env placeholders, checks и rollback. Не запускать Telegram runtime без отдельного approval.
+
+---
+
 ## 2026-06-22 — Stage 4.4 Local RAG ingestion
 
 ### Изменено

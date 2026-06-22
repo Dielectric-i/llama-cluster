@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Telegram Bot Design v0.1
 
 Дата: 2026-06-22
-Статус: Stage 5.1 implementation plan; runtime не внедрён
+Статус: Stage 5.2 runtime config/code добавлены; запуск требует real `.env` secrets и ручной Telegram check
 
 ## 1. Назначение
 
@@ -19,12 +19,9 @@ Telegram должен быть интерфейсом к кластеру, а н
 
 ## 2. Non-goals
 
-Stage 5 design не должен:
+Stage 5.2 не должен:
 
-* создавать Telegram bot runtime;
 * устанавливать Python/Node packages;
-* добавлять Docker service;
-* менять `docker-compose.yaml`;
 * менять LiteLLM routing;
 * добавлять новые gateway model names;
 * открывать public inbound ports;
@@ -279,9 +276,9 @@ Logs:
 
 ```bash
 cd /opt/llama-cluster
-docker compose config --quiet
-docker compose up -d telegram-bot
-docker compose ps telegram-bot
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+docker compose --profile telegram up -d telegram-bot
+docker compose --profile telegram ps telegram-bot
 docker logs --tail=120 telegram-bot
 ```
 
@@ -305,7 +302,7 @@ Functional checks:
 
 ```bash
 cd /opt/llama-cluster
-docker compose stop telegram-bot
+docker compose --profile telegram stop telegram-bot
 ```
 
 Если нужно откатить config/docs будущего stage:
@@ -453,10 +450,10 @@ secrets/
 
 ```bash
 cd /opt/llama-cluster
-docker compose config --quiet
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
 python3 -m py_compile scripts/telegram-bot.py
-docker compose up -d telegram-bot
-docker compose ps telegram-bot
+docker compose --profile telegram up -d telegram-bot
+docker compose --profile telegram ps telegram-bot
 docker logs --tail=120 telegram-bot
 ```
 
@@ -473,24 +470,110 @@ Rollback future runtime:
 
 ```bash
 cd /opt/llama-cluster
-docker compose stop telegram-bot
+docker compose --profile telegram stop telegram-bot
 git checkout -- docker-compose.yaml .env.example scripts/telegram-bot.py docs/telegram.md docs/runbook.md docs/changelog.md docs/decisions.md docs/codex-context.md
 ```
 
 ---
 
-## 14. Рекомендуемый следующий этап
+## 14. Stage 5.2 runtime implementation
+
+Статус:
+
+```text
+config/code added; not started without real Telegram secrets
+```
+
+Добавлены:
+
+```text
+scripts/telegram-bot.py
+docker-compose.yaml service telegram-bot
+```
+
+`telegram-bot` находится в Docker Compose profile:
+
+```text
+telegram
+```
+
+Обычный `docker compose up -d` не стартует Telegram bot. Явный запуск:
+
+```bash
+cd /opt/llama-cluster
+docker compose --profile telegram up -d telegram-bot
+```
+
+Runtime использует:
+
+```text
+Python stdlib
+Telegram Bot API polling
+LiteLLM /v1/chat/completions
+```
+
+Не добавлены:
+
+* external Telegram Python library;
+* webhook;
+* public inbound port;
+* shell/Docker/filesystem access;
+* Telegram history persistence;
+* Memory/RAG writes.
+
+Перед запуском в `/opt/llama-cluster/.env` должны быть реальные значения:
+
+```text
+TELEGRAM_BOT_TOKEN
+TELEGRAM_ALLOWED_USER_IDS
+TELEGRAM_DEFAULT_MODEL=slowrig/coder
+TELEGRAM_ARCHITECT_MODEL=slowrig/architect
+```
+
+Проверить compose config без реальных секретов можно временными значениями:
+
+```bash
+cd /opt/llama-cluster
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+```
+
+Проверить syntax:
+
+```bash
+python3 -m py_compile scripts/telegram-bot.py
+```
+
+Manual Telegram checks после запуска:
+
+* unknown user получает отказ;
+* allowed user получает ответ на `/start`;
+* `/help` показывает команды;
+* `/status` показывает bot/gateway status;
+* обычный prompt отвечает через `slowrig/coder`;
+* `/architect` переключает следующий запрос на `slowrig/architect`;
+* `/reset` сбрасывает short in-memory context.
+
+Rollback:
+
+```bash
+cd /opt/llama-cluster
+docker compose --profile telegram stop telegram-bot
+```
+
+---
+
+## 15. Рекомендуемый следующий этап
 
 Рекомендуемый следующий этап:
 
 ```text
-Stage 5.2 — Telegram bot runtime implementation
+Stage 5.3 — Telegram runtime validation
 ```
 
-Цель Stage 5.2:
+Цель Stage 5.3:
 
-* добавить `scripts/telegram-bot.py`;
-* добавить `telegram-bot` service в `docker-compose.yaml`;
-* проверить polling + whitelist + LiteLLM;
-* не добавлять shell/Docker/filesystem access;
-* не хранить Telegram history в Memory/RAG.
+* добавить real Telegram secrets в server `.env`;
+* запустить `telegram-bot` profile;
+* выполнить ручную проверку Telegram UI;
+* зафиксировать результаты в `docs/changelog.md`;
+* не добавлять admin commands, RAG writes или history persistence.

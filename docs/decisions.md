@@ -88,7 +88,7 @@ ADR-XXX — Название решения
 | ADR-022 | Внедрить `memory-db` без host-port как Memory DB foundation | принято; config добавлен |
 | ADR-023 | Использовать локальный `llama.cpp` embedding service для Stage 4.4 | принято и проверено |
 | ADR-024 | Проектировать первый Telegram bot как polling + whitelist клиент LiteLLM | принято; design добавлен |
-| ADR-025 | Реализовывать первый Telegram runtime без отдельной Telegram library | принято для плана |
+| ADR-025 | Реализовывать первый Telegram runtime без отдельной Telegram library | принято; code добавлен |
 
 ---
 
@@ -1406,7 +1406,7 @@ Polling менее production-like, чем webhook, и может иметь ч�
 ## ADR-025 — Реализовывать первый Telegram runtime без отдельной Telegram library
 
 Дата: 2026-06-22
-Статус: принято для Stage 5.1 implementation plan; runtime не внедрён
+Статус: принято; runtime code добавлен, Telegram UI validation pending
 Связанные документы: `docs/telegram.md`, `.env.example`, `docs/changelog.md`
 
 ### Контекст

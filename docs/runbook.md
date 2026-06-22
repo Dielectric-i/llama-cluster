@@ -409,6 +409,36 @@ docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_
 
 ---
 
+## 4.9 Проверить Telegram bot config
+
+`telegram-bot` находится в отдельном Compose profile и не стартует обычной командой `docker compose up -d`.
+
+Проверить compose config без реальных Telegram secrets:
+
+```bash
+cd /opt/llama-cluster
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+```
+
+Проверить syntax bot script:
+
+```bash
+python3 -m py_compile scripts/telegram-bot.py
+```
+
+Перед реальным запуском добавить в `/opt/llama-cluster/.env`:
+
+```text
+TELEGRAM_BOT_TOKEN
+TELEGRAM_ALLOWED_USER_IDS
+TELEGRAM_DEFAULT_MODEL=slowrig/coder
+TELEGRAM_ARCHITECT_MODEL=slowrig/architect
+```
+
+Не печатать реальные значения token.
+
+---
+
 ## 5. Логи
 
 ### 5.1 Логи 27B
@@ -508,6 +538,22 @@ sudo docker logs --tail=160 memory-embed
 * ошибки embedding endpoint;
 * неожиданные CUDA/offload сообщения;
 * падения `llama-server`.
+
+---
+
+### 5.7 Логи Telegram bot
+
+```bash
+sudo docker logs --tail=160 telegram-bot
+```
+
+Смотреть на:
+
+* configuration errors;
+* Telegram API HTTP errors;
+* LiteLLM connectivity errors;
+* denied user IDs;
+* отсутствие полного текста пользовательских сообщений в logs.
 
 ---
 
@@ -639,7 +685,32 @@ curl http://127.0.0.1:4010/v1/models
 
 ---
 
-### 6.7 Применить изменения compose для одного сервиса
+### 6.7 Запустить или перезапустить Telegram bot
+
+Использовать только после добавления real Telegram secrets в `.env`.
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose --profile telegram up -d telegram-bot
+```
+
+После этого проверить:
+
+```bash
+sudo docker compose --profile telegram ps telegram-bot
+sudo docker logs --tail=120 telegram-bot
+```
+
+Остановить:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose --profile telegram stop telegram-bot
+```
+
+---
+
+### 6.8 Применить изменения compose для одного сервиса
 
 Если был изменён только один сервис в `docker-compose.yaml`, лучше поднимать только его:
 
@@ -657,11 +728,12 @@ sudo docker compose up -d llama-coder
 sudo docker compose up -d llama-architect
 sudo docker compose up -d memory-db
 sudo docker compose up -d memory-embed
+sudo docker compose --profile telegram up -d telegram-bot
 ```
 
 ---
 
-### 6.8 Привести весь кластер к compose-состоянию
+### 6.9 Привести весь кластер к compose-состоянию
 
 Использовать, если изменение затрагивает несколько сервисов или нужно привести состояние к `docker-compose.yaml`.
 
@@ -1199,6 +1271,13 @@ bash -n scripts/<script-name>.sh
 ```bash
 cd /opt/llama-cluster
 sudo docker compose config --quiet
+```
+
+После изменения Telegram profile:
+
+```bash
+cd /opt/llama-cluster
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
 ```
 
 После изменения работающего сервиса:

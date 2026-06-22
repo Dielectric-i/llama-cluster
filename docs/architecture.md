@@ -43,7 +43,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
-| Stage 5 | Telegram bot                    | design и implementation plan добавлены; runtime не внедрён |
+| Stage 5 | Telegram bot                    | runtime code/config добавлены; Telegram UI validation pending |
 | Stage 6 | Agent framework                 | запланировано          |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
 
@@ -54,7 +54,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * Open WebUI подключён через LiteLLM;
 * прямые backend-порты сохранены для диагностики;
 * memory/RAG foundation внедрён, local docs ingestion добавлен;
-* Telegram bot design и implementation plan добавлены, runtime ещё не внедрён;
+* Telegram bot runtime code/config добавлены, запуск ждёт real secrets и ручную Telegram UI проверку;
 * agent framework ещё не внедрён;
 * полноценный monitoring/security/backups stage ещё не внедрён.
 
@@ -388,7 +388,7 @@ dangerous actions require explicit human approval
 Статус:
 
 ```text
-design and implementation plan documented; runtime not implemented
+runtime code/config added; Telegram UI validation pending
 ```
 
 Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
@@ -957,6 +957,8 @@ polling, whitelist, LiteLLM Gateway, default slowrig/coder, explicit slowrig/arc
 ```
 
 Stage 5.1 implementation plan выбирает Python stdlib + Telegram Bot API HTTP polling без отдельной Telegram framework/library.
+
+Stage 5.2 добавляет `scripts/telegram-bot.py` и Compose service `telegram-bot` в profile `telegram`. Обычный `docker compose up -d` не стартует bot.
 
 ---
 

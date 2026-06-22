@@ -62,6 +62,80 @@
 
 ---
 
+## 2026-06-22 — Stage 5.2 Telegram runtime code
+
+### Изменено
+
+Добавлен Telegram runtime script:
+
+```text
+scripts/telegram-bot.py
+```
+
+Скрипт использует только Python stdlib:
+
+* Telegram Bot API `getUpdates` polling;
+* whitelist по `TELEGRAM_ALLOWED_USER_IDS`;
+* команды `/start`, `/help`, `/status`, `/model`, `/coder`, `/architect`, `/reset`;
+* LiteLLM `/v1/chat/completions`;
+* short in-memory context per allowed user;
+* sanitized technical logs без полного текста сообщений.
+
+Добавлен Compose service:
+
+```text
+telegram-bot
+```
+
+Service находится в profile:
+
+```text
+telegram
+```
+
+Обычный `docker compose up -d` не стартует bot.
+
+Обновлены:
+
+* `docker-compose.yaml`;
+* `docs/telegram.md`;
+* `docs/runbook.md`.
+
+### Проверено
+
+Server-side checks:
+
+```text
+python3 -m py_compile scripts/telegram-bot.py
+docker compose config --quiet
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+```
+
+Результат:
+
+* syntax `scripts/telegram-bot.py` проверен;
+* обычный Compose config без Telegram profile прошёл;
+* Telegram profile Compose config с dummy values прошёл;
+* `telegram-bot` не запускался.
+
+Runtime Telegram UI checks не выполнены на этом этапе, потому что real `TELEGRAM_BOT_TOKEN` и allowed user IDs не добавлены в server `.env`.
+
+### Результат
+
+Stage 5.2 добавил runtime code/config для Telegram bot без запуска сервиса, без новых Python packages, без webhook, без public inbound port и без shell/Docker/filesystem access.
+
+### Замечания
+
+Следующий этап:
+
+```text
+Stage 5.3 — Telegram runtime validation
+```
+
+Для Stage 5.3 оператор должен добавить реальные Telegram secrets в `/opt/llama-cluster/.env`, затем запустить profile `telegram` и выполнить ручную проверку через Telegram UI.
+
+---
+
 ## 2026-06-22 — Stage 5.1 Telegram implementation plan
 
 ### Изменено

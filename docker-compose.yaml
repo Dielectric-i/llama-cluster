@@ -188,6 +188,31 @@ services:
     depends_on:
       - memory-db
 
+  telegram-bot:
+    image: python:3.12-slim
+    container_name: telegram-bot
+    restart: unless-stopped
+    profiles:
+      - telegram
+
+    env_file:
+      - .env
+
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-}
+      - TELEGRAM_DEFAULT_MODEL=${TELEGRAM_DEFAULT_MODEL:-slowrig/coder}
+      - TELEGRAM_ARCHITECT_MODEL=${TELEGRAM_ARCHITECT_MODEL:-slowrig/architect}
+      - LITELLM_BASE_URL=http://litellm:4000/v1
+
+    volumes:
+      - /opt/llama-cluster/scripts/telegram-bot.py:/app/telegram-bot.py:ro
+
+    command: ["python", "/app/telegram-bot.py"]
+
+    depends_on:
+      - litellm
+
 volumes:
   open-webui:
   memory-db-data:

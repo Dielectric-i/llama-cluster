@@ -182,6 +182,8 @@ Host diagnostic endpoint:
 http://127.0.0.1:8081/v1
 ```
 
+Это не противоречие: внутри Docker network `llama-coder` слушает порт `8080`, а на host он опубликован как diagnostic port `8081`.
+
 Назначение:
 
 * быстрые ответы;
@@ -481,6 +483,8 @@ Direct backend config:
 - OPENAI_API_BASE_URLS=http://llama-coder:8080/v1;http://llama-architect:8080/v1
 - OPENAI_API_KEYS=dummy;dummy
 ```
+
+Этот rollback-фрагмент используется из контейнера `open-webui`, поэтому в нём указаны Docker network endpoints. Для host-диагностики `llama-coder` остаётся доступен на `127.0.0.1:8081`.
 
 После изменения применить только Open WebUI:
 

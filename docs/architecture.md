@@ -42,7 +42,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 1 | Inference baseline              | завершён               |
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
-| Stage 4 | Memory / RAG                    | следующий design stage |
+| Stage 4 | Memory / RAG                    | следующий блок работ; ближайший этап — Stage 4.1 design |
 | Stage 5 | Telegram bot                    | запланировано          |
 | Stage 6 | Agent framework                 | запланировано          |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
@@ -879,12 +879,13 @@ completed
 Статус:
 
 ```text
-next design stage
+next major block; first concrete step is Stage 4.1 design
 ```
 
 Первый шаг:
 
 ```text
+Stage 4.1 — Memory / RAG design
 docs/memory.md
 ```
 
@@ -897,7 +898,7 @@ docs/memory.md
 * определить privacy boundaries;
 * подготовить future integration с Telegram и agents.
 
-Не начинать с установки базы данных.
+Stage 4.1 не должен начинаться с установки базы данных, vector store или новых runtime-сервисов.
 
 ---
 

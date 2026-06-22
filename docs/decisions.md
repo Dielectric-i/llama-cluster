@@ -690,6 +690,8 @@ Gateway понадобится для:
 
 На Stage 4.1 — Memory / RAG design.
 
+Stage 4 — общий блок Memory / RAG. Stage 4.1 — ближайший конкретный design-only этап.
+
 Первым шагом должен быть `docs/memory.md`, а не установка базы данных.
 
 ---

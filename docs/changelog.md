@@ -62,6 +62,45 @@
 
 ---
 
+## 2026-06-22 — Stage 3.1 documentation consistency audit
+
+### Изменено
+
+Проведён безопасный документационный аудит согласованности после Stage 1, Stage 2 и Stage 3.
+
+Уточнены:
+
+* дата завершения и дата актуализации `docs/stage3-summary.md`;
+* формулировка следующего конкретного этапа как `Stage 4.1 — Memory / RAG design`;
+* различие между Docker network port `8080` и host diagnostic port `8081` для `llama-coder`;
+* статус `docker-compose.stage1-baseline.yaml` как исторического Stage 1 baseline, а не текущего stable compose.
+
+### Проверено
+
+Проверка была документационной:
+
+* сверены README, AGENTS, основные документы `docs/`, compose, LiteLLM config, status script, `.env.example` и `.gitignore`;
+* подтверждено, что основная цепочка `Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect` согласована с config;
+* подтверждено, что `.env` не отслеживается git, а `.env.example` содержит только placeholders.
+
+Runtime/server checks не требовались, так как изменения затрагивают только Markdown-документацию.
+
+### Результат
+
+Мелкие неоднозначности в документации устранены без изменения runtime/config поведения.
+
+### Замечания
+
+Следующий рекомендуемый этап остаётся:
+
+```text
+Stage 4.1 — Memory / RAG design
+```
+
+Первый артефакт — `docs/memory.md`. Новые БД, vector store, Telegram bot или agent framework на этом этапе не устанавливать.
+
+---
+
 ## 2026-06-22 — Documentation cleanup and source-of-truth alignment
 
 ### Изменено

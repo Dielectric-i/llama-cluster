@@ -1,6 +1,7 @@
 # slowrig AI Cluster — Stage 3 Summary
 
-Дата: 2026-06-21
+Дата завершения: 2026-06-19
+Дата актуализации: 2026-06-22
 Статус: Stage 3 Gateway baseline завершён.
 
 ## 1. Что завершено
@@ -192,6 +193,15 @@ Direct backend mode оставлен только как rollback-вариант
 8081 -> llama-coder
 ```
 
+Важно различать host diagnostic ports и Docker network ports:
+
+```text
+host:  127.0.0.1:8081 -> llama-coder
+docker network: llama-coder:8080 -> llama-coder
+```
+
+Внутри Docker network оба llama.cpp backend-а слушают порт `8080`; разные host-порты появляются только через публикацию портов в `docker-compose.yaml`.
+
 Причина:
 
 * быстро проверить, жив ли llama.cpp backend;
@@ -326,6 +336,8 @@ Direct backend config:
 - OPENAI_API_KEYS=dummy;dummy
 ```
 
+Здесь `llama-coder:8080` — это Docker network endpoint для контейнера `open-webui`, а не host diagnostic port `8081`.
+
 После изменения:
 
 ```bash
@@ -402,13 +414,15 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 
 ## 17. Следующий этап
 
-Следующий логичный этап:
+Следующий логичный конкретный этап:
 
 ```text
-Stage 4 — Memory / RAG design
+Stage 4.1 — Memory / RAG design
 ```
 
-Цель Stage 4:
+Stage 4 остаётся общим блоком работ по Memory / RAG. Stage 4.1 должен быть design-only этапом без установки новых сервисов.
+
+Цель Stage 4.1:
 
 * определить, какие типы памяти нужны;
 * выбрать memory stack;

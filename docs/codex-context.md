@@ -152,7 +152,7 @@ Expected first artifact:
 docs/memory.md
 ```
 
-Stage 4 should begin with design only.
+Stage 4 is the larger Memory / RAG block. Stage 4.1 is the next concrete step and should begin with design only.
 
 Do not add a database, vector store, embedding service, Telegram bot, agent framework, or monitoring stack before the relevant design document exists and Александр approves the direction.
 

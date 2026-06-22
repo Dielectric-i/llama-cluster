@@ -726,7 +726,8 @@ nvidia-smi
 Важно:
 
 ```text
-docker-compose.stage1-baseline.yaml может не содержать более поздние Stage 3 изменения.
+docker-compose.stage1-baseline.yaml является историческим Stage 1 baseline.
+Он может не содержать более поздние Stage 2/3 изменения и не должен считаться текущим stable compose.
 ```
 
 Если нужно откатить только gateway/Open WebUI routing, использовать rollback из раздела 10.
@@ -752,6 +753,8 @@ docker-compose.stage1-baseline.yaml может не содержать боле�
 - OPENAI_API_BASE_URLS=http://llama-coder:8080/v1;http://llama-architect:8080/v1
 - OPENAI_API_KEYS=dummy;dummy
 ```
+
+Важно: это Docker network endpoints для контейнера `open-webui`. Host diagnostic endpoint для `llama-coder` остаётся `http://127.0.0.1:8081/v1`.
 
 Применить только WebUI:
 

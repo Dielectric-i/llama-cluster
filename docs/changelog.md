@@ -190,6 +190,8 @@ dropdb slowrig_memory_restore_check
 * временная DB `slowrig_memory_restore_check` удалена после проверки;
 * нулевые dump-файлы от ранних quoting-сбоев удалены.
 
+После появления Docker group access для `discover` обновлён `scripts/cluster-status.sh`: теперь он использует `docker` без `sudo`, если это доступно, и сохраняет fallback на `sudo docker` для ручных запусков от пользователя без Docker group access.
+
 ### Результат
 
 Stage 4.3 добавил config-level foundation для PostgreSQL + pgvector без изменения LLM routing, GPU mapping, model files, host ports `3000/4000/8080/8081`, LiteLLM config или Open WebUI config.

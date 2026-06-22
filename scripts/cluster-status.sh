@@ -8,13 +8,19 @@ echo " Host: $(hostname)"
 echo "============================================================"
 echo
 
+DOCKER_CMD=(docker)
+
+if ! docker ps >/dev/null 2>&1; then
+  DOCKER_CMD=(sudo docker)
+fi
+
 echo "== Docker containers =="
-sudo docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+"${DOCKER_CMD[@]}" ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 echo
 
 echo "== Compose services =="
 cd /opt/llama-cluster || exit 1
-sudo docker compose ps
+"${DOCKER_CMD[@]}" compose ps
 echo
 
 echo "== NVIDIA GPUs =="
@@ -97,7 +103,7 @@ check_litellm_chat() {
 check_memory_db() {
   echo -n "memory-db pg_isready : "
 
-  if sudo docker compose exec -T memory-db sh -lc 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/tmp/cluster-status-memory-db.txt 2>/tmp/cluster-status-error.log; then
+  if "${DOCKER_CMD[@]}" compose exec -T memory-db sh -lc 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/tmp/cluster-status-memory-db.txt 2>/tmp/cluster-status-error.log; then
     echo "OK"
   else
     echo "FAIL"
@@ -107,7 +113,7 @@ check_memory_db() {
 
   echo -n "memory-db pgvector extension : "
 
-  if sudo docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT extname FROM pg_extension;"' >/tmp/cluster-status-memory-vector.txt 2>/tmp/cluster-status-error.log; then
+  if "${DOCKER_CMD[@]}" compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT extname FROM pg_extension;"' >/tmp/cluster-status-memory-vector.txt 2>/tmp/cluster-status-error.log; then
     if grep -qx 'vector' /tmp/cluster-status-memory-vector.txt; then
       echo "OK"
     else
@@ -143,7 +149,7 @@ echo
 
 for c in llama-architect llama-coder litellm open-webui memory-db; do
   echo "-- $c --"
-  sudo docker logs --tail=250 "$c" 2>&1 | grep -Ei 'error|failed|fail|oom|out of memory|cuda error|cudamalloc|exception|traceback|unhealthy|killed|segmentation fault|illegal memory|invalid device' | tail -30 || true
+  "${DOCKER_CMD[@]}" logs --tail=250 "$c" 2>&1 | grep -Ei 'error|failed|fail|oom|out of memory|cuda error|cudamalloc|exception|traceback|unhealthy|killed|segmentation fault|illegal memory|invalid device' | tail -30 || true
   echo
 done
 

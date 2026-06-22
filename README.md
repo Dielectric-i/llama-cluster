@@ -75,6 +75,7 @@ slowrig/architect
 /opt/llama-cluster/scripts/cluster-status.sh
 /opt/llama-cluster/scripts/memory-ingest-docs.py
 /opt/llama-cluster/config/memory/init/001-memory-foundation.sql
+/opt/llama-cluster/config/cloudflare/telegram-worker.js
 ```
 
 Локальный файл секретов, не хранится в git:

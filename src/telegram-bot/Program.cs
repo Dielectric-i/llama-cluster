@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
@@ -13,6 +15,11 @@ sealed class SlowrigTelegramBot
     private const int MaxInputChars = 6000;
     private const int MaxContextMessages = 8;
     private const int MaxTelegramChars = 3900;
+    private const int TelegramPollTimeoutSeconds = 12;
+    private const int TelegramPollHttpTimeoutSeconds = 25;
+    private const int TelegramCallTimeoutSeconds = 25;
+    private const int TelegramSendMaxAttempts = 3;
+    private static readonly TimeSpan TelegramRetryDelay = TimeSpan.FromSeconds(2);
 
     private readonly string _token;
     private readonly HashSet<long> _allowedUsers;
@@ -51,6 +58,7 @@ sealed class SlowrigTelegramBot
         _telegramApiBaseUrl = NormalizeTelegramApiBaseUrl(telegramApiBaseUrl);
         _telegramHttp = CreateTelegramHttpClient(telegramProxyUrl);
         _liteLlmHttp.Timeout = TimeSpan.FromSeconds(190);
+        Log($"telegram transport timeouts; poll_timeout_s={TelegramPollTimeoutSeconds}; poll_http_timeout_s={TelegramPollHttpTimeoutSeconds}; call_timeout_s={TelegramCallTimeoutSeconds}; send_attempts={TelegramSendMaxAttempts}");
     }
 
     public static SlowrigTelegramBot FromEnvironment()
@@ -117,18 +125,32 @@ sealed class SlowrigTelegramBot
 
     private async Task PollOnceAsync()
     {
+        var offsetBefore = _offset;
         var payload = new
         {
-            timeout = 30,
-            offset = _offset,
+            timeout = TelegramPollTimeoutSeconds,
+            offset = offsetBefore,
             allowed_updates = new[] { "message" }
         };
 
-        var response = await TelegramAsync<TelegramUpdatesResponse>("getUpdates", payload);
-        foreach (var update in response.Result ?? [])
+        var response = await TelegramAsync<TelegramUpdatesResponse>(
+            "getUpdates",
+            payload,
+            TimeSpan.FromSeconds(TelegramPollHttpTimeoutSeconds),
+            maxAttempts: 1,
+            logSuccess: false);
+
+        var updates = response.Result ?? [];
+        if (updates.Count > 0)
         {
-            _offset = Math.Max(_offset, update.UpdateId + 1);
+            Log($"poll received updates={updates.Count}; offset_before={offsetBefore}; first_update_id={updates.First().UpdateId}; last_update_id={updates.Last().UpdateId}");
+        }
+
+        foreach (var update in updates)
+        {
             await HandleUpdateAsync(update);
+            _offset = Math.Max(_offset, update.UpdateId + 1);
+            Log($"update checkpoint update_id={update.UpdateId}; next_offset={_offset}");
         }
     }
 
@@ -145,8 +167,8 @@ sealed class SlowrigTelegramBot
 
         if (!_allowedUsers.Contains(userId))
         {
-            Log($"denied user_id={userId}", error: true);
-            await SendMessageAsync(chatId, "Доступ не разрешён.");
+            Log($"denied update_id={update.UpdateId}; user_id={userId}; chat_id={chatId}", error: true);
+            await TrySendMessageAsync(chatId, "Доступ не разрешён.");
             return;
         }
 
@@ -156,8 +178,8 @@ sealed class SlowrigTelegramBot
         }
         catch (Exception ex)
         {
-            Log($"failed to handle update for user_id={userId}: {ex}", error: true);
-            await SendMessageAsync(chatId, "Ошибка обработки запроса. Подробности в логах bot.");
+            Log($"failed to handle update update_id={update.UpdateId}; user_id={userId}; chat_id={chatId}; error={BriefException(ex)}", error: true);
+            await TrySendMessageAsync(chatId, "Ошибка обработки запроса. Подробности в логах bot.");
         }
     }
 
@@ -165,7 +187,8 @@ sealed class SlowrigTelegramBot
     {
         var trimmed = text.Trim();
         var command = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.ToLowerInvariant() ?? "";
-        Log($"message user_id={userId}; kind={(command.StartsWith('/') ? command : "text")}");
+        var kind = command.StartsWith('/') ? command : "text";
+        Log($"message received user_id={userId}; chat_id={chatId}; kind={kind}; chars={trimmed.Length}; model={GetUserModel(userId)}");
 
         switch (command)
         {
@@ -218,6 +241,8 @@ sealed class SlowrigTelegramBot
         var context = _contexts.GetOrAdd(userId, _ => []);
         var messages = context.TakeLast(MaxContextMessages).Append(new ChatMessage("user", text)).ToList();
         var payload = new ChatCompletionRequest(model, messages, 0.2, 768);
+        var stopwatch = Stopwatch.StartNew();
+        Log($"llm request user_id={userId}; model={model}; input_chars={text.Length}; context_messages={messages.Count}");
         var response = await LiteLlmAsync<ChatCompletionResponse>("/chat/completions", payload);
         var answer = response.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
 
@@ -233,6 +258,7 @@ sealed class SlowrigTelegramBot
             _userModels[userId] = _defaultModel;
         }
 
+        Log($"llm response user_id={userId}; model={model}; elapsed_ms={stopwatch.ElapsedMilliseconds}; answer_chars={answer.Length}");
         return answer;
     }
 
@@ -259,60 +285,142 @@ sealed class SlowrigTelegramBot
             text = " ";
         }
 
+        var totalChunks = (text.Length + MaxTelegramChars - 1) / MaxTelegramChars;
         for (var i = 0; i < text.Length; i += MaxTelegramChars)
         {
             var chunk = text.Substring(i, Math.Min(MaxTelegramChars, text.Length - i));
+            var chunkIndex = (i / MaxTelegramChars) + 1;
+            Log($"telegram send chunk chat_id={chatId}; chunk={chunkIndex}/{totalChunks}; chars={chunk.Length}");
             await TelegramAsync<TelegramOkResponse>("sendMessage", new
             {
                 chat_id = chatId,
                 text = chunk,
                 disable_web_page_preview = true
-            });
+            }, TimeSpan.FromSeconds(TelegramCallTimeoutSeconds), TelegramSendMaxAttempts, logSuccess: true);
         }
     }
 
-    private async Task<T> TelegramAsync<T>(string method, object payload)
+    private async Task TrySendMessageAsync(long chatId, string text)
     {
-        var url = $"{_telegramApiBaseUrl}/bot{_token}/{method}";
-        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        try
         {
-            Content = JsonContent(payload)
-        };
-        using var response = await _telegramHttp.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode)
+            await SendMessageAsync(chatId, text);
+        }
+        catch (Exception ex)
         {
-            throw new HttpRequestException($"Telegram API {method} failed: {(int)response.StatusCode}");
+            Log($"failed to send fallback message chat_id={chatId}; error={BriefException(ex)}", error: true);
+        }
+    }
+
+    private async Task<T> TelegramAsync<T>(string method, object payload, TimeSpan timeout, int maxAttempts, bool logSuccess)
+    {
+        Exception? lastError = null;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                using var cts = new CancellationTokenSource(timeout);
+                var url = $"{_telegramApiBaseUrl}/bot{_token}/{method}";
+                using var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = JsonContent(payload)
+                };
+
+                using var response = await _telegramHttp.SendAsync(request, cts.Token);
+                var body = await response.Content.ReadAsStringAsync(cts.Token);
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (IsTransientStatusCode(response.StatusCode) && attempt < maxAttempts)
+                    {
+                        Log($"telegram_api retry method={method}; attempt={attempt}/{maxAttempts}; status={(int)response.StatusCode}; elapsed_ms={stopwatch.ElapsedMilliseconds}", error: true);
+                        await Task.Delay(TelegramRetryDelay);
+                        continue;
+                    }
+
+                    throw new HttpRequestException($"Telegram API {method} failed: status={(int)response.StatusCode}");
+                }
+
+                var result = JsonSerializer.Deserialize<TelegramOkResponse>(body, JsonOptions);
+                if (result?.Ok != true)
+                {
+                    throw new InvalidOperationException($"Telegram API {method} returned ok=false");
+                }
+
+                if (logSuccess)
+                {
+                    Log($"telegram_api method={method}; attempt={attempt}/{maxAttempts}; elapsed_ms={stopwatch.ElapsedMilliseconds}; status={(int)response.StatusCode}; ok=true");
+                }
+
+                return JsonSerializer.Deserialize<T>(body, JsonOptions)
+                    ?? throw new InvalidOperationException($"Telegram API {method} returned invalid JSON");
+            }
+            catch (Exception ex) when (IsTransientException(ex) && attempt < maxAttempts)
+            {
+                lastError = ex;
+                Log($"telegram_api retry method={method}; attempt={attempt}/{maxAttempts}; timeout_s={(int)timeout.TotalSeconds}; elapsed_ms={stopwatch.ElapsedMilliseconds}; error={BriefException(ex)}", error: true);
+                await Task.Delay(TelegramRetryDelay);
+            }
+            catch (Exception ex)
+            {
+                Log($"telegram_api failed method={method}; attempt={attempt}/{maxAttempts}; timeout_s={(int)timeout.TotalSeconds}; elapsed_ms={stopwatch.ElapsedMilliseconds}; error={BriefException(ex)}", error: true);
+                throw;
+            }
         }
 
-        var result = JsonSerializer.Deserialize<TelegramOkResponse>(body, JsonOptions);
-        if (result?.Ok != true)
-        {
-            throw new InvalidOperationException($"Telegram API {method} returned ok=false");
-        }
-
-        return JsonSerializer.Deserialize<T>(body, JsonOptions)
-            ?? throw new InvalidOperationException($"Telegram API {method} returned invalid JSON");
+        throw lastError ?? new InvalidOperationException($"Telegram API {method} failed without an exception");
     }
 
     private async Task<T> LiteLlmAsync<T>(string path, object? payload)
     {
-        using var request = new HttpRequestMessage(payload is null ? HttpMethod.Get : HttpMethod.Post, $"{_liteLlmBaseUrl}{path}");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _liteLlmKey);
-        if (payload is not null)
+        var stopwatch = Stopwatch.StartNew();
+        try
         {
-            request.Content = JsonContent(payload);
+            using var request = new HttpRequestMessage(payload is null ? HttpMethod.Get : HttpMethod.Post, $"{_liteLlmBaseUrl}{path}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _liteLlmKey);
+            if (payload is not null)
+            {
+                request.Content = JsonContent(payload);
+            }
+
+            using var response = await _liteLlmHttp.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"LiteLLM {path} failed: status={(int)response.StatusCode}");
+            }
+
+            Log($"litellm_api path={path}; elapsed_ms={stopwatch.ElapsedMilliseconds}; status={(int)response.StatusCode}; ok=true");
+            return JsonSerializer.Deserialize<T>(body, JsonOptions)
+                ?? throw new InvalidOperationException($"LiteLLM {path} returned invalid JSON");
+        }
+        catch (Exception ex)
+        {
+            Log($"litellm_api failed path={path}; elapsed_ms={stopwatch.ElapsedMilliseconds}; error={BriefException(ex)}", error: true);
+            throw;
+        }
+    }
+
+    private static bool IsTransientStatusCode(HttpStatusCode statusCode)
+    {
+        var status = (int)statusCode;
+        return status is 408 or 429 || status >= 500;
+    }
+
+    private static bool IsTransientException(Exception ex)
+    {
+        return ex is HttpRequestException or TaskCanceledException or TimeoutException or IOException;
+    }
+
+    private static string BriefException(Exception ex)
+    {
+        var parts = new List<string>();
+        for (var current = ex; current is not null && parts.Count < 3; current = current.InnerException)
+        {
+            parts.Add($"{current.GetType().Name}: {current.Message}");
         }
 
-        using var response = await _liteLlmHttp.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"LiteLLM {path} failed: {(int)response.StatusCode}");
-        }
-
-        return JsonSerializer.Deserialize<T>(body, JsonOptions)
-            ?? throw new InvalidOperationException($"LiteLLM {path} returned invalid JSON");
+        return string.Join(" <- ", parts);
     }
 
     private string GetUserModel(long userId) => _userModels.GetOrAdd(userId, _defaultModel);
@@ -354,7 +462,7 @@ sealed class SlowrigTelegramBot
     {
         if (string.IsNullOrWhiteSpace(telegramProxyUrl))
         {
-            return new HttpClient { Timeout = TimeSpan.FromSeconds(190) };
+            return new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
         }
 
         if (!Uri.TryCreate(telegramProxyUrl.Trim(), UriKind.Absolute, out var proxyUri) ||
@@ -370,7 +478,7 @@ sealed class SlowrigTelegramBot
         };
 
         Log("Telegram API proxy is configured");
-        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(190) };
+        return new HttpClient(handler) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
     }
 
     private static HashSet<long> ParseAllowedUsers(string raw)

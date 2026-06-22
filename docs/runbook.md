@@ -449,6 +449,8 @@ TELEGRAM_PROXY_URL
 
 `TELEGRAM_API_BASE_URL` опционален. Он нужен для reverse proxy mode, например через Cloudflare Worker. Значение должно быть HTTP(S) base URL, который проксирует Telegram Bot API path `/bot.../...`.
 
+Рекомендуемый Worker source хранится в `config/cloudflare/telegram-worker.js`. Он намеренно принимает только `/bot.../...`, а `/`, `/file`, `/css`, `/js` и прочие paths не проксирует в Telegram.
+
 `TELEGRAM_PROXY_URL` опционален. Он нужен только для настоящего HTTP(S) proxy mode, если host/container не может подключиться к `api.telegram.org:443` напрямую. Поддерживаются только proxy URL вида `http://host:port` или `https://host:port`; `tg://proxy?...` MTProto-ссылки не подходят для Bot API HTTP polling. LiteLLM через proxy не ходит.
 
 ---
@@ -566,6 +568,8 @@ sudo docker logs --tail=160 telegram-bot
 * configuration errors;
 * Telegram API HTTP errors;
 * `Network is unreachable` или timeout к `api.telegram.org:443`;
+* `telegram_api retry` и `telegram_api failed` с method, attempt, timeout и elapsed time;
+* `poll received`, `update checkpoint`, `llm request`, `llm response` для понимания, где именно тратится время;
 * ошибку `TELEGRAM_PROXY_URL must be an HTTP(S) proxy URL`, если вместо HTTP(S) proxy задана `tg://` MTProto-ссылка;
 * LiteLLM connectivity errors;
 * denied user IDs;

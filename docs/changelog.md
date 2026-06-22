@@ -62,6 +62,24 @@
 
 ---
 
+## 2026-06-23 — Stage 5.4 Telegram transport hardening
+
+### Изменено
+
+* Добавлен recommended Cloudflare Worker source: `config/cloudflare/telegram-worker.js`.
+* Worker source ограничивает reverse proxy только Bot API paths вида `/bot.../...` и не проксирует `/`, `/file`, `/css`, `/js`.
+* `telegram-bot` получил раздельные Telegram timeouts: короткий long polling, короткие обычные API calls и retry для `sendMessage`.
+* Логи `telegram-bot` стали подробнее: method, attempt, elapsed time, update checkpoint, LLM request/response timing, без вывода text/secrets.
+
+### Проверка
+
+* `docker compose --profile telegram build telegram-bot` успешен.
+* `telegram-bot` перезапущен через `docker compose --profile telegram up -d --no-deps telegram-bot`.
+* Runtime-проверка со старым Worker показала, что обычные успешные `sendMessage` отвечают за ~88-265 ms; подвисшие `getUpdates` и `sendMessage` теперь обрываются за `25s`, а `sendMessage` затем успешно повторяется через retry.
+* Для завершения stage нужно заменить Worker code в Cloudflare editor на `config/cloudflare/telegram-worker.js` и повторить ручную Telegram UI проверку.
+
+---
+
 ## 2026-06-22 — Telegram API base URL support
 
 ### Изменено

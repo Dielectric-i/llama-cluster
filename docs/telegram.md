@@ -538,6 +538,14 @@ TELEGRAM_API_BASE_URL=https://example.workers.dev
 
 Ожидаемое поведение такого endpoint: запрос `GET /bot000:dummy/getMe` должен доходить до Telegram Bot API и возвращать Telegram JSON, например `401 Unauthorized` на dummy token.
 
+Рекомендуемый Cloudflare Worker source хранится в:
+
+```text
+config/cloudflare/telegram-worker.js
+```
+
+Worker должен проксировать только Bot API paths вида `/bot.../...`; корень `/` и посторонние `/file`, `/css`, `/js` paths не должны уходить в Telegram.
+
 HTTP(S) proxy mode задаётся как optional proxy:
 
 ```text
@@ -579,6 +587,14 @@ Manual Telegram checks после запуска:
 * обычный prompt отвечает через `slowrig/coder`;
 * `/architect` переключает следующий запрос на `slowrig/architect`;
 * `/reset` сбрасывает short in-memory context.
+
+Transport hardening defaults после Stage 5.4:
+
+* `getUpdates` long polling timeout: `12s`;
+* Telegram polling HTTP timeout: `25s`;
+* обычные Telegram API calls, включая `sendMessage`: `25s`;
+* `sendMessage` retry attempts: `3`;
+* logs показывают method, attempt, elapsed time, update checkpoint, LLM request/response timing, но не печатают message text или secrets.
 
 Rollback:
 

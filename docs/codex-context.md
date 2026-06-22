@@ -226,6 +226,8 @@ Stage 5.1 implementation plan originally chose no separate Telegram framework/li
 
 Stage 5.2 adds `src/telegram-bot` and a `telegram-bot` Compose service under profile `telegram`. Do not start it until real `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS` are added to server `.env`. Telegram UI validation belongs to Stage 5.3.
 
+If the server cannot reach `api.telegram.org:443`, Telegram needs server routing/VPN or an HTTP(S) proxy in `TELEGRAM_PROXY_URL`. Telegram `tg://proxy?...` MTProto links are not supported by Bot API HTTP polling.
+
 ---
 
 ## 9. Agents decisions

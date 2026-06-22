@@ -446,7 +446,7 @@ TELEGRAM_PROXY_URL
 
 Не печатать реальные значения token.
 
-`TELEGRAM_PROXY_URL` опционален. Он нужен только если host/container не может подключиться к `api.telegram.org:443` напрямую. LiteLLM через proxy не ходит.
+`TELEGRAM_PROXY_URL` опционален. Он нужен только если host/container не может подключиться к `api.telegram.org:443` напрямую. Поддерживаются только HTTP(S) proxy URL вида `http://host:port` или `https://host:port`; `tg://proxy?...` MTProto-ссылки не подходят для Bot API HTTP polling. LiteLLM через proxy не ходит.
 
 ---
 
@@ -563,6 +563,7 @@ sudo docker logs --tail=160 telegram-bot
 * configuration errors;
 * Telegram API HTTP errors;
 * `Network is unreachable` или timeout к `api.telegram.org:443`;
+* ошибку `TELEGRAM_PROXY_URL must be an HTTP(S) proxy URL`, если вместо HTTP(S) proxy задана `tg://` MTProto-ссылка;
 * LiteLLM connectivity errors;
 * denied user IDs;
 * отсутствие полного текста пользовательских сообщений в logs.

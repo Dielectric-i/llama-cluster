@@ -532,6 +532,9 @@ TELEGRAM_PROXY_URL=
 TELEGRAM_PROXY_URL=http://proxy-host:proxy-port
 ```
 
+Поддерживаются только HTTP(S) proxy URL вида `http://host:port` или `https://host:port`.
+Ссылки Telegram-клиентов вида `tg://proxy?...` являются MTProto proxy и не подходят для Bot API HTTP polling.
+
 Proxy применяется только к Telegram Bot API. Запросы к LiteLLM остаются прямыми внутри Docker Compose network.
 
 Проверить compose config без реальных секретов можно временными значениями:

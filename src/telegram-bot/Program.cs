@@ -331,9 +331,15 @@ sealed class SlowrigTelegramBot
             return new HttpClient { Timeout = TimeSpan.FromSeconds(190) };
         }
 
+        if (!Uri.TryCreate(telegramProxyUrl.Trim(), UriKind.Absolute, out var proxyUri) ||
+            (proxyUri.Scheme != Uri.UriSchemeHttp && proxyUri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new InvalidOperationException("TELEGRAM_PROXY_URL must be an HTTP(S) proxy URL like http://host:port. tg:// MTProto proxy links are not supported by Bot API HTTP polling.");
+        }
+
         var handler = new HttpClientHandler
         {
-            Proxy = new WebProxy(telegramProxyUrl.Trim()),
+            Proxy = new WebProxy(proxyUri),
             UseProxy = true
         };
 

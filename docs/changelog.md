@@ -62,6 +62,19 @@
 
 ---
 
+## 2026-06-22 — Telegram proxy URL validation
+
+### Изменено
+
+* `telegram-bot` теперь явно принимает для `TELEGRAM_PROXY_URL` только HTTP(S) proxy URL.
+* Документация уточняет, что Telegram `tg://proxy?...` MTProto-ссылки не подходят для Bot API HTTP polling.
+
+### Проверка
+
+Проверено на сервере: `docker compose --profile telegram config --quiet` успешен, `telegram-bot` пересобран. Запуск с текущим `TELEGRAM_PROXY_URL` завершился ожидаемой явной ошибкой о неподдерживаемой `tg://` MTProto-ссылке; `telegram-bot` остановлен до настройки HTTP(S) proxy или маршрута к `api.telegram.org:443`.
+
+---
+
 ## 2026-06-22 — Stage 5.2 Telegram runtime code
 
 ### Изменено

@@ -36,6 +36,7 @@ Runbook не заменяет:
 | `llama-coder` | `8081` | 9B coder / fast worker |
 | `litellm` | `4000` | LLM Gateway / Router |
 | `open-webui` | `3000` | ручной WebUI через gateway |
+| `memory-db` | нет | PostgreSQL + pgvector Memory DB |
 
 Нормальная цепочка запросов:
 
@@ -69,6 +70,18 @@ slowrig/architect
 Небольшие отличия допустимы. Сильный рост VRAM без нагрузки — повод смотреть логи.
 
 Прямые backend-порты `8080` и `8081` оставлены для диагностики. Обычные клиенты должны использовать LiteLLM Gateway на `4000`.
+
+`memory-db` не публикует host-port. Он доступен только внутри Docker Compose network.
+
+После применения Stage 4.3 в `/opt/llama-cluster/.env` должны быть заданы:
+
+```text
+MEMORY_POSTGRES_DB
+MEMORY_POSTGRES_USER
+MEMORY_POSTGRES_PASSWORD
+```
+
+Без этих переменных `docker compose config` и другие Compose-команды должны завершаться ошибкой, чтобы PostgreSQL не стартовал с пустым или случайным паролем.
 
 ---
 
@@ -115,7 +128,8 @@ sudo docker ps
 * `llama-architect`;
 * `llama-coder`;
 * `litellm`;
-* `open-webui`.
+* `open-webui`;
+* `memory-db`.
 
 Нормально:
 
@@ -265,7 +279,44 @@ curl -sS http://127.0.0.1:4000/v1/chat/completions \
 
 ---
 
-## 4.5 Проверить 27B через gateway
+## 4.5 Проверить Memory DB
+
+Проверить readiness:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose exec -T memory-db sh -lc 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Ожидаемо:
+
+```text
+accepting connections
+```
+
+Проверить, что `pgvector` включён:
+
+```bash
+sudo docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT extname FROM pg_extension;"'
+```
+
+Ожидаемо:
+
+```text
+vector
+```
+
+Проверить bootstrap tables:
+
+```bash
+sudo docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\dt memory.*"'
+```
+
+Ожидаемо: в списке есть `memory.documents`, `memory.document_chunks` и другие таблицы schema `memory`.
+
+---
+
+## 4.6 Проверить 27B через gateway
 
 ```bash
 curl -sS http://127.0.0.1:4000/v1/chat/completions \
@@ -355,6 +406,22 @@ sudo docker logs --tail=160 open-webui
 * проблемы с переменными окружения;
 * ошибки базы WebUI;
 * попытки подключения к неиспользуемым backend-ам.
+
+---
+
+### 5.5 Логи Memory DB
+
+```bash
+sudo docker logs --tail=160 memory-db
+```
+
+Смотреть на:
+
+* ошибки PostgreSQL init;
+* ошибки `CREATE EXTENSION vector`;
+* проблемы с `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`;
+* проблемы доступа к volume;
+* healthcheck failures.
 
 ---
 
@@ -448,7 +515,26 @@ sudo docker logs --tail=160 open-webui
 
 ---
 
-### 6.5 Применить изменения compose для одного сервиса
+### 6.5 Перезапустить только Memory DB
+
+Использовать, если проблема только с `memory-db`.
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose restart memory-db
+```
+
+После этого проверить:
+
+```bash
+sudo docker compose ps memory-db
+sudo docker logs --tail=80 memory-db
+sudo docker compose exec -T memory-db sh -lc 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+---
+
+### 6.6 Применить изменения compose для одного сервиса
 
 Если был изменён только один сервис в `docker-compose.yaml`, лучше поднимать только его:
 
@@ -464,11 +550,12 @@ sudo docker compose up -d litellm
 sudo docker compose up -d open-webui
 sudo docker compose up -d llama-coder
 sudo docker compose up -d llama-architect
+sudo docker compose up -d memory-db
 ```
 
 ---
 
-### 6.6 Привести весь кластер к compose-состоянию
+### 6.7 Привести весь кластер к compose-состоянию
 
 Использовать, если изменение затрагивает несколько сервисов или нужно привести состояние к `docker-compose.yaml`.
 
@@ -518,7 +605,7 @@ sudo docker compose down
 sudo docker compose down -v
 ```
 
-Она удалит volumes и может стереть данные Open WebUI или будущих сервисов.
+Она удалит volumes и может стереть данные Open WebUI, `memory-db` или будущих сервисов.
 
 ---
 
@@ -734,9 +821,39 @@ docker-compose.stage1-baseline.yaml является историческим St
 
 ---
 
-## 10. Rollback
+## 10. Memory DB backup and restore
 
-### 10.1 Откат Open WebUI на прямые backend-и
+### 10.1 Сделать logical dump
+
+Перед любыми destructive действиями с `memory-db` сделать dump:
+
+```bash
+cd /opt/llama-cluster
+mkdir -p backups
+chmod 700 backups
+sudo docker compose exec -T memory-db sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "backups/memory-db-$(date +%Y%m%d-%H%M%S).dump"
+```
+
+`backups/` исключён из git. Не коммитить dump-файлы.
+
+### 10.2 Restore dry run в отдельную DB
+
+Заменить `<dump-file>` на конкретный файл:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose exec -T memory-db sh -lc 'createdb -U "$POSTGRES_USER" slowrig_memory_restore_check'
+sudo docker compose exec -T memory-db sh -lc 'pg_restore -U "$POSTGRES_USER" -d slowrig_memory_restore_check' < backups/<dump-file>
+sudo docker compose exec -T memory-db sh -lc 'dropdb -U "$POSTGRES_USER" slowrig_memory_restore_check'
+```
+
+Если `slowrig_memory_restore_check` уже существует, сначала разобраться почему. Не удалять её автоматически без понимания текущего состояния.
+
+---
+
+## 11. Rollback
+
+### 11.1 Откат Open WebUI на прямые backend-и
 
 Если LiteLLM работает нестабильно, можно временно вернуть Open WebUI на direct backend mode.
 
@@ -773,7 +890,31 @@ sudo docker logs --tail=160 open-webui
 
 ---
 
-### 10.2 Откат конкретного файла через git
+### 11.2 Откат Memory DB foundation
+
+Если Stage 4.3 нужно откатить до появления важных данных:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose stop memory-db
+git checkout -- docker-compose.yaml .env.example .gitignore scripts/cluster-status.sh README.md docs/runbook.md docs/passport.md docs/architecture.md docs/memory.md docs/decisions.md docs/changelog.md docs/codex-context.md
+```
+
+Если в `memory-db` уже есть полезные данные, перед откатом сначала сделать dump из раздела 10.1.
+
+Не удалять volume без отдельного approval:
+
+```text
+memory-db-data
+```
+
+Не использовать:
+
+```bash
+sudo docker compose down -v
+```
+
+### 11.3 Откат конкретного файла через git
 
 Посмотреть изменения:
 
@@ -798,9 +939,9 @@ git clean -fd
 
 ---
 
-## 11. Правила изменений
+## 12. Правила изменений
 
-### 11.1 Менять один параметр за раз
+### 12.1 Менять один параметр за раз
 
 Правильно:
 
@@ -821,7 +962,7 @@ git clean -fd
 
 ---
 
-### 11.2 Не повышать `parallel` у 27B без отдельного теста
+### 12.2 Не повышать `parallel` у 27B без отдельного теста
 
 Для `llama-architect` текущее правило:
 
@@ -841,7 +982,7 @@ git clean -fd
 
 ---
 
-### 11.3 Не включать CPU offload как штатный режим
+### 12.3 Не включать CPU offload как штатный режим
 
 Модели должны работать на GPU.
 
@@ -849,7 +990,7 @@ CPU offload может позволить запустить более тяжё
 
 ---
 
-### 11.4 Не использовать Unified Memory как решение нехватки VRAM
+### 12.4 Не использовать Unified Memory как решение нехватки VRAM
 
 Unified Memory может скрыть проблему нехватки VRAM, но при этом данные начнут уходить в RAM.
 
@@ -859,7 +1000,7 @@ Unified Memory допустима только как отдельный диа�
 
 ---
 
-### 11.5 Не открывать порты наружу без отдельного security stage
+### 12.5 Не открывать порты наружу без отдельного security stage
 
 Не открывать наружу без VPN/auth/reverse proxy/firewall-плана:
 
@@ -872,7 +1013,7 @@ Unified Memory допустима только как отдельный диа�
 
 ---
 
-## 12. Запрещённые действия без отдельного плана
+## 13. Запрещённые действия без отдельного плана
 
 Не делать без отдельной проверки и rollback-плана:
 
@@ -890,6 +1031,7 @@ Unified Memory допустима только как отдельный диа�
 * коммитить `.env`;
 * удалять диагностические порты `8080/8081`, пока gateway не проверен длительно;
 * удалять Docker volumes;
+* удалять `memory-db-data` без свежего dump и отдельного approval;
 * обновлять все образы без backup baseline;
 * менять порядок GPU без проверки `nvidia-smi`;
 * менять несколько параметров одновременно;
@@ -899,7 +1041,7 @@ Unified Memory допустима только как отдельный диа�
 
 ---
 
-## 13. Проверка после любого изменения
+## 14. Проверка после любого изменения
 
 После изменения документации:
 
@@ -947,7 +1089,7 @@ nvidia-smi
 
 ---
 
-## 14. Что делать при расхождении документации и реального состояния
+## 15. Что делать при расхождении документации и реального состояния
 
 Если документация, config и фактический вывод команд расходятся, не угадывать.
 

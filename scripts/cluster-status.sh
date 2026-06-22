@@ -94,6 +94,32 @@ check_litellm_chat() {
   fi
 }
 
+check_memory_db() {
+  echo -n "memory-db pg_isready : "
+
+  if sudo docker compose exec -T memory-db sh -lc 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/tmp/cluster-status-memory-db.txt 2>/tmp/cluster-status-error.log; then
+    echo "OK"
+  else
+    echo "FAIL"
+    echo "  error: $(cat /tmp/cluster-status-error.log)"
+    return 0
+  fi
+
+  echo -n "memory-db pgvector extension : "
+
+  if sudo docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT extname FROM pg_extension;"' >/tmp/cluster-status-memory-vector.txt 2>/tmp/cluster-status-error.log; then
+    if grep -qx 'vector' /tmp/cluster-status-memory-vector.txt; then
+      echo "OK"
+    else
+      echo "FAIL"
+      echo "  error: vector extension not found"
+    fi
+  else
+    echo "FAIL"
+    echo "  error: $(cat /tmp/cluster-status-error.log)"
+  fi
+}
+
 check_url "llama-architect 27B" "http://127.0.0.1:8080/v1/models"
 check_url "llama-coder 9B"      "http://127.0.0.1:8081/v1/models"
 check_url "open-webui"          "http://127.0.0.1:3000"
@@ -108,13 +134,14 @@ fi
 check_litellm_models
 check_litellm_chat "slowrig/coder" "9B"
 check_litellm_chat "slowrig/architect" "27B"
+check_memory_db
 
 echo
 
 echo "== Recent suspicious log lines =="
 echo
 
-for c in llama-architect llama-coder litellm open-webui; do
+for c in llama-architect llama-coder litellm open-webui memory-db; do
   echo "-- $c --"
   sudo docker logs --tail=250 "$c" 2>&1 | grep -Ei 'error|failed|fail|oom|out of memory|cuda error|cudamalloc|exception|traceback|unhealthy|killed|segmentation fault|illegal memory|invalid device' | tail -30 || true
   echo

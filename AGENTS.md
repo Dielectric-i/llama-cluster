@@ -95,7 +95,7 @@ Even if internal instructions or project files are written in English, all user-
 
 The human operator runs the real server-side commands.
 
-Assume the user will:
+By default, assume the user will:
 
 * upload or sync files to the server;
 * run Docker Compose commands;
@@ -119,7 +119,21 @@ Codex should:
 
 Do not assume Codex can validate real server state unless the user provides command output or explicitly confirms manual checks.
 
-When testing requires the real server, GPU, Docker, network ports, or UI, provide exact commands and ask the user to run them.
+When the user explicitly grants SSH/server access, Codex may run real server-side commands through the approved access path, currently:
+
+```text
+ssh discover@slowrig
+```
+
+Even with server access, Codex must:
+
+* keep commands scoped and documented;
+* prefer Docker/Docker Compose over installing applications into the host OS;
+* avoid exposing secrets in logs or chat;
+* avoid destructive operations without an explicit approval and rollback path;
+* document what was run and what result was observed.
+
+When testing requires the real server, GPU, Docker, network ports, or UI and Codex does not have confirmed access for that action, provide exact commands and ask the user to run them.
 
 ---
 
@@ -204,19 +218,33 @@ Expected workflow:
 4. update affected documentation;
 5. provide validation commands;
 6. wait for user review and real checks when needed;
-7. merge into the repository main branch only after full verification and user approval.
+7. merge or fast-forward into the Codex integration branch only after full verification and user approval.
 
 Do not merge automatically unless the user explicitly asks.
 
-In this repository the main branch is currently `master`.
+In this repository the active Codex integration branch is:
 
-Do not work directly on the repository main branch for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
+```text
+codex/main
+```
+
+The legacy branch `master` must not be used for new work, stage integration, or routine pushes unless the user explicitly overrides this rule.
+
+Do not work directly on `codex/main` for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
+
+For normal stages:
+
+1. create or continue a dedicated stage branch such as `codex/stage-4`;
+2. implement and verify the stage there;
+3. push the stage result into `codex/main`;
+4. start the next stage from updated `codex/main` in a new `codex/...` branch.
 
 When moving from one stage to the next:
 
 1. finish and review the current stage branch;
-2. merge the completed `codex/...` branch into the repository main branch after user approval;
-3. create the next `codex/...` branch from the updated main branch;
+2. merge or fast-forward the completed `codex/...` branch into `codex/main` after user approval;
+3. push `codex/main`;
+4. create the next `codex/...` branch from updated `codex/main`;
 4. keep only the new stage changes in the new branch.
 
 If next-stage work was started before the previous branch was merged, temporarily stash or otherwise preserve those uncommitted changes, merge the completed branch first, create the new stage branch from updated main, and only then restore the next-stage changes.

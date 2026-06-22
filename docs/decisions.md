@@ -83,8 +83,9 @@ ADR-XXX — Название решения
 | ADR-017 | Использовать стабильные gateway model names             | принято и внедрено    |
 | ADR-018 | Оставить direct backend-порты для диагностики           | принято               |
 | ADR-019 | Проектировать новые subsystem-ы до внедрения            | принято               |
-| ADR-020 | Планировать PostgreSQL + pgvector как первый Memory stack | принято для планирования |
+| ADR-020 | Планировать PostgreSQL + pgvector как первый Memory stack | принято; реализовано в ADR-022 |
 | ADR-021 | Зафиксировать roadmap defaults после Stage 4.1          | принято               |
+| ADR-022 | Внедрить `memory-db` без host-port как Memory DB foundation | принято; config добавлен |
 
 ---
 
@@ -559,7 +560,7 @@ Open WebUI может временно работать с отключённо�
 
 Git не является полным backup всего стенда.
 
-Для моделей, Open WebUI data, будущей memory DB и agent state нужен отдельный backup-план.
+Для моделей, Open WebUI data, memory DB и agent state нужен отдельный backup-план.
 
 ### Когда пересмотреть
 
@@ -1087,7 +1088,7 @@ PostgreSQL + pgvector
 
 Это решение не устанавливает БД и не меняет runtime baseline.
 
-Stage 4.2 implementation plan фиксирует начальные defaults для будущего Stage 4.3:
+Stage 4.2 implementation plan зафиксировал начальные defaults для Stage 4.3:
 
 * service name: `memory-db`;
 * container name: `memory-db`;
@@ -1095,7 +1096,7 @@ Stage 4.2 implementation plan фиксирует начальные defaults д�
 * host port: не публиковать по умолчанию;
 * volume: `memory-db-data`;
 * `.env` names: `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
-* exact pgvector-enabled PostgreSQL image/tag выбирается и проверяется перед Stage 4.3.
+* exact pgvector-enabled PostgreSQL image/tag выбран в ADR-022.
 
 ### Причина
 
@@ -1181,6 +1182,65 @@ Telegram, agents и полноценный monitoring появятся позж�
 
 ---
 
+## ADR-022 — Внедрить `memory-db` без host-port как Memory DB foundation
+
+Дата: 2026-06-22
+Статус: принято; config добавлен, server validation required
+Связанные документы: `docker-compose.yaml`, `.env.example`, `config/memory/init/001-memory-foundation.sql`, `docs/memory.md`, `docs/runbook.md`, `docs/architecture.md`, `docs/changelog.md`
+
+### Контекст
+
+Stage 4.2 подготовил implementation plan для PostgreSQL + pgvector.
+
+Stage 4.3 должен добавить минимальную DB foundation без внедрения embeddings runtime, ingestion pipeline, Telegram bot или agent framework.
+
+### Решение
+
+Добавить Docker Compose service:
+
+```text
+memory-db
+```
+
+Defaults:
+
+* image: `pgvector/pgvector:0.8.3-pg17`;
+* container name: `memory-db`;
+* host-port: не публиковать;
+* network exposure: только Docker Compose network;
+* volume: `memory-db-data`;
+* init SQL: `config/memory/init/001-memory-foundation.sql`;
+* secrets: только через `/opt/llama-cluster/.env`;
+* backup dumps: `backups/`, не хранить в git.
+
+### Причина
+
+Такой вариант даёт project-local stateful DB foundation и не открывает новый сетевой endpoint в LAN.
+
+Pinned image tag фиксирует версию pgvector/PostgreSQL для первого внедрения и не зависит от moving tags вроде `pg17` или `latest`.
+
+`memory-db-data` отделяет state от repo files. Logical dump становится обязательным перед destructive действиями.
+
+### Компромисс
+
+Появляется новая runtime dependency и новый Docker volume.
+
+Оператор должен добавить `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD` в real `.env` перед запуском `memory-db`.
+
+Bootstrap SQL через `/docker-entrypoint-initdb.d` подходит для первого пустого volume, но не является полноценным migration framework для будущих schema changes.
+
+### Когда пересмотреть
+
+Пересмотреть, если:
+
+* понадобится host-level DB administration port;
+* понадобится encrypted/offline backup policy сразу;
+* schema начнёт меняться после появления важных данных;
+* pgvector окажется недостаточным;
+* появится необходимость перейти на PostgreSQL + Qdrant hybrid.
+
+---
+
 ## 4. Открытые вопросы
 
 ### Q1. Какие routing policy добавить в gateway?
@@ -1212,7 +1272,6 @@ Markdown + Git остаются source of truth. PostgreSQL + pgvector план�
 
 Оставшиеся вопросы:
 
-* exact Docker image/tag;
 * backup dump path и offline/encrypted policy;
 * schema migration mechanism;
 * chunking/provenance format;
@@ -1263,7 +1322,7 @@ Telegram bot не должен иметь произвольный shell-дос�
 * compose/config/docs/scripts;
 * моделей;
 * Open WebUI data;
-* будущей memory DB;
+* memory DB;
 * логов;
 * agent state;
 * `.env` и секретов без попадания в git.

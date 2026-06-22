@@ -42,7 +42,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 1 | Inference baseline              | завершён               |
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
-| Stage 4 | Memory / RAG                    | Stage 4.2 plan подготовлен; runtime не внедрён |
+| Stage 4 | Memory / RAG                    | Stage 4.3 DB foundation добавлен в config; RAG ingestion не внедрён |
 | Stage 5 | Telegram bot                    | запланировано          |
 | Stage 6 | Agent framework                 | запланировано          |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
@@ -281,13 +281,13 @@ docs/runbook.md
 Статус:
 
 ```text
-not implemented
+DB foundation defined in compose; RAG ingestion not implemented
 ```
 
-Текущий документационный stage:
+Текущий stage:
 
 ```text
-Stage 4.2 — Memory implementation plan
+Stage 4.3 — Memory DB foundation
 ```
 
 Основной документ:
@@ -316,17 +316,18 @@ Memory/RAG слой должен быть отдельным subsystem-ом, а 
 PostgreSQL + pgvector
 ```
 
-Stage 4.2 фиксирует будущий минимальный DB foundation:
+Stage 4.3 добавляет минимальный DB foundation:
 
 ```text
 service: memory-db
+image: pgvector/pgvector:0.8.3-pg17
 network: Docker Compose network only
 host port: none by default
 volume: memory-db-data
 first corpus: README.md, AGENTS.md, docs/*.md
 ```
 
-До отдельного approval на Stage 4.3 не устанавливать БД, vector store или embedding service.
+На Stage 4.3 не добавляются embedding service, ingestion pipeline, Telegram bot или agent framework.
 
 ---
 
@@ -577,7 +578,7 @@ Backup должен быть отдельным stage, потому что ра�
 * `.env` и секреты;
 * GGUF-модели;
 * Open WebUI data;
-* future memory DB;
+* memory DB;
 * future agent state;
 * logs;
 * changelog and decisions.
@@ -876,7 +877,7 @@ completed
 Статус:
 
 ```text
-Stage 4.2 implementation plan prepared; runtime not implemented
+Stage 4.3 DB foundation added; server validation required
 ```
 
 Принятый порядок:
@@ -884,7 +885,7 @@ Stage 4.2 implementation plan prepared; runtime not implemented
 ```text
 Stage 4.1 — Memory / RAG design
 Stage 4.2 — Memory implementation plan
-Stage 4.3 — Memory DB foundation after approval
+Stage 4.3 — Memory DB foundation
 Stage 4.4 — Local RAG ingestion
 docs/memory.md
 ```
@@ -892,14 +893,14 @@ docs/memory.md
 Текущее решение:
 
 ```text
-PostgreSQL + pgvector is the first planned Memory DB stack.
+PostgreSQL + pgvector is the first Memory DB stack.
 Markdown + Git remain the source of truth.
 PostgreSQL stores structured state, metadata, chunks and derived vector data.
 ```
 
-Stage 4.2 не устанавливает базу данных, vector store или новые runtime-сервисы.
+Stage 4.3 добавляет только `memory-db` и bootstrap schema. Stage 4.3 не индексирует документы и не добавляет embedding runtime.
 
-Stage 4.2 plan зафиксирован в:
+Stage 4.3 зафиксирован в:
 
 ```text
 docs/memory.md
@@ -1020,8 +1021,7 @@ changelog
 
 Открытые вопросы:
 
-* какой exact Docker image/tag использовать для PostgreSQL + pgvector?
-* где хранить DB dumps и нужен ли encrypted/offline backup сразу?
+* нужен ли encrypted/offline backup сразу?
 * какой migration mechanism использовать для schema?
 * какой chunking/provenance формат принять для `docs/*.md`?
 * как удалять данные?

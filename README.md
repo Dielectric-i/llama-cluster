@@ -35,6 +35,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | `litellm` | `4000` | `http://192.168.1.6:4000/v1` | LLM Gateway / Router |
 | `llama-architect` | `8080` | `http://192.168.1.6:8080/v1` | 27B architect / сложные решения |
 | `llama-coder` | `8081` | `http://192.168.1.6:8081/v1` | 9B coder / быстрый исполнитель |
+| `memory-db` | нет | Docker Compose network only | PostgreSQL + pgvector для Memory / RAG foundation |
 
 Gateway model names:
 
@@ -70,6 +71,7 @@ slowrig/architect
 /opt/llama-cluster/config/litellm.config.yaml
 /opt/llama-cluster/.env.example
 /opt/llama-cluster/scripts/cluster-status.sh
+/opt/llama-cluster/config/memory/init/001-memory-foundation.sql
 ```
 
 Локальный файл секретов, не хранится в git:
@@ -78,11 +80,14 @@ slowrig/architect
 /opt/llama-cluster/.env
 ```
 
+После Stage 4.3 в `.env` должны быть реальные значения `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER` и `MEMORY_POSTGRES_PASSWORD`; placeholders есть в `.env.example`.
+
 Основные директории:
 
 ```text
 /opt/llama-cluster/models   # GGUF-модели, не хранить в git
 /opt/llama-cluster/cache    # runtime/cache, не хранить в git
+/opt/llama-cluster/backups  # локальные DB dumps, не хранить в git
 /opt/llama-cluster/docs     # документация
 /opt/llama-cluster/scripts  # эксплуатационные скрипты
 /opt/llama-cluster/config   # конфигурации сервисов
@@ -147,6 +152,7 @@ docs/runbook.md
 * удалять Docker volumes;
 * обновлять образы без фиксации baseline;
 * менять сразу несколько параметров compose.
+* удалять `memory-db-data` без свежего dump и явного решения.
 
 Текущий режим рассчитан на домашнюю LAN. Для внешнего доступа нужен отдельный security stage.
 
@@ -190,7 +196,7 @@ git commit -m "Describe change"
 | [docs/runbook.md](docs/runbook.md) | ежедневная эксплуатация, диагностика, перезапуск, rollback, типовые проблемы |
 | [docs/architecture.md](docs/architecture.md) | текущая и целевая архитектура ПО: gateway, память, агенты, Telegram |
 | [docs/gateway.md](docs/gateway.md) | дизайн и baseline LiteLLM Gateway |
-| [docs/memory.md](docs/memory.md) | Stage 4.1 design для будущего Memory / RAG слоя |
+| [docs/memory.md](docs/memory.md) | Stage 4 Memory / RAG design, DB foundation и будущий RAG план |
 | [docs/decisions.md](docs/decisions.md) | журнал архитектурных решений и компромиссов |
 | [docs/changelog.md](docs/changelog.md) | фактическая история изменений, проверок и измерений |
 | [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline |

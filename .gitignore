@@ -11,6 +11,7 @@ models/
 cache/
 data/
 logs/
+backups/
 tmp/
 temp/
 

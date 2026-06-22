@@ -135,8 +135,8 @@ Future ordinary clients should use LiteLLM Gateway, not direct backend ports.
 The approved high-level order is:
 
 ```text
-Stage 4.2 — Memory implementation plan
-Stage 4.3 — Memory DB foundation
+Stage 4.2 — Memory implementation plan (done)
+Stage 4.3 — Memory DB foundation (config added; server validation required)
 Stage 4.4 — Local RAG ingestion
 Stage 5   — Telegram bot
 Stage 6   — Agents
@@ -159,8 +159,8 @@ PostgreSQL + pgvector
 
 Meaning:
 
-* Stage 4.2 prepares the implementation plan around PostgreSQL + pgvector;
-* Stage 4.3 may implement PostgreSQL + pgvector only after approval;
+* Stage 4.2 prepared the implementation plan around PostgreSQL + pgvector;
+* Stage 4.3 added `memory-db` config after approval;
 * Stage 4.4 adds local RAG ingestion after the DB foundation exists;
 * embeddings should be local, but the embedding runtime is a later separate substage;
 * first indexed corpus is only `README.md`, `AGENTS.md`, and `docs/*.md`;
@@ -173,15 +173,15 @@ Markdown + Git remain source of truth.
 PostgreSQL + pgvector stores structured state, metadata, chunks, and derived vector data.
 ```
 
-Stage 4.2 must include a minimal backup/restore contract before any stateful DB is deployed.
+Stage 4.3 DB foundation defaults:
 
-Stage 4.2 DB foundation defaults:
-
-* future Compose service: `memory-db`;
-* future volume: `memory-db-data`;
+* Compose service: `memory-db`;
+* image: `pgvector/pgvector:0.8.3-pg17`;
+* volume: `memory-db-data`;
 * DB network exposure: Docker Compose network only, no host port by default;
-* planned env names: `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
-* exact Docker image/tag is chosen and verified immediately before Stage 4.3.
+* env names: `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
+* bootstrap SQL: `config/memory/init/001-memory-foundation.sql`;
+* backup dumps path: `backups/`, ignored by git.
 
 ---
 

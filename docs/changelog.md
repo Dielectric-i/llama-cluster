@@ -62,6 +62,81 @@
 
 ---
 
+## 2026-06-22 — Stage 4.3 Memory DB foundation
+
+### Изменено
+
+Добавлен `memory-db` в `docker-compose.yaml`:
+
+* image: `pgvector/pgvector:0.8.3-pg17`;
+* container name: `memory-db`;
+* host-port не публикуется;
+* volume: `memory-db-data`;
+* init SQL mount: `config/memory/init`;
+* healthcheck через `pg_isready`.
+
+Добавлен bootstrap SQL:
+
+```text
+config/memory/init/001-memory-foundation.sql
+```
+
+Он создаёт `vector`, schema `memory` и минимальные таблицы для documents, chunks, embedding metadata, embeddings, ingestion runs, tasks, access rules и audit log.
+
+Обновлены:
+
+* `AGENTS.md` — активная интеграционная ветка изменена на `codex/main`, `master` помечен как legacy branch для новых stage, добавлено правило про SSH-доступ и предпочтение Docker/Docker Compose вместо host installs;
+* `.env.example` — добавлены placeholders `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
+* `.gitignore` — добавлен `backups/`;
+* `scripts/cluster-status.sh` — добавлена проверка `memory-db` и `pgvector`;
+* `README.md`, `docs/passport.md`, `docs/runbook.md`, `docs/architecture.md`, `docs/memory.md`, `docs/decisions.md`, `docs/codex-context.md`.
+
+Добавлен `ADR-022`:
+
+```text
+Внедрить memory-db без host-port как Memory DB foundation
+```
+
+### Проверено
+
+Repository-side проверки:
+
+```text
+git status --short
+git diff --stat
+git diff --check
+```
+
+`git diff --check` не нашёл whitespace errors.
+
+Не выполнены локально:
+
+```text
+docker compose config --quiet
+bash -n scripts/cluster-status.sh
+server/runtime checks
+```
+
+Причина: в локальной Windows-среде Codex нет Docker CLI, а доступный `bash.exe` является WSL-заглушкой без установленного Linux environment.
+
+Server/runtime checks ещё требуются на `slowrig`.
+
+### Результат
+
+Stage 4.3 добавил config-level foundation для PostgreSQL + pgvector без изменения LLM routing, GPU mapping, model files, host ports `3000/4000/8080/8081`, LiteLLM config или Open WebUI config.
+
+### Замечания
+
+Перед запуском на сервере оператор должен добавить реальные значения Memory DB в `/opt/llama-cluster/.env`.
+
+Следующий этап после проверки Stage 4.3:
+
+```text
+Stage 4.4 — Local RAG ingestion
+```
+
+---
+
 ## 2026-06-22 — Stage 4.2 Memory implementation plan
 
 ### Изменено

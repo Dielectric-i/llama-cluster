@@ -137,5 +137,31 @@ services:
     volumes:
       - open-webui:/app/backend/data
 
+  memory-db:
+    image: pgvector/pgvector:0.8.3-pg17
+    container_name: memory-db
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      POSTGRES_DB: "${MEMORY_POSTGRES_DB:?Set MEMORY_POSTGRES_DB in .env}"
+      POSTGRES_USER: "${MEMORY_POSTGRES_USER:?Set MEMORY_POSTGRES_USER in .env}"
+      POSTGRES_PASSWORD: "${MEMORY_POSTGRES_PASSWORD:?Set MEMORY_POSTGRES_PASSWORD in .env}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    volumes:
+      - memory-db-data:/var/lib/postgresql/data
+      - /opt/llama-cluster/config/memory/init:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 volumes:
   open-webui:
+  memory-db-data:

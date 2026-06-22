@@ -332,7 +332,7 @@ PostgreSQL хранит state/metadata, Qdrant хранит vector index
 ```text
 Stage 4.1: design only
 Stage 4.2: prepare minimal PostgreSQL + pgvector implementation plan
-Stage 4.3: implement only after backup/security plan is clear
+Stage 4.3: implement minimal DB foundation after approval
 ```
 
 Пользователь подтвердил `PostgreSQL + pgvector` как целевой runtime-кандидат для Stage 4.2 implementation plan. Это не означает установку БД на Stage 4.1.
@@ -461,7 +461,7 @@ Non-goals Stage 4.2:
 | Compose service | `memory-db` |
 | Container name | `memory-db` |
 | Runtime | PostgreSQL + pgvector |
-| Image | pinned pgvector-enabled PostgreSQL image; точный tag выбрать и проверить перед Stage 4.3 |
+| Image | `pgvector/pgvector:0.8.3-pg17` |
 | Network | только Docker Compose network |
 | Host port | не публиковать по умолчанию |
 | Volume | named volume `memory-db-data` |
@@ -493,7 +493,42 @@ sudo docker compose exec memory-db psql
 
 ---
 
-## 14. Minimal schema areas for Stage 4.3
+## 14. Stage 4.3 DB foundation
+
+Статус:
+
+```text
+implemented in config; requires operator validation on server
+```
+
+Stage 4.3 добавляет:
+
+* Compose service `memory-db`;
+* container `memory-db`;
+* image `pgvector/pgvector:0.8.3-pg17`;
+* named volume `memory-db-data`;
+* init SQL `config/memory/init/001-memory-foundation.sql`;
+* `.env.example` placeholders для Memory DB;
+* `backups/` в `.gitignore`;
+* проверки `memory-db` в `scripts/cluster-status.sh`.
+
+Stage 4.3 не добавляет:
+
+* host-port для PostgreSQL;
+* embedding runtime;
+* ingestion pipeline;
+* автоматическую индексацию документов;
+* Telegram bot;
+* agent framework;
+* public access.
+
+Оператор должен добавить реальные значения в `/opt/llama-cluster/.env` до запуска `memory-db`.
+
+`docker-compose.yaml` использует required variable syntax для `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER` и `MEMORY_POSTGRES_PASSWORD`. Это намеренно: Compose должен остановиться с понятной ошибкой, если реальные Memory DB credentials ещё не заданы.
+
+---
+
+## 15. Minimal schema areas for Stage 4.3
 
 Stage 4.3 должен начинаться с минимальной структуры, а не с универсальной платформы памяти.
 
@@ -529,25 +564,34 @@ docs/*.md
 
 ---
 
-## 15. Manual checks for future implementation
+## 16. Manual checks
 
-Для Stage 4.2 достаточно документационных проверок:
+Локальные проверки repository-side:
 
 ```bash
 git status --short
 git diff --stat
-git diff -- AGENTS.md docs/codex-context.md docs/memory.md docs/architecture.md docs/decisions.md docs/changelog.md
+git diff -- docker-compose.yaml .env.example .gitignore config/memory/init/001-memory-foundation.sql scripts/cluster-status.sh README.md docs/
 git diff --check
+bash -n scripts/cluster-status.sh
 ```
 
-Перед будущим Stage 4.3:
+Перед запуском на сервере добавить в `/opt/llama-cluster/.env`:
+
+```text
+MEMORY_POSTGRES_DB=slowrig_memory
+MEMORY_POSTGRES_USER=slowrig_memory
+MEMORY_POSTGRES_PASSWORD=<strong-local-password>
+```
+
+Проверить Compose config:
 
 ```bash
 cd /opt/llama-cluster
 sudo docker compose config --quiet
 ```
 
-После добавления `memory-db` в отдельном будущем stage:
+Запустить только DB:
 
 ```bash
 sudo docker compose up -d memory-db
@@ -564,39 +608,65 @@ sudo docker compose exec memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRE
 Внутри `psql`:
 
 ```sql
-SELECT extname FROM pg_extension WHERE extname = 'vector';
+SELECT extname FROM pg_extension;
 ```
 
-Для Stage 4.2 server/runtime checks не требуются, потому что runtime не меняется.
-
----
-
-## 16. Rollback
-
-Для Stage 4.2 rollback — только документационный:
+Проверить bootstrap schema:
 
 ```bash
-git checkout -- docs/memory.md docs/architecture.md docs/decisions.md docs/changelog.md docs/codex-context.md
+sudo docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "\dt memory.*"'
 ```
 
-Для будущего Stage 4.3 rollback должен быть отдельным и включать:
+После проверки DB можно запустить общий статус:
 
-* свежий dump перед destructive actions, если DB уже содержит state;
-* остановку `memory-db`;
-* сохранение или удаление `memory-db-data` только после approval;
-* возврат compose/config;
-* проверку `cluster-status.sh`;
-* запись в changelog.
+```bash
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+Codex не может считать Stage 4.3 server-validated, пока оператор не предоставит вывод или не подтвердит ручную проверку.
 
 ---
 
-## 17. Открытые вопросы
+## 17. Rollback
 
-Перед Stage 4.3 нужно решить:
+Если `memory-db` ещё не содержит полезных данных:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose stop memory-db
+git checkout -- docker-compose.yaml .env.example .gitignore config/memory/init/001-memory-foundation.sql scripts/cluster-status.sh README.md docs/runbook.md docs/passport.md docs/architecture.md docs/memory.md docs/decisions.md docs/changelog.md docs/codex-context.md
+```
+
+Если `memory-db` уже содержит полезные данные, сначала сделать dump:
+
+```bash
+cd /opt/llama-cluster
+mkdir -p backups
+chmod 700 backups
+sudo docker compose exec -T memory-db sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "backups/memory-db-$(date +%Y%m%d-%H%M%S).dump"
+```
+
+Volume не удалять без отдельного approval:
+
+```text
+memory-db-data
+```
+
+Запрещено использовать как обычный rollback:
+
+```bash
+sudo docker compose down -v
+```
+
+
+---
+
+## 18. Открытые вопросы
+
+Перед Stage 4.4 нужно решить:
 
 * нужна ли отдельная embedding model;
-* какой exact Docker image/tag использовать для PostgreSQL + pgvector;
-* где хранить DB dumps и нужен ли offline/encrypted backup сразу;
+* нужен ли offline/encrypted backup сразу;
 * какой migration mechanism использовать для schema;
 * какой chunking/provenance формат принять для `docs/*.md`;
 * когда добавлять Open WebUI conversations, Telegram history и raw logs;
@@ -604,20 +674,20 @@ git checkout -- docs/memory.md docs/architecture.md docs/decisions.md docs/chang
 
 ---
 
-## 18. Рекомендуемый следующий этап
+## 19. Рекомендуемый следующий этап
 
 Рекомендуемый следующий этап:
 
 ```text
-Stage 4.3 — Memory DB foundation
+Stage 4.4 — Local RAG ingestion
 ```
 
-Цель Stage 4.3:
+Цель Stage 4.4:
 
-* добавить `memory-db` только после отдельного approval;
-* обновить `docker-compose.yaml`, `.env.example`, `.gitignore` при необходимости и docs;
-* проверить Compose config, container logs и pgvector extension;
-* выполнить backup/restore dry run;
-* не добавлять embeddings runtime и ingestion до Stage 4.4.
+* выбрать локальную embedding model/runtime;
+* добавить ingestion pipeline только для `README.md`, `AGENTS.md`, `docs/*.md`;
+* записывать chunks, provenance и embeddings в `memory-db`;
+* обеспечить rebuild индекса;
+* не индексировать чаты, сырые логи, `.env`, `secrets/` или Open WebUI history.
 
-До approval на Stage 4.3 не устанавливать новые runtime dependencies.
+До approval на Stage 4.4 не добавлять embedding runtime или ingestion scripts.

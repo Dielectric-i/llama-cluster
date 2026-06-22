@@ -145,8 +145,11 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | `litellm`         |    `4000` | LLM Gateway / Router                   |
 | `llama-architect` |    `8080` | 27B architect / deep reasoning backend |
 | `llama-coder`     |    `8081` | 9B coder / fast worker backend         |
+| `memory-db`       |     нет    | PostgreSQL + pgvector Memory DB        |
 
 Прямые backend-порты `8080` и `8081` оставлены для диагностики. Обычный клиентский путь должен идти через LiteLLM Gateway.
+
+`memory-db` не публикует host-port и доступен только внутри Docker Compose network.
 
 ---
 

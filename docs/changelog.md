@@ -109,17 +109,64 @@ git diff --check
 
 `git diff --check` не нашёл whitespace errors.
 
-Не выполнены локально:
+Серверные проверки через `ssh discover@slowrig`:
+
+```text
+git checkout -B codex/main origin/codex/main
+docker compose config --quiet
+docker compose up -d memory-db
+docker compose ps memory-db
+docker logs --tail=120 memory-db
+pg_isready
+SELECT extname FROM pg_extension;
+\dt memory.*
+```
+
+Результат:
+
+* серверный worktree переключён на `codex/main`;
+* `docker compose config --quiet` прошёл;
+* `memory-db` запущен и показывает `healthy`;
+* PostgreSQL принимает соединения;
+* extension `vector` создан;
+* schema `memory` содержит 9 bootstrap tables.
+
+Частично проверено:
+
+```text
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+Результат:
+
+* direct backend `8080` отвечает;
+* direct backend `8081` отвечает;
+* Open WebUI `3000` отвечает;
+* LiteLLM `/v1/models` отвечает;
+* `slowrig/coder` отвечает через LiteLLM;
+* `slowrig/architect` отвечает через LiteLLM;
+* GPU mapping и VRAM соответствуют baseline.
+
+Ограничение: при запуске через noninteractive SSH от Codex команды `sudo` внутри `cluster-status.sh` не прошли, поэтому Docker-секции и встроенная `memory-db` проверка в этом запуске не являются валидными. Прямые `memory-db` проверки выше выполнены отдельными Docker-командами.
+
+Не выполнены локально в Windows-среде Codex:
 
 ```text
 docker compose config --quiet
 bash -n scripts/cluster-status.sh
-server/runtime checks
 ```
 
 Причина: в локальной Windows-среде Codex нет Docker CLI, а доступный `bash.exe` является WSL-заглушкой без установленного Linux environment.
 
-Server/runtime checks ещё требуются на `slowrig`.
+Server/runtime checks выполнялись на `slowrig` через SSH, как описано выше.
+
+Осталось проверить отдельно:
+
+```text
+Memory DB backup/restore dry run
+```
+
+Причина: после первичных серверных проверок noninteractive `sudo -S` перестал принимать предоставленный пароль. Пароль не сохранялся в файлах и не записывался в документацию.
 
 ### Результат
 

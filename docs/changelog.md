@@ -192,6 +192,20 @@ dropdb slowrig_memory_restore_check
 
 После появления Docker group access для `discover` обновлён `scripts/cluster-status.sh`: теперь он использует `docker` без `sudo`, если это доступно, и сохраняет fallback на `sudo docker` для ручных запусков от пользователя без Docker group access.
 
+После обновления `scripts/cluster-status.sh` на сервере проверено:
+
+```text
+bash -n scripts/cluster-status.sh
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+Результат:
+
+* Docker containers и Compose services выводятся без `sudo`;
+* все LLM/API checks — `OK`;
+* `memory-db pg_isready` — `OK`;
+* `memory-db pgvector extension` — `OK`.
+
 ### Результат
 
 Stage 4.3 добавил config-level foundation для PostgreSQL + pgvector без изменения LLM routing, GPU mapping, model files, host ports `3000/4000/8080/8081`, LiteLLM config или Open WebUI config.

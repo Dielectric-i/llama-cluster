@@ -129,6 +129,7 @@ Even with server access, Codex must:
 
 * keep commands scoped and documented;
 * prefer Docker/Docker Compose over installing applications into the host OS;
+* use Docker without `sudo` when the SSH user already has Docker group access;
 * avoid exposing secrets in logs or chat;
 * treat sudo passwords as secrets: do not store them in files, commits, commands shown to the user, or documentation;
 * avoid destructive operations without an explicit approval and rollback path;

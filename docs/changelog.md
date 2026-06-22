@@ -168,6 +168,28 @@ Memory DB backup/restore dry run
 
 Причина: после первичных серверных проверок noninteractive `sudo -S` перестал принимать предоставленный пароль. Пароль не сохранялся в файлах и не записывался в документацию.
 
+Позднее пользователь добавил `discover` в группу `docker` и перелогинился по SSH. После этого Docker стал доступен без `sudo`.
+
+Дополнительно проверено:
+
+```text
+docker ps
+pg_dump --format=custom
+createdb slowrig_memory_restore_check
+pg_restore
+\dt memory.*
+dropdb slowrig_memory_restore_check
+```
+
+Результат:
+
+* `memory-db` остаётся `healthy`;
+* создан свежий dump `backups/memory-db-20260622-065432.dump`;
+* restore dry run во временную DB прошёл;
+* в restored DB видны 9 таблиц schema `memory`;
+* временная DB `slowrig_memory_restore_check` удалена после проверки;
+* нулевые dump-файлы от ранних quoting-сбоев удалены.
+
 ### Результат
 
 Stage 4.3 добавил config-level foundation для PostgreSQL + pgvector без изменения LLM routing, GPU mapping, model files, host ports `3000/4000/8080/8081`, LiteLLM config или Open WebUI config.

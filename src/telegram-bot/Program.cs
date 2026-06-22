@@ -20,7 +20,8 @@ sealed class SlowrigTelegramBot
     private readonly string _liteLlmBaseUrl;
     private readonly string _defaultModel;
     private readonly string _architectModel;
-    private readonly HttpClient _http = new();
+    private readonly HttpClient _telegramHttp;
+    private readonly HttpClient _liteLlmHttp = new();
     private readonly ConcurrentDictionary<long, string> _userModels = new();
     private readonly ConcurrentDictionary<long, List<ChatMessage>> _contexts = new();
     private long _offset;
@@ -36,7 +37,8 @@ sealed class SlowrigTelegramBot
         string liteLlmKey,
         string liteLlmBaseUrl,
         string defaultModel,
-        string architectModel)
+        string architectModel,
+        string? telegramProxyUrl)
     {
         _token = token;
         _allowedUsers = allowedUsers;
@@ -44,7 +46,8 @@ sealed class SlowrigTelegramBot
         _liteLlmBaseUrl = liteLlmBaseUrl.TrimEnd('/');
         _defaultModel = defaultModel;
         _architectModel = architectModel;
-        _http.Timeout = TimeSpan.FromSeconds(190);
+        _telegramHttp = CreateTelegramHttpClient(telegramProxyUrl);
+        _liteLlmHttp.Timeout = TimeSpan.FromSeconds(190);
     }
 
     public static SlowrigTelegramBot FromEnvironment()
@@ -70,7 +73,9 @@ sealed class SlowrigTelegramBot
             architectModel = "slowrig/architect";
         }
 
-        return new SlowrigTelegramBot(token, allowedUsers, liteLlmKey, liteLlmBaseUrl, defaultModel, architectModel);
+        var telegramProxyUrl = Environment.GetEnvironmentVariable("TELEGRAM_PROXY_URL");
+
+        return new SlowrigTelegramBot(token, allowedUsers, liteLlmKey, liteLlmBaseUrl, defaultModel, architectModel, telegramProxyUrl);
     }
 
     public async Task RunAsync()
@@ -264,7 +269,7 @@ sealed class SlowrigTelegramBot
         {
             Content = JsonContent(payload)
         };
-        using var response = await _http.SendAsync(request);
+        using var response = await _telegramHttp.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
@@ -290,7 +295,7 @@ sealed class SlowrigTelegramBot
             request.Content = JsonContent(payload);
         }
 
-        using var response = await _http.SendAsync(request);
+        using var response = await _liteLlmHttp.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
@@ -317,6 +322,23 @@ sealed class SlowrigTelegramBot
         }
 
         return value.Trim();
+    }
+
+    private static HttpClient CreateTelegramHttpClient(string? telegramProxyUrl)
+    {
+        if (string.IsNullOrWhiteSpace(telegramProxyUrl))
+        {
+            return new HttpClient { Timeout = TimeSpan.FromSeconds(190) };
+        }
+
+        var handler = new HttpClientHandler
+        {
+            Proxy = new WebProxy(telegramProxyUrl.Trim()),
+            UseProxy = true
+        };
+
+        Log("Telegram API proxy is configured");
+        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(190) };
     }
 
     private static HashSet<long> ParseAllowedUsers(string raw)

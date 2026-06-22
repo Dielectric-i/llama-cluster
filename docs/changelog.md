@@ -138,6 +138,16 @@ TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile 
 
 Runtime Telegram UI checks не выполнены на этом этапе, потому что real `TELEGRAM_BOT_TOKEN` и allowed user IDs не добавлены в server `.env`.
 
+После добавления real secrets bot стартовал, но ручная Telegram UI проверка выявила сетевую проблему: сервер не может подключиться к `api.telegram.org:443`. При этом общий HTTPS egress работает (`github.com`, `huggingface.co`, `1.1.1.1`), а Telegram API по IPv4 timeout-ится и по IPv6 недоступен.
+
+Добавлена поддержка optional:
+
+```text
+TELEGRAM_PROXY_URL
+```
+
+Proxy применяется только к Telegram Bot API. LiteLLM traffic остаётся прямым внутри Docker Compose network.
+
 ### Результат
 
 Stage 5.2 добавил runtime code/config для Telegram bot без запуска сервиса, без Telegram framework/library, без webhook, без public inbound port и без shell/Docker/filesystem access.

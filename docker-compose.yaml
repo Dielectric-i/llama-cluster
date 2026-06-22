@@ -206,6 +206,7 @@ services:
       - TELEGRAM_DEFAULT_MODEL=${TELEGRAM_DEFAULT_MODEL:-slowrig/coder}
       - TELEGRAM_ARCHITECT_MODEL=${TELEGRAM_ARCHITECT_MODEL:-slowrig/architect}
       - LITELLM_BASE_URL=http://litellm:4000/v1
+      - TELEGRAM_PROXY_URL=${TELEGRAM_PROXY_URL:-}
 
     depends_on:
       - litellm

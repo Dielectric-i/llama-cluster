@@ -441,9 +441,12 @@ TELEGRAM_BOT_TOKEN
 TELEGRAM_ALLOWED_USER_IDS
 TELEGRAM_DEFAULT_MODEL=slowrig/coder
 TELEGRAM_ARCHITECT_MODEL=slowrig/architect
+TELEGRAM_PROXY_URL
 ```
 
 Не печатать реальные значения token.
+
+`TELEGRAM_PROXY_URL` опционален. Он нужен только если host/container не может подключиться к `api.telegram.org:443` напрямую. LiteLLM через proxy не ходит.
 
 ---
 
@@ -559,6 +562,7 @@ sudo docker logs --tail=160 telegram-bot
 
 * configuration errors;
 * Telegram API HTTP errors;
+* `Network is unreachable` или timeout к `api.telegram.org:443`;
 * LiteLLM connectivity errors;
 * denied user IDs;
 * отсутствие полного текста пользовательских сообщений в logs.

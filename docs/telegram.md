@@ -91,6 +91,7 @@ TELEGRAM_BOT_TOKEN
 TELEGRAM_ALLOWED_USER_IDS
 TELEGRAM_DEFAULT_MODEL
 TELEGRAM_ARCHITECT_MODEL
+TELEGRAM_PROXY_URL
 LITELLM_BASE_URL
 LITELLM_MASTER_KEY
 ```
@@ -522,7 +523,16 @@ TELEGRAM_BOT_TOKEN
 TELEGRAM_ALLOWED_USER_IDS
 TELEGRAM_DEFAULT_MODEL=slowrig/coder
 TELEGRAM_ARCHITECT_MODEL=slowrig/architect
+TELEGRAM_PROXY_URL=
 ```
+
+Если сервер не может подключиться к `api.telegram.org:443` напрямую, задать optional proxy:
+
+```text
+TELEGRAM_PROXY_URL=http://proxy-host:proxy-port
+```
+
+Proxy применяется только к Telegram Bot API. Запросы к LiteLLM остаются прямыми внутри Docker Compose network.
 
 Проверить compose config без реальных секретов можно временными значениями:
 

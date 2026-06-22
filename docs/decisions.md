@@ -83,6 +83,8 @@ ADR-XXX — Название решения
 | ADR-017 | Использовать стабильные gateway model names             | принято и внедрено    |
 | ADR-018 | Оставить direct backend-порты для диагностики           | принято               |
 | ADR-019 | Проектировать новые subsystem-ы до внедрения            | принято               |
+| ADR-020 | Планировать PostgreSQL + pgvector как первый Memory stack | принято для планирования |
+| ADR-021 | Зафиксировать roadmap defaults после Stage 4.1          | принято               |
 
 ---
 
@@ -1018,16 +1020,16 @@ Direct backend-порты позволяют быстро понять:
 Design stage должен описывать:
 
 ```text
-Goal:
-Non-goals:
-Current baseline:
-Proposed architecture:
-Files/services affected:
-Security impact:
-Persistence/backup impact:
-Manual checks:
-Rollback:
-Open questions:
+Цель:
+Не-цели:
+Текущий baseline:
+Предлагаемая архитектура:
+Затронутые файлы/сервисы:
+Влияние на безопасность:
+Влияние на persistence/backup:
+Ручные проверки:
+Откат:
+Открытые вопросы:
 ```
 
 ### Причина
@@ -1051,6 +1053,119 @@ Open questions:
 Если проект станет экспериментальной веткой, где скорость важнее стабильности.
 
 Для основной ветки `main` это правило должно сохраняться.
+
+---
+
+## ADR-020 — Планировать PostgreSQL + pgvector как первый Memory stack
+
+Дата: 2026-06-22
+Статус: принято для планирования
+Связанные документы: `docs/memory.md`, `docs/architecture.md`, `docs/changelog.md`
+
+### Контекст
+
+Stage 4.1 создал design-документ `docs/memory.md` без установки новых runtime-зависимостей.
+
+Для Stage 4.2 нужно выбрать целевой вариант, вокруг которого будет готовиться implementation plan.
+
+Рассматривались:
+
+* Markdown + Git only;
+* PostgreSQL + pgvector;
+* Qdrant;
+* PostgreSQL + Qdrant hybrid.
+
+### Решение
+
+Готовить Stage 4.2 implementation plan вокруг:
+
+```text
+PostgreSQL + pgvector
+```
+
+Это решение не устанавливает БД и не меняет runtime baseline.
+
+### Причина
+
+PostgreSQL + pgvector лучше всего подходит как первый memory stack для `slowrig`, потому что одна БД может хранить:
+
+* structured task state;
+* metadata документов и chunks;
+* vector embeddings;
+* будущие Telegram metadata;
+* будущие agent runs и audit records.
+
+Это проще для первого backup/restore plan, чем сразу добавлять отдельную metadata DB и Qdrant.
+
+### Компромисс
+
+PostgreSQL + pgvector добавит stateful runtime dependency на будущем implementation stage.
+
+Vector search может быть менее специализированным, чем Qdrant, но текущий масштаб `slowrig` не требует отдельного vector store с самого начала.
+
+### Когда пересмотреть
+
+Пересмотреть, если:
+
+* объём RAG-корпуса резко вырастет;
+* pgvector окажется недостаточным по качеству или скорости retrieval;
+* потребуется отдельный специализированный vector store;
+* backup/restore требования сделают PostgreSQL неподходящим;
+* будущие agent workflows потребуют другой state model.
+
+---
+
+## ADR-021 — Зафиксировать roadmap defaults после Stage 4.1
+
+Дата: 2026-06-22
+Статус: принято
+Связанные документы: `docs/codex-context.md`, `docs/memory.md`, `docs/changelog.md`
+
+### Контекст
+
+После Stage 4.1 были решены основные развилки, влияющие на порядок развития проекта до Telegram, agents и hardening.
+
+### Решение
+
+Принять следующие defaults:
+
+* embeddings — локальная embedding model позже, отдельным подэтапом;
+* первый RAG-корпус — только `README.md`, `AGENTS.md`, `docs/*.md`;
+* порядок — Memory foundation -> RAG -> Telegram -> agents -> hardening;
+* backup/security для первой DB — минимальный backup/restore contract уже в Stage 4.2;
+* Telegram — polling + whitelist, через LiteLLM, без shell;
+* agents — custom lightweight workflow с лестницей прав;
+* gateway aliases — не добавлять до появления клиентской необходимости;
+* direct backend ports `8080/8081` — оставить в LAN до security hardening;
+* monitoring — будущий `cluster-health-lite.sh`, без Prometheus/Grafana на первом monitoring stage;
+* внешний доступ — LAN/VPN first;
+* backup scope — git docs/config/scripts, `.env` offline отдельно, PostgreSQL dump; модели не backup-ить в первом scope.
+
+### Причина
+
+Такой порядок сохраняет staged delivery:
+
+```text
+stateful foundation -> local retrieval -> user interface -> controlled autonomy -> hardening
+```
+
+Он снижает риск преждевременного усложнения и не открывает наружу незрелые сервисы.
+
+### Компромисс
+
+Telegram, agents и полноценный monitoring появятся позже.
+
+Зато каждый следующий subsystem будет опираться на более понятную memory/security/backup основу.
+
+### Когда пересмотреть
+
+Пересмотреть, если:
+
+* Telegram нужен раньше зрелого RAG;
+* pgvector окажется недостаточным;
+* понадобится публичный доступ до завершения Stage 7;
+* agents потребуют другой permission model;
+* появится необходимость backup-ить модели или Open WebUI data.
 
 ---
 
@@ -1078,7 +1193,7 @@ Gateway выбран: LiteLLM Proxy.
 Варианты:
 
 * Markdown + Git only;
-* PostgreSQL + pgvector;
+* PostgreSQL + pgvector — выбран как целевой вариант для Stage 4.2 implementation plan;
 * Qdrant;
 * Chroma;
 * LanceDB;
@@ -1088,8 +1203,8 @@ Gateway выбран: LiteLLM Proxy.
 
 ```text
 сначала docs/memory.md,
-потом выбор stack,
-потом implementation
+потом Stage 4.2 implementation plan для PostgreSQL + pgvector,
+потом implementation только после approval
 ```
 
 ---
@@ -1172,9 +1287,9 @@ Telegram bot не должен иметь произвольный shell-дос�
 Пример:
 
 ```text
-ADR-020 — Add memory database based on PostgreSQL + pgvector
-Status: accepted
-Supersedes: ADR-013 partially
+ADR-022 — Название нового решения
+Статус: принято
+Заменяет: ADR-XXX частично
 ```
 
 Если решение ещё не принято, не записывать его как принятое. Использовать статус:

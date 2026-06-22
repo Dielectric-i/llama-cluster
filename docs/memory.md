@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Memory / RAG Design v0.1
 
 Дата: 2026-06-22
-Статус: Stage 4.1 design draft; runtime не внедрён
+Статус: Stage 4.1 design принят для планирования; runtime не внедрён
 
 ## 1. Назначение
 
@@ -325,17 +325,19 @@ PostgreSQL хранит state/metadata, Qdrant хранит vector index
 
 ---
 
-## 9. Recommended direction
+## 9. Принятое направление
 
-Рекомендация для `slowrig`:
+Решение для дальнейшего планирования `slowrig`:
 
 ```text
 Stage 4.1: design only
-Stage 4.2: approve minimal PostgreSQL + pgvector implementation plan
+Stage 4.2: prepare minimal PostgreSQL + pgvector implementation plan
 Stage 4.3: implement only after backup/security plan is clear
 ```
 
-Почему PostgreSQL + pgvector выглядит лучшим первым implementation-кандидатом:
+Пользователь подтвердил `PostgreSQL + pgvector` как целевой runtime-кандидат для Stage 4.2 implementation plan. Это не означает установку БД на Stage 4.1.
+
+Почему PostgreSQL + pgvector выбран для планирования:
 
 * future agents need structured task state;
 * Telegram will need conversation metadata and access rules;
@@ -352,6 +354,12 @@ Stage 4.3: implement only after backup/security plan is clear
 * какие retention rules применить к chats/logs;
 * как делать encrypted/offline backup;
 * когда нужен Qdrant.
+
+Принятые ограничения для первого RAG-корпуса:
+
+* индексировать только `README.md`, `AGENTS.md` и `docs/*.md`;
+* не индексировать `.env`, `secrets/`, сырые логи, чаты, Open WebUI history или Telegram history;
+* embeddings должны быть локальными, но embedding runtime проектируется отдельным подэтапом после DB foundation.
 
 ---
 
@@ -454,11 +462,10 @@ git checkout -- docs/memory.md README.md docs/architecture.md docs/decisions.md 
 
 ---
 
-## 15. Open questions
+## 15. Открытые вопросы
 
 Перед implementation нужно решить:
 
-* подтверждает ли оператор PostgreSQL + pgvector как первый runtime stack;
 * нужна ли отдельная embedding model;
 * какие документы индексировать в первой версии;
 * индексировать ли changelog и ADR целиком или summaries;
@@ -470,7 +477,7 @@ git checkout -- docs/memory.md README.md docs/architecture.md docs/decisions.md 
 
 ---
 
-## 16. Recommended next stage
+## 16. Рекомендуемый следующий этап
 
 Рекомендуемый следующий этап:
 
@@ -480,11 +487,11 @@ Stage 4.2 — Memory implementation plan
 
 Цель Stage 4.2:
 
-* утвердить или отклонить PostgreSQL + pgvector как первый runtime stack;
+* подготовить минимальный план внедрения PostgreSQL + pgvector как первого runtime stack;
 * описать минимальный compose/service plan;
 * описать backup/restore;
-* определить embeddings source;
-* определить initial indexed corpus;
+* зафиксировать, что embeddings runtime откладывается до отдельного local RAG подэтапа;
+* зафиксировать initial indexed corpus: `README.md`, `AGENTS.md`, `docs/*.md`;
 * подготовить rollback.
 
 До завершения Stage 4.2 не устанавливать новые runtime dependencies.

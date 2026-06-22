@@ -1,20 +1,20 @@
 # Codex Context — slowrig AI Cluster
 
-Created: 2026-06-21  
-Last updated: 2026-06-22  
+Created: 2026-06-21
+Last updated: 2026-06-22
 Status: supplemental context for Codex
 
 ## 1. Purpose
 
-This document provides additional project context for Codex.
+This document provides compact project context for Codex.
 
-It is not the primary source of truth for hardware, ports, services, commands, architecture decisions, changelog entries, or operational procedures. Those details live in the dedicated project documents.
+It is not the source of truth for hardware, ports, services, commands, architecture decisions, changelog entries, or operational procedures. Those details live in the dedicated project documents.
 
 Use this file to understand:
 
 * how Александр wants the project to be developed;
-* what assumptions are not fully captured in formal docs yet;
-* which future design forks should be discussed before implementation;
+* which defaults and trade-offs were already approved;
+* which future forks still require discussion;
 * how to avoid turning `slowrig` into an unmaintainable pile of services;
 * what context should guide Stage 4+ work.
 
@@ -24,9 +24,7 @@ This file should stay short, contextual, and non-duplicative.
 
 ## 2. Source-of-truth boundaries
 
-Do not copy large factual sections from other documents into this file.
-
-Use these documents as the authoritative sources:
+Use these documents as authoritative sources:
 
 | Topic | Primary source |
 | --- | --- |
@@ -36,17 +34,18 @@ Use these documents as the authoritative sources:
 | Operations, diagnostics, rollback | `docs/runbook.md` |
 | Current and target architecture | `docs/architecture.md` |
 | LiteLLM Gateway design/baseline | `docs/gateway.md` |
+| Memory / RAG design | `docs/memory.md` |
 | Architectural reasons and trade-offs | `docs/decisions.md` |
 | Factual change history and tests | `docs/changelog.md` |
 | Completed stage summaries | `docs/stage*-summary.md` |
 
 If this file conflicts with a dedicated document, prefer the dedicated document.
 
-If documentation conflicts with actual config or server output, do not guess silently. Report the mismatch and ask the user which state is correct.
+If documentation conflicts with actual config or server output, do not guess silently. Report the mismatch and ask Александр which state is correct.
 
 ---
 
-## 3. User and operator context
+## 3. Operator and workflow preferences
 
 The primary operator is Александр.
 
@@ -69,34 +68,16 @@ Codex prepares:
 * rollback steps;
 * stage reports.
 
-Treat Александр as the infrastructure operator, not as a passive recipient of generated files.
-
-Preferred working style:
-
-* step-by-step;
-* conservative changes;
-* explain why a change is needed;
-* warn about risks before risky actions;
-* provide alternatives and trade-offs for architectural decisions;
-* keep changes small and reviewable;
-* stop after each stage;
-* wait for real server/UI checks when needed;
-* do not claim something is tested unless Александр confirms it or provides output.
-
 User-facing communication must be in Russian. Technical identifiers must keep their exact spelling.
 
-Examples:
+Important working preferences:
 
-```text
-slowrig/coder
-slowrig/architect
-llama-coder
-llama-architect
-litellm
-open-webui
-LITELLM_MASTER_KEY
-docker-compose.yaml
-```
+* explain architectural forks in detail before asking for a decision;
+* for each fork, describe options and how each option affects the final result and process;
+* stop only when an architectural decision, problem, real-server check, security/runtime risk, or explicit user request requires it;
+* do not stop after every small progress update;
+* when Александр gives a durable behavior rule, preserve it in `AGENTS.md`;
+* keep changes small, staged, documented, and reversible.
 
 ---
 
@@ -115,8 +96,6 @@ The intended long-term direction is a local AI system for:
 * project memory and RAG;
 * repeatable operations with rollback.
 
-The project should remain practical and maintainable.
-
 Preferred engineering bias:
 
 ```text
@@ -130,249 +109,216 @@ rollback path > one-way migration
 
 ---
 
-## 5. Current development posture
+## 5. Current baseline
 
-Current baseline is already beyond simple inference:
+Current baseline:
 
 ```text
 Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 ```
 
-The next major work should not start by installing more services.
-
-The preferred next stage is:
+Current gateway model names:
 
 ```text
-Stage 4.1 — Memory / RAG design
+slowrig/coder
+slowrig/architect
 ```
 
-Stage 4.1 artifact:
+Direct backend ports `8080` and `8081` remain available in LAN for diagnostics until a separate security hardening stage decides otherwise.
 
-```text
-docs/memory.md
-```
-
-Stage 4 is the larger Memory / RAG block. Stage 4.1 is the current design step and should remain design only.
-
-Do not add a database, vector store, embedding service, Telegram bot, agent framework, or monitoring stack before the relevant design document exists and Александр approves the direction.
+Future ordinary clients should use LiteLLM Gateway, not direct backend ports.
 
 ---
 
-## 6. Stage 4 planning assumptions
+## 6. Approved roadmap defaults
 
-Memory/RAG is the next important subsystem because future Telegram and agent workflows need durable context.
-
-Current non-final preference:
+The approved high-level order is:
 
 ```text
-PostgreSQL + pgvector as the first serious memory layer
+Stage 4.2 — Memory implementation plan
+Stage 4.3 — Memory DB foundation
+Stage 4.4 — Local RAG ingestion
+Stage 5   — Telegram bot
+Stage 6   — Agents
+Stage 7   — Monitoring / Security / Backups
 ```
 
-Reasoning:
-
-* one database can store structured state and vector data;
-* future agents will need task state, runs, approvals, and history;
-* Telegram will need conversation metadata and access control;
-* project decisions and changelog entries can be indexed later;
-* one operational database is simpler than a database plus separate vector store at the beginning.
-
-This is not a final decision.
-
-Before implementation, Codex should compare at least:
-
-* Markdown + Git only;
-* PostgreSQL + pgvector;
-* Qdrant with separate metadata storage;
-* hybrid PostgreSQL + Qdrant.
-
-The design should clearly separate:
-
-* source of truth;
-* searchable index;
-* structured task state;
-* conversation history;
-* embeddings;
-* backups;
-* privacy boundaries.
+No new runtime dependencies should be installed before the relevant design/implementation plan is approved.
 
 ---
 
-## 7. Future subsystem forks
+## 7. Memory / RAG decisions
 
-Codex must not decide these unilaterally.
+Memory / RAG is the next major subsystem.
 
-### 7.1 Memory / RAG
-
-Open questions:
-
-* What should remain only in Markdown/Git?
-* What should be stored in a database?
-* What should be embedded?
-* How should old docs, logs, chats, and decisions be indexed?
-* How will backup and restore work?
-* How will memory connect to future agents?
-
-### 7.2 Telegram bot
-
-Open questions:
-
-* polling or webhook;
-* simple chat bot or command bot;
-* model selection by command or default routing;
-* whitelist format;
-* where conversation history is stored;
-* whether Telegram should be added before or after memory.
-
-Default assumption:
+Approved direction:
 
 ```text
-Telegram should use LiteLLM Gateway and should not access shell/Docker directly.
+PostgreSQL + pgvector
 ```
 
-### 7.3 Agent layer
+Meaning:
 
-Open questions:
+* Stage 4.2 prepares the implementation plan around PostgreSQL + pgvector;
+* Stage 4.3 may implement PostgreSQL + pgvector only after approval;
+* Stage 4.4 adds local RAG ingestion after the DB foundation exists;
+* embeddings should be local, but the embedding runtime is a later separate substage;
+* first indexed corpus is only `README.md`, `AGENTS.md`, and `docs/*.md`;
+* chats, raw logs, secrets, Open WebUI history, and Telegram history are not indexed in the first RAG corpus.
 
-* CrewAI;
-* OpenClaw;
-* custom lightweight orchestrator;
-* Codex-driven workflow only.
-
-Default assumption:
+Source-of-truth rule:
 
 ```text
-Do not install a full agent framework before docs/agents.md exists.
+Markdown + Git remain source of truth.
+PostgreSQL + pgvector stores structured state, metadata, chunks, and derived vector data.
 ```
 
-Agent work must preserve human approval for risky actions.
+Stage 4.2 must include a minimal backup/restore contract before any stateful DB is deployed.
 
-### 7.4 Monitoring
+---
 
-Open questions:
+## 8. Telegram decisions
 
-* scripts only;
-* lightweight cron checks;
-* Prometheus/Grafana;
-* Loki/log aggregation;
-* GPU metrics;
-* alerting.
-
-Important distinction:
+Approved first Telegram shape:
 
 ```text
-scripts/cluster-status.sh       -> deep manual diagnostic
-future cluster-health-lite.sh   -> cheap frequent health check
+Telegram bot via polling + whitelist -> LiteLLM Gateway
+```
+
+Defaults:
+
+* no webhook in the first Telegram stage;
+* no public inbound port for Telegram;
+* default model is `slowrig/coder`;
+* `slowrig/architect` is used only by explicit command or clearly defined escalation;
+* Telegram has no shell/Docker access;
+* Telegram history is not stored in Memory/RAG until a dedicated decision defines privacy, retention, deletion, and backup rules.
+
+First artifact:
+
+```text
+docs/telegram.md
+```
+
+---
+
+## 9. Agents decisions
+
+Approved first agents direction:
+
+```text
+custom lightweight orchestration / Codex-driven workflow
+```
+
+Do not install CrewAI, OpenClaw, or another full agent framework before `docs/agents.md` exists and Александр approves it.
+
+Agent permission ladder:
+
+1. read/report;
+2. patches/reports;
+3. predefined diagnostics allowlist;
+4. approved mutations;
+5. sandbox/worktree autonomy.
+
+Dangerous real-infrastructure actions still require approval:
+
+* Docker restart/down;
+* compose/config mutation;
+* `.env` or secrets changes;
+* model/GPU/context/parallel changes;
+* volume/cache deletion;
+* firewall/reverse proxy/VPN changes;
+* package installation;
+* image pulls.
+
+First artifact:
+
+```text
+docs/agents.md
+```
+
+---
+
+## 10. Monitoring, security, and backups decisions
+
+Monitoring direction:
+
+```text
+future cluster-health-lite.sh -> cheap frequent health check
+scripts/cluster-status.sh    -> deep manual diagnostic
 ```
 
 Do not turn deep LLM-generating checks into frequent automated health checks.
 
-### 7.5 Backups and security
-
-Open questions:
-
-* how to back up docs/configs;
-* how to back up future memory DB;
-* whether to back up Open WebUI data;
-* how to handle model backups;
-* when to enable auth;
-* whether remote access should use VPN, reverse proxy, or another approach.
-
-Default assumption:
+Security/access direction:
 
 ```text
-LAN/VPN first, auth before external exposure, no secrets in git.
+LAN/VPN first
+no public WebUI/Gateway exposure before security hardening
+direct ports 8080/8081 remain in LAN for diagnostics until a security stage decides otherwise
+```
+
+Backup scope for first stateful stages:
+
+* git-backed docs/config/scripts;
+* `.env` stored separately offline, never in git;
+* PostgreSQL dumps after DB implementation;
+* model files are documented by filename/source, but not backed up in the first backup scope;
+* Open WebUI data is not included until a dedicated backup decision includes it.
+
+Future artifacts:
+
+```text
+docs/monitoring.md
+docs/security.md
+docs/backups.md
 ```
 
 ---
 
-## 8. Workflow reminder
+## 11. Gateway and routing defaults
 
-Detailed Codex workflow rules are defined in `AGENTS.md`.
-
-This includes:
-
-* required reading order;
-* stage-based workflow;
-* branch naming;
-* git safety rules;
-* validation expectations;
-* documentation update rules;
-* done definition.
-
-This file should not duplicate those rules.
-
-The important project-specific reminder is:
+Current public model names remain:
 
 ```text
-slowrig should move in small documented stages,
-with design before new subsystems,
-manual verification for real server changes,
-and human approval before risky actions.
+slowrig/coder
+slowrig/architect
 ```
 
-For non-trivial work, Codex should follow AGENTS.md first, then use this file only as supplemental project context.
+Do not add aliases such as `slowrig/default`, `slowrig/fast`, `slowrig/deep`, `slowrig/telegram`, or task-specific model names until a client stage needs them and the decision is documented.
 
-
----
-
-## 9. What belongs in this file
-
-Keep:
-
-* user-specific working preferences;
-* project-level assumptions not yet formalized elsewhere;
-* future forks that require discussion;
-* high-level priorities;
-* reminders about stage order;
-* context that helps Codex avoid bad architectural moves.
-
-Do not keep:
-
-* full service tables;
-* port lists;
-* model filenames;
-* GPU mapping tables;
-* detailed runbook commands;
-* curl examples;
-* full gateway configuration;
-* ADR copies;
-* changelog entries;
-* secrets;
-* personal contact details;
-* large duplicated documentation indexes.
-
-If information becomes important enough to operate, debug, or roll back a subsystem, move it into a dedicated document under `docs/`.
+Routing by task complexity and `9B -> 27B` pipelines should live in a future agent/router layer, not in LiteLLM by default.
 
 ---
 
-## 10. Privacy and data handling notes
+## 12. Remaining forks
 
-Do not store or reproduce unnecessary personal details.
+Remaining forks should be discussed only when they become relevant to the next implementation plan.
 
-Do not add emails, tokens, private handles, exact secrets, or private credentials to documentation.
+Known future forks:
 
-Do not ask Александр to paste `.env`.
+* exact local embedding model and runtime shape;
+* chunking policy and provenance format;
+* PostgreSQL schema details;
+* backup encryption and restore rehearsal details;
+* Telegram command surface;
+* agent diagnostics allowlist;
+* when to restrict or close direct backend ports;
+* whether Qdrant is needed later if pgvector becomes insufficient;
+* whether Open WebUI data should be backed up or indexed.
 
-When future memory/RAG is designed, explicitly decide:
-
-* what user conversations may be stored;
-* what should be excluded;
-* how long data should be kept;
-* how to delete data;
-* what is safe to embed;
-* what must remain only in local files;
-* what must never be sent to external APIs.
+On each fork, Codex must explain options and consequences before asking Александр to choose.
 
 ---
 
-## 11. How to update this file
+## 13. How to update this file
 
 Update this file only when there is new supplemental context that does not fit better elsewhere.
 
 Before adding content, ask:
 
 ```text
-Is this already covered by README, AGENTS, passport, runbook, architecture, gateway, decisions, changelog, or a stage summary?
+Is this already covered by README, AGENTS, passport, runbook, architecture, gateway, memory, decisions, changelog, or a stage summary?
 ```
 
 If yes, do not duplicate it here.

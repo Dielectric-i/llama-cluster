@@ -51,6 +51,8 @@ Do not maintain a long duplicate documentation index in `AGENTS.md`. Keep the au
 
 Codex must communicate with the user in Russian.
 
+All user-facing status labels, stage reports, summaries, questions, validation notes, rollback notes, and next-step sections must use Russian labels. Do not use English report labels such as `Files changed`, `Required checks`, `Open questions / forks`, or `Recommended next stage` in messages to the user. Keep exact technical identifiers, command names, branch names, file names, environment variables, and product names unchanged.
+
 Use Russian labels such as:
 
 ```text
@@ -160,6 +162,18 @@ Do not silently continue into the next stage unless the user explicitly asks.
 
 If there is an architectural fork, stop and discuss it before implementation.
 
+Do not stop after every small message or routine progress update. Once the user has approved moving forward, continue within the current stage until the stage is genuinely handled, unless a real stop condition appears.
+
+At every architectural fork, explain the existing options in detail before asking the user to choose. For each option, describe how it affects the final result and how it affects the implementation or operational process.
+
+Stop and ask the user only when one of these is true:
+
+* an architectural decision or trade-off requires user approval;
+* a problem, failure, conflict, or documentation/config mismatch requires user input;
+* real server validation, UI verification, logs, secrets, or operational output are needed from the operator;
+* a change would affect security posture, runtime dependencies, model/GPU settings, ports, volumes, or other risky operational state;
+* the user explicitly asks Codex to pause, stop, or wait.
+
 ---
 
 ## 6. Branch workflow
@@ -206,6 +220,8 @@ When moving from one stage to the next:
 4. keep only the new stage changes in the new branch.
 
 If next-stage work was started before the previous branch was merged, temporarily stash or otherwise preserve those uncommitted changes, merge the completed branch first, create the new stage branch from updated main, and only then restore the next-stage changes.
+
+If the user gives a durable instruction about how Codex should behave in this repository, update `AGENTS.md` in the same stage so the rule is preserved for future work. If the instruction conflicts with higher-priority instructions, existing safety rules, or repository constraints, stop and explain the conflict instead of silently changing the rule.
 
 ---
 
@@ -734,16 +750,16 @@ Do not start installing new databases, bots, frameworks, or monitoring stacks un
 A design stage should answer:
 
 ```text
-Goal:
-Non-goals:
-Current baseline:
-Proposed architecture:
-Files/services affected:
-Security impact:
-Persistence/backup impact:
-Manual checks:
-Rollback:
-Open questions:
+Цель:
+Не-цели:
+Текущий baseline:
+Предлагаемая архитектура:
+Затронутые файлы/сервисы:
+Влияние на безопасность:
+Влияние на persistence/backup:
+Ручные проверки:
+Откат:
+Открытые вопросы:
 ```
 
 ---

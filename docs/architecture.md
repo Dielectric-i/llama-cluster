@@ -43,7 +43,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
-| Stage 5 | Telegram bot                    | design добавлен; runtime не внедрён |
+| Stage 5 | Telegram bot                    | design и implementation plan добавлены; runtime не внедрён |
 | Stage 6 | Agent framework                 | запланировано          |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
 
@@ -54,7 +54,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * Open WebUI подключён через LiteLLM;
 * прямые backend-порты сохранены для диагностики;
 * memory/RAG foundation внедрён, local docs ingestion добавлен;
-* Telegram bot design добавлен, runtime ещё не внедрён;
+* Telegram bot design и implementation plan добавлены, runtime ещё не внедрён;
 * agent framework ещё не внедрён;
 * полноценный monitoring/security/backups stage ещё не внедрён.
 
@@ -388,7 +388,7 @@ dangerous actions require explicit human approval
 Статус:
 
 ```text
-design documented; runtime not implemented
+design and implementation plan documented; runtime not implemented
 ```
 
 Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
@@ -956,6 +956,8 @@ docs/telegram.md
 polling, whitelist, LiteLLM Gateway, default slowrig/coder, explicit slowrig/architect, no shell
 ```
 
+Stage 5.1 implementation plan выбирает Python stdlib + Telegram Bot API HTTP polling без отдельной Telegram framework/library.
+
 ---
 
 ## Stage 6 — Agent framework
@@ -1078,8 +1080,7 @@ routing по сложности лучше отложить до agent/memory de
 
 Открытые вопросы:
 
-* какую Python Telegram library использовать;
-* делать ли bot Docker image локально или использовать lightweight base image;
+* точный pinned Python base image для будущего runtime;
 * нужен ли `/status` только для bot/gateway или ещё для memory;
 * нужен ли `/rag` command для read-only поиска по документации;
 * сколько short context хранить in-memory;

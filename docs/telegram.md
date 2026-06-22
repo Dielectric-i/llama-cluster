@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Telegram Bot Design v0.1
 
 Дата: 2026-06-22
-Статус: Stage 5 design; runtime не внедрён
+Статус: Stage 5.1 implementation plan; runtime не внедрён
 
 ## 1. Назначение
 
@@ -326,30 +326,171 @@ git reset --hard
 
 ## 12. Открытые вопросы перед runtime
 
-Перед Stage 5.1 нужно решить:
+Stage 5.1 закрывает часть runtime-развилок:
 
-* какую Python Telegram library использовать;
-* делать ли bot Docker image локально или использовать lightweight base image;
-* нужен ли `/status` только для bot/gateway или ещё для memory;
-* нужен ли `/rag` command для read-only поиска по документации;
-* сколько short context хранить in-memory;
-* какие limits ставить на длину входа и частоту запросов;
-* какой формат логов считать безопасным.
+* Telegram library: не добавлять отдельную библиотеку на первом runtime stage, использовать Python stdlib + Telegram Bot API HTTP polling;
+* container strategy: отдельный `telegram-bot` Docker service на lightweight Python base image;
+* `/status`: сначала только bot + LiteLLM reachability, без Docker/log access;
+* `/rag`: не добавлять в первый runtime, оставить для отдельного read-only RAG stage;
+* short context: in-memory per-user context с жёстким лимитом;
+* logs: технические события без полного текста сообщений и без secrets.
+
+Открытые вопросы после Stage 5.1:
+
+* точный base image tag для будущего runtime;
+* точные input/context limits после первого ручного теста;
+* нужен ли read-only `/rag` command после появления Telegram baseline;
+* нужна ли opt-in history с retention/delete/export rules.
 
 ---
 
-## 13. Рекомендуемый следующий этап
+## 13. Stage 5.1 implementation plan
+
+Статус:
+
+```text
+documentation/config-template plan; runtime not implemented
+```
+
+Принято для будущего runtime:
+
+```text
+custom lightweight Python bot, stdlib HTTP polling, no Telegram framework package
+```
+
+Причина:
+
+* нет новой Python package dependency;
+* проще audit;
+* меньше hidden behavior;
+* достаточно для polling + whitelist + LiteLLM calls;
+* легче сохранить запрет на shell/Docker access.
+
+Будущие файлы runtime stage:
+
+```text
+scripts/telegram-bot.py
+docker-compose.yaml
+.env.example
+docs/telegram.md
+docs/runbook.md
+docs/changelog.md
+```
+
+Планируемый service:
+
+```text
+telegram-bot
+```
+
+Планируемые env names:
+
+```text
+TELEGRAM_BOT_TOKEN
+TELEGRAM_ALLOWED_USER_IDS
+TELEGRAM_DEFAULT_MODEL
+TELEGRAM_ARCHITECT_MODEL
+LITELLM_MASTER_KEY
+```
+
+`LITELLM_BASE_URL` не нужен, если bot работает внутри Docker Compose network и использует fixed endpoint:
+
+```text
+http://litellm:4000/v1
+```
+
+Если позже потребуется запускать bot вне Compose, `LITELLM_BASE_URL` можно добавить отдельным change.
+
+Планируемый compose outline:
+
+```yaml
+telegram-bot:
+  image: python:<pinned-slim-tag>
+  container_name: telegram-bot
+  restart: unless-stopped
+  env_file:
+    - .env
+  volumes:
+    - /opt/llama-cluster/scripts/telegram-bot.py:/app/telegram-bot.py:ro
+  command: ["python", "/app/telegram-bot.py"]
+  depends_on:
+    - litellm
+```
+
+Не монтировать:
+
+```text
+/var/run/docker.sock
+/opt/llama-cluster
+models/
+cache/
+logs/
+secrets/
+```
+
+Первый runtime должен уметь:
+
+* polling `getUpdates`;
+* whitelist по numeric user id;
+* `/start`, `/help`, `/status`, `/model`, `/coder`, `/architect`, `/reset`;
+* обычный text prompt -> LiteLLM chat completions;
+* short in-memory context per allowed user;
+* basic rate/input limits;
+* sanitized logs.
+
+Первый runtime не должен уметь:
+
+* shell;
+* Docker;
+* file reads/writes;
+* git;
+* service restarts;
+* raw log access;
+* Memory/RAG writes;
+* Telegram history persistence.
+
+Проверки будущего runtime:
+
+```bash
+cd /opt/llama-cluster
+docker compose config --quiet
+python3 -m py_compile scripts/telegram-bot.py
+docker compose up -d telegram-bot
+docker compose ps telegram-bot
+docker logs --tail=120 telegram-bot
+```
+
+Manual Telegram checks:
+
+* unknown user получает отказ;
+* allowed user получает ответ на `/start`;
+* `/status` показывает bot/gateway OK;
+* обычный prompt отвечает через `slowrig/coder`;
+* `/architect` переключает запрос на `slowrig/architect`;
+* `/reset` сбрасывает in-memory context.
+
+Rollback future runtime:
+
+```bash
+cd /opt/llama-cluster
+docker compose stop telegram-bot
+git checkout -- docker-compose.yaml .env.example scripts/telegram-bot.py docs/telegram.md docs/runbook.md docs/changelog.md docs/decisions.md docs/codex-context.md
+```
+
+---
+
+## 14. Рекомендуемый следующий этап
 
 Рекомендуемый следующий этап:
 
 ```text
-Stage 5.1 — Telegram bot implementation plan
+Stage 5.2 — Telegram bot runtime implementation
 ```
 
-Цель Stage 5.1:
+Цель Stage 5.2:
 
-* выбрать библиотеку и container strategy;
-* описать compose service без запуска;
-* подготовить `.env.example` placeholders;
-* описать checks и rollback;
-* не запускать runtime до отдельного approval.
+* добавить `scripts/telegram-bot.py`;
+* добавить `telegram-bot` service в `docker-compose.yaml`;
+* проверить polling + whitelist + LiteLLM;
+* не добавлять shell/Docker/filesystem access;
+* не хранить Telegram history в Memory/RAG.

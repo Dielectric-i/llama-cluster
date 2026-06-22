@@ -62,6 +62,61 @@
 
 ---
 
+## 2026-06-22 — Stage 5.1 Telegram implementation plan
+
+### Изменено
+
+Обновлён `docs/telegram.md`:
+
+* выбран первый runtime approach: Python stdlib + Telegram Bot API HTTP polling;
+* отдельная Telegram framework/library не добавляется на первом runtime stage;
+* описан будущий `telegram-bot` service;
+* описан compose outline без запуска runtime;
+* уточнены команды первого интерфейса;
+* описаны checks и rollback для будущего Stage 5.2.
+
+Обновлён `.env.example`:
+
+```text
+TELEGRAM_BOT_TOKEN
+TELEGRAM_ALLOWED_USER_IDS
+TELEGRAM_DEFAULT_MODEL
+TELEGRAM_ARCHITECT_MODEL
+```
+
+Добавлен `ADR-025`:
+
+```text
+Реализовывать первый Telegram runtime без отдельной Telegram library
+```
+
+### Проверено
+
+Проверка документационная:
+
+```text
+git diff --stat
+git diff --check
+```
+
+Runtime/server checks не требовались: `telegram-bot` service, bot script и новые packages не добавлялись.
+
+### Результат
+
+Stage 5.1 подготовил implementation plan для будущего Telegram runtime без запуска bot и без новых runtime dependencies.
+
+### Замечания
+
+Следующий этап:
+
+```text
+Stage 5.2 — Telegram bot runtime implementation
+```
+
+На Stage 5.2 нужно добавить bot script и compose service, затем проверить polling + whitelist вручную через Telegram UI.
+
+---
+
 ## 2026-06-22 — Stage 5 Telegram bot design
 
 ### Изменено

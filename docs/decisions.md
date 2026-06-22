@@ -88,6 +88,7 @@ ADR-XXX — Название решения
 | ADR-022 | Внедрить `memory-db` без host-port как Memory DB foundation | принято; config добавлен |
 | ADR-023 | Использовать локальный `llama.cpp` embedding service для Stage 4.4 | принято и проверено |
 | ADR-024 | Проектировать первый Telegram bot как polling + whitelist клиент LiteLLM | принято; design добавлен |
+| ADR-025 | Реализовывать первый Telegram runtime без отдельной Telegram library | принято для плана |
 
 ---
 
@@ -1399,6 +1400,80 @@ Polling менее production-like, чем webhook, и может иметь ч�
 * потребуется read-only RAG command;
 * появится отдельный bot user/role model;
 * `slowrig/coder` окажется слишком слабым или медленным для Telegram default.
+
+---
+
+## ADR-025 — Реализовывать первый Telegram runtime без отдельной Telegram library
+
+Дата: 2026-06-22
+Статус: принято для Stage 5.1 implementation plan; runtime не внедрён
+Связанные документы: `docs/telegram.md`, `.env.example`, `docs/changelog.md`
+
+### Контекст
+
+Stage 5 design выбрал polling + whitelist + LiteLLM. Перед runtime нужно выбрать dependency strategy.
+
+Варианты:
+
+* использовать `python-telegram-bot`;
+* использовать `pyTelegramBotAPI`;
+* использовать Node.js библиотеку;
+* реализовать минимальный polling через Python stdlib и Telegram Bot API HTTP.
+
+### Решение
+
+Для первого runtime plan выбрать:
+
+```text
+Python stdlib + Telegram Bot API HTTP polling
+```
+
+Не добавлять отдельную Telegram framework/library на первом runtime stage.
+
+Будущий bot service проектировать как:
+
+```text
+telegram-bot
+```
+
+Планируемые env placeholders:
+
+```text
+TELEGRAM_BOT_TOKEN
+TELEGRAM_ALLOWED_USER_IDS
+TELEGRAM_DEFAULT_MODEL
+TELEGRAM_ARCHITECT_MODEL
+```
+
+### Причина
+
+Первый bot должен делать небольшой набор действий: polling, whitelist, commands и OpenAI-compatible запросы в LiteLLM. Для этого достаточно stdlib `urllib`.
+
+Отказ от внешней Telegram library снижает dependency surface, упрощает audit и уменьшает риск скрытого поведения.
+
+### Компромисс
+
+Придётся вручную обработать Telegram Bot API детали:
+
+* `getUpdates`;
+* `sendMessage`;
+* offset;
+* базовые ошибки HTTP;
+* command parsing;
+* message length limits.
+
+Это приемлемо для первого компактного bot. Если command surface вырастет, можно пересмотреть решение и добавить библиотеку отдельным ADR.
+
+### Когда пересмотреть
+
+Пересмотреть, если:
+
+* появятся inline keyboards;
+* понадобится files/media support;
+* понадобится сложный command router;
+* stdlib implementation станет слишком хрупкой;
+* потребуется webhook;
+* появится полноценный Telegram admin/security layer.
 
 ---
 

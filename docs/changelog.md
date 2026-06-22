@@ -62,6 +62,21 @@
 
 ---
 
+## 2026-06-22 — Telegram API base URL support
+
+### Изменено
+
+* `telegram-bot` получил `TELEGRAM_API_BASE_URL` для reverse proxy mode, например через Cloudflare Worker.
+* `TELEGRAM_PROXY_URL` остаётся только для настоящего HTTP(S) proxy mode.
+
+### Проверка
+
+* Cloudflare endpoint проверен dummy-запросом `/bot000:dummy/getMe`: получен Telegram JSON `401 Unauthorized`, значит endpoint доходит до Telegram Bot API.
+* `telegram-bot` пересобран и запущен с `TELEGRAM_API_BASE_URL`; long polling через Cloudflare Worker работает без `Network is unreachable` и proxy tunnel errors.
+* `cluster-status.sh` после запуска успешен; gateway chat-checks и основные сервисы OK.
+
+---
+
 ## 2026-06-22 — Telegram proxy URL validation
 
 ### Изменено

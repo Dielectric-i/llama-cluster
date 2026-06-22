@@ -91,6 +91,7 @@ TELEGRAM_BOT_TOKEN
 TELEGRAM_ALLOWED_USER_IDS
 TELEGRAM_DEFAULT_MODEL
 TELEGRAM_ARCHITECT_MODEL
+TELEGRAM_API_BASE_URL
 TELEGRAM_PROXY_URL
 LITELLM_BASE_URL
 LITELLM_MASTER_KEY
@@ -523,10 +524,21 @@ TELEGRAM_BOT_TOKEN
 TELEGRAM_ALLOWED_USER_IDS
 TELEGRAM_DEFAULT_MODEL=slowrig/coder
 TELEGRAM_ARCHITECT_MODEL=slowrig/architect
+TELEGRAM_API_BASE_URL=
 TELEGRAM_PROXY_URL=
 ```
 
-Если сервер не может подключиться к `api.telegram.org:443` напрямую, задать optional proxy:
+Если сервер не может подключиться к `api.telegram.org:443` напрямую, есть два режима обхода.
+
+Reverse proxy mode, например Cloudflare Worker, задаётся как Telegram API base URL:
+
+```text
+TELEGRAM_API_BASE_URL=https://example.workers.dev
+```
+
+Ожидаемое поведение такого endpoint: запрос `GET /bot000:dummy/getMe` должен доходить до Telegram Bot API и возвращать Telegram JSON, например `401 Unauthorized` на dummy token.
+
+HTTP(S) proxy mode задаётся как optional proxy:
 
 ```text
 TELEGRAM_PROXY_URL=http://proxy-host:proxy-port

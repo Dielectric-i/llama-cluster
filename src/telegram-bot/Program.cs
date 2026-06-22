@@ -20,6 +20,7 @@ sealed class SlowrigTelegramBot
     private readonly string _liteLlmBaseUrl;
     private readonly string _defaultModel;
     private readonly string _architectModel;
+    private readonly string _telegramApiBaseUrl;
     private readonly HttpClient _telegramHttp;
     private readonly HttpClient _liteLlmHttp = new();
     private readonly ConcurrentDictionary<long, string> _userModels = new();
@@ -38,6 +39,7 @@ sealed class SlowrigTelegramBot
         string liteLlmBaseUrl,
         string defaultModel,
         string architectModel,
+        string telegramApiBaseUrl,
         string? telegramProxyUrl)
     {
         _token = token;
@@ -46,6 +48,7 @@ sealed class SlowrigTelegramBot
         _liteLlmBaseUrl = liteLlmBaseUrl.TrimEnd('/');
         _defaultModel = defaultModel;
         _architectModel = architectModel;
+        _telegramApiBaseUrl = NormalizeTelegramApiBaseUrl(telegramApiBaseUrl);
         _telegramHttp = CreateTelegramHttpClient(telegramProxyUrl);
         _liteLlmHttp.Timeout = TimeSpan.FromSeconds(190);
     }
@@ -73,9 +76,15 @@ sealed class SlowrigTelegramBot
             architectModel = "slowrig/architect";
         }
 
+        var telegramApiBaseUrl = Environment.GetEnvironmentVariable("TELEGRAM_API_BASE_URL");
+        if (string.IsNullOrWhiteSpace(telegramApiBaseUrl))
+        {
+            telegramApiBaseUrl = "https://api.telegram.org";
+        }
+
         var telegramProxyUrl = Environment.GetEnvironmentVariable("TELEGRAM_PROXY_URL");
 
-        return new SlowrigTelegramBot(token, allowedUsers, liteLlmKey, liteLlmBaseUrl, defaultModel, architectModel, telegramProxyUrl);
+        return new SlowrigTelegramBot(token, allowedUsers, liteLlmKey, liteLlmBaseUrl, defaultModel, architectModel, telegramApiBaseUrl, telegramProxyUrl);
     }
 
     public async Task RunAsync()
@@ -264,7 +273,7 @@ sealed class SlowrigTelegramBot
 
     private async Task<T> TelegramAsync<T>(string method, object payload)
     {
-        var url = $"https://api.telegram.org/bot{_token}/{method}";
+        var url = $"{_telegramApiBaseUrl}/bot{_token}/{method}";
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = JsonContent(payload)
@@ -322,6 +331,23 @@ sealed class SlowrigTelegramBot
         }
 
         return value.Trim();
+    }
+
+    private static string NormalizeTelegramApiBaseUrl(string telegramApiBaseUrl)
+    {
+        if (!Uri.TryCreate(telegramApiBaseUrl.Trim(), UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new InvalidOperationException("TELEGRAM_API_BASE_URL must be an HTTP(S) URL like https://api.telegram.org or https://example.workers.dev.");
+        }
+
+        var normalized = uri.ToString().TrimEnd('/');
+        if (!string.Equals(normalized, "https://api.telegram.org", StringComparison.OrdinalIgnoreCase))
+        {
+            Log("Telegram API base URL override is configured");
+        }
+
+        return normalized;
     }
 
     private static HttpClient CreateTelegramHttpClient(string? telegramProxyUrl)

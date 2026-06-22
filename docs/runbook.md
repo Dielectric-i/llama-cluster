@@ -441,12 +441,15 @@ TELEGRAM_BOT_TOKEN
 TELEGRAM_ALLOWED_USER_IDS
 TELEGRAM_DEFAULT_MODEL=slowrig/coder
 TELEGRAM_ARCHITECT_MODEL=slowrig/architect
+TELEGRAM_API_BASE_URL
 TELEGRAM_PROXY_URL
 ```
 
 Не печатать реальные значения token.
 
-`TELEGRAM_PROXY_URL` опционален. Он нужен только если host/container не может подключиться к `api.telegram.org:443` напрямую. Поддерживаются только HTTP(S) proxy URL вида `http://host:port` или `https://host:port`; `tg://proxy?...` MTProto-ссылки не подходят для Bot API HTTP polling. LiteLLM через proxy не ходит.
+`TELEGRAM_API_BASE_URL` опционален. Он нужен для reverse proxy mode, например через Cloudflare Worker. Значение должно быть HTTP(S) base URL, который проксирует Telegram Bot API path `/bot.../...`.
+
+`TELEGRAM_PROXY_URL` опционален. Он нужен только для настоящего HTTP(S) proxy mode, если host/container не может подключиться к `api.telegram.org:443` напрямую. Поддерживаются только proxy URL вида `http://host:port` или `https://host:port`; `tg://proxy?...` MTProto-ссылки не подходят для Bot API HTTP polling. LiteLLM через proxy не ходит.
 
 ---
 

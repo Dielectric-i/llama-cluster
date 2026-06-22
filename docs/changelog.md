@@ -66,14 +66,20 @@
 
 ### Изменено
 
-Добавлен Telegram runtime script:
+Telegram runtime переделан с Python на C#/.NET по запросу пользователя.
+
+Добавлен Telegram runtime source:
 
 ```text
-scripts/telegram-bot.py
+src/telegram-bot/Program.cs
+src/telegram-bot/Slowrig.TelegramBot.csproj
+src/telegram-bot/Dockerfile
 ```
 
-Скрипт использует только Python stdlib:
+Runtime использует:
 
+* C#/.NET 8;
+* `HttpClient`;
 * Telegram Bot API `getUpdates` polling;
 * whitelist по `TELEGRAM_ALLOWED_USER_IDS`;
 * команды `/start`, `/help`, `/status`, `/model`, `/coder`, `/architect`, `/reset`;
@@ -100,29 +106,41 @@ telegram
 * `docker-compose.yaml`;
 * `docs/telegram.md`;
 * `docs/runbook.md`.
+* `docs/architecture.md`;
+* `docs/codex-context.md`;
+* `docs/decisions.md`.
+
+`ADR-025` помечен как superseded. Добавлен `ADR-026`:
+
+```text
+Реализовывать первый Telegram runtime на C#/.NET
+```
 
 ### Проверено
 
 Server-side checks:
 
 ```text
-python3 -m py_compile scripts/telegram-bot.py
 docker compose config --quiet
 TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram build telegram-bot
 ```
 
 Результат:
 
-* syntax `scripts/telegram-bot.py` проверен;
 * обычный Compose config без Telegram profile прошёл;
 * Telegram profile Compose config с dummy values прошёл;
+* Docker build для C# `telegram-bot` прошёл;
+* image `slowrig/telegram-bot:local` собран;
 * `telegram-bot` не запускался.
+
+Замечание: Docker Compose вывел warning, что buildx не установлен для Bake, но обычный Docker build завершился успешно.
 
 Runtime Telegram UI checks не выполнены на этом этапе, потому что real `TELEGRAM_BOT_TOKEN` и allowed user IDs не добавлены в server `.env`.
 
 ### Результат
 
-Stage 5.2 добавил runtime code/config для Telegram bot без запуска сервиса, без новых Python packages, без webhook, без public inbound port и без shell/Docker/filesystem access.
+Stage 5.2 добавил runtime code/config для Telegram bot без запуска сервиса, без Telegram framework/library, без webhook, без public inbound port и без shell/Docker/filesystem access.
 
 ### Замечания
 

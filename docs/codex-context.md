@@ -222,9 +222,9 @@ docs/telegram.md
 
 Stage 5 design is captured in `docs/telegram.md`. Do not add Telegram runtime, packages, services, or real bot tokens until a separate runtime implementation stage is approved.
 
-Stage 5.1 implementation plan chooses Python stdlib + Telegram Bot API HTTP polling for the first runtime. No separate Telegram framework/library is planned for the initial bot. `.env.example` contains placeholders only; real `TELEGRAM_BOT_TOKEN` and allowed user IDs stay in `.env`.
+Stage 5.1 implementation plan originally chose no separate Telegram framework/library. Stage 5.2 was revised by user request to C#/.NET: first runtime uses `src/telegram-bot`, `HttpClient`, Telegram Bot API HTTP polling, and local Docker build. `.env.example` contains placeholders only; real `TELEGRAM_BOT_TOKEN` and allowed user IDs stay in `.env`.
 
-Stage 5.2 adds `scripts/telegram-bot.py` and a `telegram-bot` Compose service under profile `telegram`. Do not start it until real `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS` are added to server `.env`. Telegram UI validation belongs to Stage 5.3.
+Stage 5.2 adds `src/telegram-bot` and a `telegram-bot` Compose service under profile `telegram`. Do not start it until real `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS` are added to server `.env`. Telegram UI validation belongs to Stage 5.3.
 
 ---
 

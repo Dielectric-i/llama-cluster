@@ -956,9 +956,9 @@ docs/telegram.md
 polling, whitelist, LiteLLM Gateway, default slowrig/coder, explicit slowrig/architect, no shell
 ```
 
-Stage 5.1 implementation plan выбирает Python stdlib + Telegram Bot API HTTP polling без отдельной Telegram framework/library.
+Stage 5.1 implementation plan выбирал минимальный runtime без отдельной Telegram framework/library. Stage 5.2 по запросу пользователя переделан на C#/.NET runtime с `HttpClient`.
 
-Stage 5.2 добавляет `scripts/telegram-bot.py` и Compose service `telegram-bot` в profile `telegram`. Обычный `docker compose up -d` не стартует bot.
+Stage 5.2 добавляет `src/telegram-bot` и Compose service `telegram-bot` в profile `telegram`. Обычный `docker compose up -d` не стартует bot.
 
 ---
 
@@ -1082,7 +1082,7 @@ routing по сложности лучше отложить до agent/memory de
 
 Открытые вопросы:
 
-* точный pinned Python base image для будущего runtime;
+* точный pinned .NET base image для будущего runtime;
 * нужен ли `/status` только для bot/gateway или ещё для memory;
 * нужен ли `/rag` command для read-only поиска по документации;
 * сколько short context хранить in-memory;

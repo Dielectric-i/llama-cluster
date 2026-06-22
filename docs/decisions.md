@@ -88,7 +88,8 @@ ADR-XXX — Название решения
 | ADR-022 | Внедрить `memory-db` без host-port как Memory DB foundation | принято; config добавлен |
 | ADR-023 | Использовать локальный `llama.cpp` embedding service для Stage 4.4 | принято и проверено |
 | ADR-024 | Проектировать первый Telegram bot как polling + whitelist клиент LiteLLM | принято; design добавлен |
-| ADR-025 | Реализовывать первый Telegram runtime без отдельной Telegram library | принято; code добавлен |
+| ADR-025 | Реализовывать первый Telegram runtime без отдельной Telegram library | superseded by ADR-026 |
+| ADR-026 | Реализовывать первый Telegram runtime на C#/.NET | принято; code добавлен |
 
 ---
 
@@ -1406,7 +1407,7 @@ Polling менее production-like, чем webhook, и может иметь ч�
 ## ADR-025 — Реализовывать первый Telegram runtime без отдельной Telegram library
 
 Дата: 2026-06-22
-Статус: принято; runtime code добавлен, Telegram UI validation pending
+Статус: superseded by ADR-026
 Связанные документы: `docs/telegram.md`, `.env.example`, `docs/changelog.md`
 
 ### Контекст
@@ -1474,6 +1475,81 @@ TELEGRAM_ARCHITECT_MODEL
 * stdlib implementation станет слишком хрупкой;
 * потребуется webhook;
 * появится полноценный Telegram admin/security layer.
+
+---
+
+## ADR-026 — Реализовывать первый Telegram runtime на C#/.NET
+
+Дата: 2026-06-22
+Статус: принято; runtime code добавлен, Telegram UI validation pending
+Заменяет: ADR-025
+Связанные документы: `docker-compose.yaml`, `src/telegram-bot`, `docs/telegram.md`, `docs/runbook.md`, `docs/changelog.md`
+
+### Контекст
+
+После добавления первого Python runtime пользователь попросил переделать Telegram bot на C#.
+
+Сохраняются прежние архитектурные ограничения:
+
+* polling вместо webhook;
+* whitelist;
+* LiteLLM как единственная LLM-точка входа;
+* no shell;
+* no Docker socket;
+* no filesystem access к host;
+* no Telegram history persistence;
+* profile `telegram`, чтобы обычный `docker compose up -d` не запускал bot.
+
+### Решение
+
+Реализовать Telegram runtime как C#/.NET console service:
+
+```text
+src/telegram-bot
+```
+
+Compose service:
+
+```text
+telegram-bot
+```
+
+Build strategy:
+
+```text
+local Docker multi-stage build
+mcr.microsoft.com/dotnet/sdk:8.0 -> mcr.microsoft.com/dotnet/runtime:8.0
+```
+
+Не добавлять Telegram-specific NuGet package на первом runtime. Использовать `HttpClient` и Telegram Bot API HTTP endpoints напрямую.
+
+### Причина
+
+C# даёт типизированный компактный service без Python runtime script и лучше соответствует предпочтению пользователя для bot implementation.
+
+Прямой `HttpClient` сохраняет небольшой dependency surface: нет отдельного Telegram framework package, нет webhook stack, нет лишних runtime services.
+
+### Компромисс
+
+Появляется .NET Docker build dependency и необходимость pull-ить Microsoft .NET images.
+
+Код вручную обрабатывает Telegram Bot API details, как и Python stdlib-вариант:
+
+* `getUpdates`;
+* `sendMessage`;
+* update offset;
+* command parsing;
+* message splitting.
+
+### Когда пересмотреть
+
+Пересмотреть, если:
+
+* потребуется Telegram framework package;
+* потребуется webhook;
+* появятся inline keyboards/media/files;
+* .NET image footprint станет нежелательным;
+* bot превратится в полноценный admin/security subsystem.
 
 ---
 

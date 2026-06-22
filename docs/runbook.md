@@ -420,10 +420,18 @@ cd /opt/llama-cluster
 TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
 ```
 
-Проверить syntax bot script:
+Проверить C# build, если на host установлен `dotnet`:
 
 ```bash
-python3 -m py_compile scripts/telegram-bot.py
+cd /opt/llama-cluster/src/telegram-bot
+dotnet build
+```
+
+Проверить Docker build:
+
+```bash
+cd /opt/llama-cluster
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram build telegram-bot
 ```
 
 Перед реальным запуском добавить в `/opt/llama-cluster/.env`:

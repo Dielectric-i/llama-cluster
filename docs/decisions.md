@@ -86,6 +86,7 @@ ADR-XXX — Название решения
 | ADR-020 | Планировать PostgreSQL + pgvector как первый Memory stack | принято; реализовано в ADR-022 |
 | ADR-021 | Зафиксировать roadmap defaults после Stage 4.1          | принято               |
 | ADR-022 | Внедрить `memory-db` без host-port как Memory DB foundation | принято; config добавлен |
+| ADR-023 | Использовать локальный `llama.cpp` embedding service для Stage 4.4 | принято и проверено |
 
 ---
 
@@ -1185,7 +1186,7 @@ Telegram, agents и полноценный monitoring появятся позж�
 ## ADR-022 — Внедрить `memory-db` без host-port как Memory DB foundation
 
 Дата: 2026-06-22
-Статус: принято; config добавлен, server validation required
+Статус: принято и проверено на сервере
 Связанные документы: `docker-compose.yaml`, `.env.example`, `config/memory/init/001-memory-foundation.sql`, `docs/memory.md`, `docs/runbook.md`, `docs/architecture.md`, `docs/changelog.md`
 
 ### Контекст
@@ -1238,6 +1239,96 @@ Bootstrap SQL через `/docker-entrypoint-initdb.d` подходит для �
 * schema начнёт меняться после появления важных данных;
 * pgvector окажется недостаточным;
 * появится необходимость перейти на PostgreSQL + Qdrant hybrid.
+
+---
+
+## ADR-023 — Использовать локальный `llama.cpp` embedding service для Stage 4.4
+
+Дата: 2026-06-22
+Статус: принято и проверено на сервере
+Связанные документы: `docker-compose.yaml`, `scripts/memory-ingest-docs.py`, `docs/memory.md`, `docs/runbook.md`, `docs/changelog.md`
+
+### Контекст
+
+После Stage 4.3 в кластере есть `memory-db` на PostgreSQL + pgvector. Для Stage 4.4 нужен первый локальный embedding runtime и ingestion pipeline для разрешённого документационного корпуса.
+
+Рассматривались:
+
+* локальный `llama.cpp` embedding service;
+* отдельный Python embedding stack;
+* внешний embedding API;
+* откладывание embeddings и хранение только chunks.
+
+Пользователь выбрал вариант A:
+
+```text
+llama.cpp embedding service, CPU-only, GGUF model
+```
+
+### Решение
+
+Добавить service:
+
+```text
+memory-embed
+```
+
+Defaults:
+
+* image: `ghcr.io/ggml-org/llama.cpp:server-cuda`;
+* model: `/models/embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf`;
+* endpoint: `127.0.0.1:4010`;
+* Docker internal port: `8080`;
+* GPU offload: `--gpu-layers 0`;
+* context: `--ctx-size 32768`;
+* embedding mode: `--embedding`;
+* pooling: `--pooling last`;
+* ubatch: `--ubatch-size 8192`.
+* parallelism: `--parallel 1`;
+* prompt cache: `--cache-ram 0`.
+
+Добавить host-side ingestion script:
+
+```text
+scripts/memory-ingest-docs.py
+```
+
+Первый corpus:
+
+```text
+README.md
+AGENTS.md
+docs/*.md
+```
+
+### Причина
+
+`llama.cpp` уже является базовым inference runtime проекта, умеет GGUF и OpenAI-compatible endpoints. Это даёт один знакомый operational pattern вместо отдельного Python/ML стека.
+
+CPU-only режим не забирает VRAM у `llama-coder` и `llama-architect`. Для маленького документационного корпуса скорость embedding ingestion менее важна, чем стабильность основных LLM.
+
+Loopback binding `127.0.0.1:4010` позволяет host-side ingestion script обращаться к endpoint без публикации embeddings в LAN.
+
+`Qwen3-Embedding-0.6B-Q8_0.gguf` выбран как компактная локальная embedding model с Apache 2.0 license, GGUF artifact и ожидаемой размерностью 1024.
+
+### Компромисс
+
+CPU-only embeddings могут быть медленнее GPU-варианта.
+
+Loopback endpoint всё равно является host-visible endpoint, поэтому его нельзя открывать на `0.0.0.0` без отдельного security decision.
+
+Ingestion script использует `docker compose exec -T memory-db psql` вместо отдельного PostgreSQL driver. Это проще для текущего стека и не добавляет Python dependencies, но не является полноценным application service.
+
+### Когда пересмотреть
+
+Пересмотреть, если:
+
+* ingestion станет слишком медленным;
+* потребуется online retrieval API с частыми embedding-запросами;
+* embedding quality окажется недостаточной;
+* появится необходимость GPU embedding runtime;
+* понадобится отдельная memory service с PostgreSQL driver и API;
+* endpoint `127.0.0.1:4010` потребуется закрыть даже от host-level clients.
 
 ---
 

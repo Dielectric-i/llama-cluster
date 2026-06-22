@@ -36,6 +36,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | `llama-architect` | `8080` | `http://192.168.1.6:8080/v1` | 27B architect / сложные решения |
 | `llama-coder` | `8081` | `http://192.168.1.6:8081/v1` | 9B coder / быстрый исполнитель |
 | `memory-db` | нет | Docker Compose network only | PostgreSQL + pgvector для Memory / RAG foundation |
+| `memory-embed` | `4010` | `http://127.0.0.1:4010/v1` | локальный embedding runtime для RAG ingestion |
 
 Gateway model names:
 
@@ -60,6 +61,7 @@ slowrig/architect
 | --- | --- | ---: |
 | `llama-architect` | `Qwen3.6-27B-UD-Q4_K_XL.gguf` | `ctx-size 40000` |
 | `llama-coder` | `Qwen3.5-9B-UD-Q4_K_XL.gguf` | `ctx-size 40000` |
+| `memory-embed` | `embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf` | `ctx-size 32768` |
 
 ## Основные файлы и директории
 
@@ -71,6 +73,7 @@ slowrig/architect
 /opt/llama-cluster/config/litellm.config.yaml
 /opt/llama-cluster/.env.example
 /opt/llama-cluster/scripts/cluster-status.sh
+/opt/llama-cluster/scripts/memory-ingest-docs.py
 /opt/llama-cluster/config/memory/init/001-memory-foundation.sql
 ```
 

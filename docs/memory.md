@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Memory / RAG Design v0.1
 
 Дата: 2026-06-22
-Статус: Stage 4.1 design принят для планирования; runtime не внедрён
+Статус: Stage 4.4 Local RAG ingestion внедрён и проверен на сервере
 
 ## 1. Назначение
 
@@ -85,7 +85,7 @@ slowrig/architect
 Текущее состояние Memory / RAG:
 
 ```text
-not implemented
+memory-db implemented; local docs ingestion implemented in Stage 4.4
 ```
 
 Текущий source of truth:
@@ -333,6 +333,7 @@ PostgreSQL хранит state/metadata, Qdrant хранит vector index
 Stage 4.1: design only
 Stage 4.2: prepare minimal PostgreSQL + pgvector implementation plan
 Stage 4.3: implement minimal DB foundation after approval
+Stage 4.4: implement local documentation ingestion with local embeddings
 ```
 
 Пользователь подтвердил `PostgreSQL + pgvector` как целевой runtime-кандидат для Stage 4.2 implementation plan. Это не означает установку БД на Stage 4.1.
@@ -345,13 +346,17 @@ Stage 4.3: implement minimal DB foundation after approval
 * one database is easier to operate than DB + separate vector store;
 * Markdown + Git remain source of truth and can rebuild the index.
 
+Stage 4.4 выбрал для первого локального embedding runtime:
+
+```text
+llama.cpp server, CPU-only
+Qwen3-Embedding-0.6B-Q8_0.gguf
+```
+
 Что остаётся открытым:
 
-* какую embedding model использовать;
-* где запускать embeddings;
-* какой chunking policy выбрать;
-* как хранить provenance;
-* какие retention rules применить к chats/logs;
+* когда добавлять retrieval API поверх `memory-db`;
+* какие retention rules применять к chats/logs;
 * как делать encrypted/offline backup;
 * когда нужен Qdrant.
 
@@ -663,31 +668,99 @@ sudo docker compose down -v
 
 ## 18. Открытые вопросы
 
-Перед Stage 4.4 нужно решить:
+После Stage 4.4 остаётся решить:
 
-* нужна ли отдельная embedding model;
-* нужен ли offline/encrypted backup сразу;
-* какой migration mechanism использовать для schema;
-* какой chunking/provenance формат принять для `docs/*.md`;
+* нужен ли отдельный retrieval API или сначала достаточно DB-level retrieval;
+* как оформлять retrieval context для будущих Telegram/agent клиентов;
+* нужен ли offline/encrypted backup сверх локальных dumps;
+* какой migration mechanism использовать для следующих schema changes;
 * когда добавлять Open WebUI conversations, Telegram history и raw logs;
 * когда Qdrant нужен как future upgrade path.
 
 ---
 
-## 19. Рекомендуемый следующий этап
+## 19. Stage 4.4 Local RAG ingestion
+
+Статус:
+
+```text
+implemented and server-validated
+```
+
+Stage 4.4 добавляет:
+
+* Compose service `memory-embed`;
+* локальный loopback endpoint `127.0.0.1:4010`;
+* embedding runtime на `llama.cpp server`;
+* CPU-only запуск через `--gpu-layers 0`;
+* модель `Qwen3-Embedding-0.6B-Q8_0.gguf`;
+* ingestion script `scripts/memory-ingest-docs.py`;
+* индексирование только `README.md`, `AGENTS.md`, `docs/*.md`;
+* chunks, provenance и embeddings в `memory-db`.
+
+Stage 4.4 не добавляет:
+
+* host-port для PostgreSQL;
+* LAN/public endpoint для embeddings;
+* retrieval API для клиентов;
+* Telegram bot;
+* agent framework;
+* индексацию чатов, raw logs, `.env`, `secrets/`, Open WebUI history или Telegram history.
+
+Выбранный model artifact:
+
+```text
+/opt/llama-cluster/models/embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf
+```
+
+Модель хранится вне git. Если файла нет, `memory-embed` не должен считаться исправным.
+
+`memory-embed` использует loopback host binding:
+
+```text
+127.0.0.1:4010 -> memory-embed:8080
+```
+
+Это сделано, чтобы host-side script мог вызвать OpenAI-compatible `/v1/embeddings`, не открывая embeddings endpoint в LAN.
+
+Ingestion script:
+
+```bash
+cd /opt/llama-cluster
+python3 scripts/memory-ingest-docs.py
+```
+
+Скрипт:
+
+* читает только разрешённый Markdown corpus;
+* режет документы на chunks с line provenance;
+* вызывает `memory-embed` для embeddings;
+* пишет данные в `memory.documents`, `memory.document_chunks`, `memory.embedding_models`, `memory.embeddings`, `memory.ingestion_runs`;
+* при повторном запуске пересоздаёт chunks/embeddings для тех же source documents.
+
+Derived data policy:
+
+```text
+Markdown + Git остаются source of truth.
+Documents/chunks/embeddings in PostgreSQL are rebuildable derived data for the approved corpus.
+```
+
+---
+
+## 20. Рекомендуемый следующий этап
 
 Рекомендуемый следующий этап:
 
 ```text
-Stage 4.4 — Local RAG ingestion
+Stage 5 — Telegram bot design
 ```
 
-Цель Stage 4.4:
+Цель Stage 5:
 
-* выбрать локальную embedding model/runtime;
-* добавить ingestion pipeline только для `README.md`, `AGENTS.md`, `docs/*.md`;
-* записывать chunks, provenance и embeddings в `memory-db`;
-* обеспечить rebuild индекса;
-* не индексировать чаты, сырые логи, `.env`, `secrets/` или Open WebUI history.
+* создать `docs/telegram.md`;
+* описать polling + whitelist;
+* провести Telegram через LiteLLM Gateway;
+* не давать bot shell/Docker доступ;
+* не хранить Telegram history в Memory/RAG без отдельного privacy decision.
 
-До approval на Stage 4.4 не добавлять embedding runtime или ingestion scripts.
+Не начинать runtime-внедрение Telegram без отдельного approval.

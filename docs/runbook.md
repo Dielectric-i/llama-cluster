@@ -37,6 +37,7 @@ Runbook не заменяет:
 | `litellm` | `4000` | LLM Gateway / Router |
 | `open-webui` | `3000` | ручной WebUI через gateway |
 | `memory-db` | нет | PostgreSQL + pgvector Memory DB |
+| `memory-embed` | `4010` | локальный embedding runtime, только `127.0.0.1` |
 
 Нормальная цепочка запросов:
 
@@ -72,6 +73,8 @@ slowrig/architect
 Прямые backend-порты `8080` и `8081` оставлены для диагностики. Обычные клиенты должны использовать LiteLLM Gateway на `4000`.
 
 `memory-db` не публикует host-port. Он доступен только внутри Docker Compose network.
+
+`memory-embed` публикует только loopback endpoint `127.0.0.1:4010` для локального ingestion-скрипта. Он не должен быть доступен из LAN.
 
 После применения Stage 4.3 в `/opt/llama-cluster/.env` должны быть заданы:
 
@@ -129,13 +132,15 @@ sudo docker ps
 * `llama-coder`;
 * `litellm`;
 * `open-webui`;
-* `memory-db`.
+* `memory-db`;
+* `memory-embed`.
 
 Нормально:
 
 * статус `Up`;
 * желательно `healthy`;
 * порты `8080`, `8081`, `4000`, `3000` опубликованы.
+* `memory-embed` опубликован только как `127.0.0.1:4010`.
 
 Проблема:
 
@@ -316,7 +321,32 @@ sudo docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POST
 
 ---
 
-## 4.6 Проверить 27B через gateway
+## 4.6 Проверить Memory embedding runtime
+
+Проверить OpenAI-compatible endpoint локального embedding service:
+
+```bash
+curl http://127.0.0.1:4010/v1/models
+```
+
+Ожидаемо: API отвечает JSON-ответом от `llama.cpp server`.
+
+Проверить короткий embedding request:
+
+```bash
+curl -sS http://127.0.0.1:4010/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen3-Embedding-0.6B-Q8_0.gguf",
+    "input": "slowrig documentation"
+  }'
+```
+
+Ожидаемо: в ответе есть `data[0].embedding`. Вектор не печатать полностью в отчётах, достаточно подтвердить наличие и размерность.
+
+---
+
+## 4.7 Проверить 27B через gateway
 
 ```bash
 curl -sS http://127.0.0.1:4000/v1/chat/completions \
@@ -336,6 +366,46 @@ curl -sS http://127.0.0.1:4000/v1/chat/completions \
 ```
 
 Ожидаемо: короткий ответ от `slowrig/architect`.
+
+---
+
+## 4.8 Запустить RAG ingestion для документации
+
+Перед запуском убедиться, что работают `memory-db` и `memory-embed`:
+
+```bash
+cd /opt/llama-cluster
+docker compose ps memory-db memory-embed
+curl http://127.0.0.1:4010/v1/models
+```
+
+Запустить индексацию разрешённого корпуса:
+
+```bash
+cd /opt/llama-cluster
+python3 scripts/memory-ingest-docs.py
+```
+
+Индексируются только:
+
+```text
+README.md
+AGENTS.md
+docs/*.md
+```
+
+Не индексируются `.env`, `secrets/`, raw logs, Open WebUI history, Telegram history, модели, cache и произвольные пользовательские чаты.
+
+Проверить результат:
+
+```bash
+docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT count(*) AS documents FROM memory.documents;"'
+docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT count(*) AS chunks FROM memory.document_chunks;"'
+docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT count(*) AS embeddings FROM memory.embeddings;"'
+docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT id, corpus_name, status, metadata FROM memory.ingestion_runs ORDER BY id DESC LIMIT 3;"'
+```
+
+Повторный запуск пересоздаёт chunks/embeddings для тех же source documents. Source of truth остаётся в Markdown + Git.
 
 ---
 
@@ -422,6 +492,22 @@ sudo docker logs --tail=160 memory-db
 * проблемы с `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`;
 * проблемы доступа к volume;
 * healthcheck failures.
+
+---
+
+### 5.6 Логи Memory embedding runtime
+
+```bash
+sudo docker logs --tail=160 memory-embed
+```
+
+Смотреть на:
+
+* отсутствие файла модели;
+* ошибки загрузки GGUF;
+* ошибки embedding endpoint;
+* неожиданные CUDA/offload сообщения;
+* падения `llama-server`.
 
 ---
 
@@ -534,7 +620,26 @@ sudo docker compose exec -T memory-db sh -lc 'pg_isready -U "$POSTGRES_USER" -d 
 
 ---
 
-### 6.6 Применить изменения compose для одного сервиса
+### 6.6 Перезапустить только Memory embedding runtime
+
+Использовать, если проблема только с `memory-embed`.
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose restart memory-embed
+```
+
+После этого проверить:
+
+```bash
+sudo docker compose ps memory-embed
+sudo docker logs --tail=80 memory-embed
+curl http://127.0.0.1:4010/v1/models
+```
+
+---
+
+### 6.7 Применить изменения compose для одного сервиса
 
 Если был изменён только один сервис в `docker-compose.yaml`, лучше поднимать только его:
 
@@ -551,11 +656,12 @@ sudo docker compose up -d open-webui
 sudo docker compose up -d llama-coder
 sudo docker compose up -d llama-architect
 sudo docker compose up -d memory-db
+sudo docker compose up -d memory-embed
 ```
 
 ---
 
-### 6.7 Привести весь кластер к compose-состоянию
+### 6.8 Привести весь кластер к compose-состоянию
 
 Использовать, если изменение затрагивает несколько сервисов или нужно привести состояние к `docker-compose.yaml`.
 
@@ -916,7 +1022,35 @@ memory-db-data
 sudo docker compose down -v
 ```
 
-### 11.3 Откат конкретного файла через git
+### 11.3 Откат Local RAG ingestion
+
+Если нужно откатить только Stage 4.4:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose stop memory-embed
+git checkout -- docker-compose.yaml scripts/cluster-status.sh scripts/memory-ingest-docs.py README.md docs/runbook.md docs/passport.md docs/architecture.md docs/memory.md docs/decisions.md docs/changelog.md docs/codex-context.md
+```
+
+Если ingestion уже записал chunks/embeddings и нужно удалить только derived index:
+
+```bash
+cd /opt/llama-cluster
+sudo docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "TRUNCATE memory.embeddings, memory.document_chunks, memory.documents RESTART IDENTITY CASCADE;"'
+```
+
+Перед удалением derived index сделать dump, если есть сомнения:
+
+```bash
+cd /opt/llama-cluster
+mkdir -p backups
+chmod 700 backups
+sudo docker compose exec -T memory-db sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "backups/memory-db-$(date +%Y%m%d-%H%M%S).dump"
+```
+
+Не удалять `memory-db-data` для отката Stage 4.4.
+
+### 11.4 Откат конкретного файла через git
 
 Посмотреть изменения:
 

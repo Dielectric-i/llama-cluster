@@ -136,8 +136,8 @@ The approved high-level order is:
 
 ```text
 Stage 4.2 — Memory implementation plan (done)
-Stage 4.3 — Memory DB foundation (config added; server validation required)
-Stage 4.4 — Local RAG ingestion
+Stage 4.3 — Memory DB foundation (done and server-validated)
+Stage 4.4 — Local RAG ingestion (done and server-validated)
 Stage 5   — Telegram bot
 Stage 6   — Agents
 Stage 7   — Monitoring / Security / Backups
@@ -160,9 +160,9 @@ PostgreSQL + pgvector
 Meaning:
 
 * Stage 4.2 prepared the implementation plan around PostgreSQL + pgvector;
-* Stage 4.3 added `memory-db` config after approval;
+* Stage 4.3 added and validated `memory-db`;
 * Stage 4.4 adds local RAG ingestion after the DB foundation exists;
-* embeddings should be local, but the embedding runtime is a later separate substage;
+* embeddings are local through `memory-embed`;
 * first indexed corpus is only `README.md`, `AGENTS.md`, and `docs/*.md`;
 * chats, raw logs, secrets, Open WebUI history, and Telegram history are not indexed in the first RAG corpus.
 
@@ -182,6 +182,16 @@ Stage 4.3 DB foundation defaults:
 * env names: `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
 * bootstrap SQL: `config/memory/init/001-memory-foundation.sql`;
 * backup dumps path: `backups/`, ignored by git.
+
+Stage 4.4 ingestion defaults:
+
+* Compose service: `memory-embed`;
+* runtime: `llama.cpp server`, CPU-only;
+* model: `Qwen3-Embedding-0.6B-Q8_0.gguf`;
+* model path: `/opt/llama-cluster/models/embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf`;
+* endpoint: `127.0.0.1:4010`, not LAN/public;
+* ingestion script: `scripts/memory-ingest-docs.py`;
+* chunks and embeddings are rebuildable derived data.
 
 ---
 
@@ -305,8 +315,8 @@ Remaining forks should be discussed only when they become relevant to the next i
 
 Known future forks:
 
-* exact local embedding model and runtime shape;
-* chunking policy and provenance format;
+* retrieval API shape over `memory-db`;
+* prompt/context assembly format for future clients;
 * PostgreSQL schema details;
 * backup encryption and restore rehearsal details;
 * Telegram command surface;

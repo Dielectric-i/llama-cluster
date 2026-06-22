@@ -146,10 +146,13 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | `llama-architect` |    `8080` | 27B architect / deep reasoning backend |
 | `llama-coder`     |    `8081` | 9B coder / fast worker backend         |
 | `memory-db`       |     нет    | PostgreSQL + pgvector Memory DB        |
+| `memory-embed`    |    `4010` | local embedding runtime, loopback only |
 
 Прямые backend-порты `8080` и `8081` оставлены для диагностики. Обычный клиентский путь должен идти через LiteLLM Gateway.
 
 `memory-db` не публикует host-port и доступен только внутри Docker Compose network.
+
+`memory-embed` публикуется только на `127.0.0.1:4010` для локального ingestion-скрипта и не должен быть доступен из LAN.
 
 ---
 
@@ -373,6 +376,7 @@ OPENAI_API_KEYS      -> LITELLM_MASTER_KEY
 | ------------- | ----------------------------- | ----------------- |
 | 27B architect | `Qwen3.6-27B-UD-Q4_K_XL.gguf` | `llama-architect` |
 | 9B coder      | `Qwen3.5-9B-UD-Q4_K_XL.gguf`  | `llama-coder`     |
+| embeddings    | `embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf` | `memory-embed` |
 
 Обе модели работают с:
 

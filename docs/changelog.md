@@ -62,6 +62,106 @@
 
 ---
 
+## 2026-06-22 — Stage 4.4 Local RAG ingestion
+
+### Изменено
+
+Добавлен `memory-embed` в `docker-compose.yaml`:
+
+* image: `ghcr.io/ggml-org/llama.cpp:server-cuda`;
+* container name: `memory-embed`;
+* model: `/models/embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf`;
+* host binding: `127.0.0.1:4010`;
+* Docker internal port: `8080`;
+* embedding mode: `--embedding`;
+* pooling: `--pooling last`;
+* GPU offload disabled: `--gpu-layers 0`.
+
+Добавлен ingestion script:
+
+```text
+scripts/memory-ingest-docs.py
+```
+
+Скрипт индексирует только:
+
+```text
+README.md
+AGENTS.md
+docs/*.md
+```
+
+Скрипт пишет chunks, provenance и embeddings в `memory-db`. Markdown + Git остаются source of truth, PostgreSQL хранит rebuildable derived data.
+
+Обновлены:
+
+* `scripts/cluster-status.sh`;
+* `README.md`;
+* `docs/passport.md`;
+* `docs/runbook.md`;
+* `docs/architecture.md`;
+* `docs/memory.md`;
+* `docs/decisions.md`;
+* `docs/codex-context.md`.
+
+Добавлен `ADR-023`:
+
+```text
+Использовать локальный llama.cpp embedding service для Stage 4.4
+```
+
+### Проверено
+
+Repository-side проверки:
+
+```text
+git status --short
+git diff --stat
+git diff --check
+```
+
+Server/runtime checks:
+
+```text
+docker compose config --quiet
+docker compose up -d memory-embed
+curl http://127.0.0.1:4010/v1/models
+python3 scripts/memory-ingest-docs.py
+memory-db count checks
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+Результат:
+
+* `docker compose config --quiet` прошёл;
+* `memory-embed` запущен и показывает `healthy`;
+* model file скачан в `/opt/llama-cluster/models/embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf`;
+* `/v1/models` на `127.0.0.1:4010` отвечает;
+* короткий `/v1/embeddings` request вернул vector dimension `1024`;
+* ingestion run `2` завершился со status `completed`;
+* проиндексировано `12` documents;
+* создано `176` chunks;
+* создано `176` embeddings;
+* общий `/opt/llama-cluster/scripts/cluster-status.sh` завершился успешно.
+
+Во время первой попытки ingestion был найден и исправлен parsing bug в `scripts/memory-ingest-docs.py`: `psql` возвращал не только id, но и command tag `INSERT 0 1`. Неудачный run `1` помечен как `failed` с пояснением в metadata.
+
+### Результат
+
+Stage 4.4 добавил и проверил первый локальный RAG ingestion path без изменения LiteLLM routing, Open WebUI routing, GPU mapping, LLM model files или host-портов `3000/4000/8080/8081`.
+
+### Замечания
+
+Перед запуском `memory-embed` на сервере должен существовать model file:
+
+```text
+/opt/llama-cluster/models/embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf
+```
+
+Endpoint `127.0.0.1:4010` не должен публиковаться в LAN.
+
+---
+
 ## 2026-06-22 — Stage 4.3 Memory DB foundation
 
 ### Изменено

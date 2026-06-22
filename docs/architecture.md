@@ -42,7 +42,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 1 | Inference baseline              | завершён               |
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
-| Stage 4 | Memory / RAG                    | Stage 4.3 DB foundation добавлен в config; RAG ingestion не внедрён |
+| Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
 | Stage 5 | Telegram bot                    | запланировано          |
 | Stage 6 | Agent framework                 | запланировано          |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
@@ -53,7 +53,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * LiteLLM внедрён как gateway;
 * Open WebUI подключён через LiteLLM;
 * прямые backend-порты сохранены для диагностики;
-* memory/RAG ещё не внедрены;
+* memory/RAG foundation внедрён, local docs ingestion добавлен;
 * Telegram bot ещё не внедрён;
 * agent framework ещё не внедрён;
 * полноценный monitoring/security/backups stage ещё не внедрён.
@@ -281,13 +281,13 @@ docs/runbook.md
 Статус:
 
 ```text
-DB foundation defined in compose; RAG ingestion not implemented
+DB foundation implemented; local docs ingestion added in Stage 4.4
 ```
 
 Текущий stage:
 
 ```text
-Stage 4.3 — Memory DB foundation
+Stage 4.4 — Local RAG ingestion
 ```
 
 Основной документ:
@@ -327,7 +327,18 @@ volume: memory-db-data
 first corpus: README.md, AGENTS.md, docs/*.md
 ```
 
-На Stage 4.3 не добавляются embedding service, ingestion pipeline, Telegram bot или agent framework.
+Stage 4.4 добавляет локальный embedding service и ingestion pipeline:
+
+```text
+service: memory-embed
+runtime: llama.cpp server, CPU-only
+host binding: 127.0.0.1:4010 only
+model: Qwen3-Embedding-0.6B-Q8_0.gguf
+script: scripts/memory-ingest-docs.py
+corpus: README.md, AGENTS.md, docs/*.md
+```
+
+На Stage 4.4 не добавляются retrieval API, Telegram bot, agent framework, индексация чатов, raw logs или secrets.
 
 ---
 
@@ -877,7 +888,7 @@ completed
 Статус:
 
 ```text
-Stage 4.3 DB foundation added; server validation required
+Stage 4.4 Local RAG ingestion implemented and server-validated
 ```
 
 Принятый порядок:
@@ -898,9 +909,9 @@ Markdown + Git remain the source of truth.
 PostgreSQL stores structured state, metadata, chunks and derived vector data.
 ```
 
-Stage 4.3 добавляет только `memory-db` и bootstrap schema. Stage 4.3 не индексирует документы и не добавляет embedding runtime.
+Stage 4.3 добавил `memory-db` и bootstrap schema. Stage 4.4 добавляет `memory-embed` и ingestion script для первого документационного корпуса.
 
-Stage 4.3 зафиксирован в:
+Stage 4 зафиксирован в:
 
 ```text
 docs/memory.md
@@ -1023,7 +1034,8 @@ changelog
 
 * нужен ли encrypted/offline backup сразу?
 * какой migration mechanism использовать для schema?
-* какой chunking/provenance формат принять для `docs/*.md`?
+* нужен ли отдельный retrieval API поверх `memory-db`?
+* какой prompt/context assembly формат нужен будущим клиентам?
 * как удалять данные?
 * как memory будет использоваться агентами?
 * когда Qdrant понадобится как future upgrade path?

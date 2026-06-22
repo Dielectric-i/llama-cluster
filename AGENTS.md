@@ -51,19 +51,21 @@ Do not maintain a long duplicate documentation index in `AGENTS.md`. Keep the au
 
 Codex must communicate with the user in Russian.
 
-This includes:
+Use Russian labels such as:
 
-* stage plans;
-* stage reports;
-* explanations;
-* questions;
-* checklists;
-* testing instructions;
-* rollback instructions;
-* risk warnings;
-* commit suggestions;
-* summaries of changed files;
-* discussions of architectural forks.
+```text
+Этап:
+Цель:
+Проверенные файлы:
+Найденные проблемы:
+Ожидаемые изменения:
+Уровень риска:
+Предлагаемые изменения:
+План проверки:
+Откат:
+Открытые вопросы:
+Следующий этап:
+```
 
 Repository files may use Russian, English, or mixed language depending on what is practical.
 

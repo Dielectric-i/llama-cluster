@@ -62,6 +62,23 @@
 
 ---
 
+## 2026-06-23 — Stage 5.5 Telegram short polling for Cloudflare
+
+### Изменено
+
+* `telegram-bot` переведён с long polling через Cloudflare Worker на short polling: `getUpdates timeout=0`.
+* Polling HTTP timeout снижен до `8s`; после пустого poll используется delay `1200ms`.
+
+### Проверка
+
+* `docker compose --profile telegram build telegram-bot` успешен.
+* `telegram-bot` перезапущен через `docker compose --profile telegram up -d --no-deps telegram-bot`.
+* `/start` и `/model` пришли отдельными updates и ответили через Telegram API примерно за `84-91ms`.
+* Один зависший `getUpdates` был оборван за `8s`; bot продолжил работу.
+* Text prompt занял около `40s` на LiteLLM generation, что отделяет LLM latency от Telegram transport latency.
+
+---
+
 ## 2026-06-23 — Stage 5.4 Telegram transport hardening
 
 ### Изменено

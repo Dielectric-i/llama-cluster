@@ -590,8 +590,9 @@ Manual Telegram checks после запуска:
 
 Transport hardening defaults после Stage 5.4:
 
-* `getUpdates` long polling timeout: `12s`;
-* Telegram polling HTTP timeout: `25s`;
+* Cloudflare reverse proxy mode использует short polling: `getUpdates timeout=0`;
+* Telegram polling HTTP timeout: `8s`;
+* idle delay after empty poll: `1200ms`;
 * обычные Telegram API calls, включая `sendMessage`: `25s`;
 * `sendMessage` retry attempts: `3`;
 * logs показывают method, attempt, elapsed time, update checkpoint, LLM request/response timing, но не печатают message text или secrets.

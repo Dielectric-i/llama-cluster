@@ -15,11 +15,12 @@ sealed class SlowrigTelegramBot
     private const int MaxInputChars = 6000;
     private const int MaxContextMessages = 8;
     private const int MaxTelegramChars = 3900;
-    private const int TelegramPollTimeoutSeconds = 12;
-    private const int TelegramPollHttpTimeoutSeconds = 25;
+    private const int TelegramPollTimeoutSeconds = 0;
+    private const int TelegramPollHttpTimeoutSeconds = 8;
     private const int TelegramCallTimeoutSeconds = 25;
     private const int TelegramSendMaxAttempts = 3;
     private static readonly TimeSpan TelegramRetryDelay = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan TelegramEmptyPollDelay = TimeSpan.FromMilliseconds(1200);
 
     private readonly string _token;
     private readonly HashSet<long> _allowedUsers;
@@ -58,7 +59,7 @@ sealed class SlowrigTelegramBot
         _telegramApiBaseUrl = NormalizeTelegramApiBaseUrl(telegramApiBaseUrl);
         _telegramHttp = CreateTelegramHttpClient(telegramProxyUrl);
         _liteLlmHttp.Timeout = TimeSpan.FromSeconds(190);
-        Log($"telegram transport timeouts; poll_timeout_s={TelegramPollTimeoutSeconds}; poll_http_timeout_s={TelegramPollHttpTimeoutSeconds}; call_timeout_s={TelegramCallTimeoutSeconds}; send_attempts={TelegramSendMaxAttempts}");
+        Log($"telegram transport timeouts; poll_timeout_s={TelegramPollTimeoutSeconds}; poll_http_timeout_s={TelegramPollHttpTimeoutSeconds}; empty_poll_delay_ms={TelegramEmptyPollDelay.TotalMilliseconds}; call_timeout_s={TelegramCallTimeoutSeconds}; send_attempts={TelegramSendMaxAttempts}");
     }
 
     public static SlowrigTelegramBot FromEnvironment()
@@ -151,6 +152,11 @@ sealed class SlowrigTelegramBot
             await HandleUpdateAsync(update);
             _offset = Math.Max(_offset, update.UpdateId + 1);
             Log($"update checkpoint update_id={update.UpdateId}; next_offset={_offset}");
+        }
+
+        if (updates.Count == 0)
+        {
+            await Task.Delay(TelegramEmptyPollDelay);
         }
     }
 

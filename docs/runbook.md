@@ -569,6 +569,7 @@ sudo docker logs --tail=160 telegram-bot
 * Telegram API HTTP errors;
 * `Network is unreachable` или timeout к `api.telegram.org:443`;
 * `telegram_api retry` и `telegram_api failed` с method, attempt, timeout и elapsed time;
+* в Cloudflare reverse proxy mode `getUpdates` работает как short polling: `timeout=0`, HTTP timeout `8s`, empty poll delay `1200ms`;
 * `poll received`, `update checkpoint`, `llm request`, `llm response` для понимания, где именно тратится время;
 * ошибку `TELEGRAM_PROXY_URL must be an HTTP(S) proxy URL`, если вместо HTTP(S) proxy задана `tg://` MTProto-ссылка;
 * LiteLLM connectivity errors;

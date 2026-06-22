@@ -403,15 +403,14 @@ Memory / RAG увеличивает риск случайного сохране
 
 ## 12. Backup and restore
 
-До implementation нужно определить:
+Минимальный backup/restore contract для будущего DB stage:
 
-* что входит в backup;
-* где лежат DB volumes;
-* как восстанавливать schema;
-* как пересоздавать embeddings;
-* нужно ли backup-ить vector index или достаточно rebuild;
-* как хранить `.env` отдельно от git;
-* как проверять restore.
+* source docs/config/scripts живут в git;
+* `.env` и реальные секреты хранятся offline отдельно от git;
+* PostgreSQL state после внедрения backup-ится через logical dump;
+* derived embeddings/index считаются rebuildable, пока в них нет уникального пользовательского state;
+* перед destructive DB-операциями нужен свежий dump;
+* restore должен быть проверяемым dry run, а не только теоретической командой.
 
 Минимальный принцип:
 
@@ -421,77 +420,204 @@ derived index backup -> optional, rebuildable
 structured task state backup -> mandatory after implementation
 ```
 
+Рекомендуемый путь для dump-файлов должен быть вне git. Если позже будет выбран путь внутри `/opt/llama-cluster`, например `backups/`, его нужно добавить в `.gitignore` до первого dump.
+
+На Stage 4.2 реальные dump/restore команды не выполняются, потому что PostgreSQL ещё не внедрён.
+
 ---
 
-## 13. Manual checks for future implementation
+## 13. Stage 4.2 implementation plan
 
-Перед будущим implementation stage:
+Статус:
+
+```text
+documentation-only plan; runtime not implemented
+```
+
+Цель Stage 4.2:
+
+* подготовить минимальный план внедрения PostgreSQL + pgvector;
+* описать будущий Docker service, volume, env names и network exposure;
+* определить минимальные schema areas без написания финальной SQL-схемы;
+* зафиксировать backup/restore contract до появления stateful DB;
+* подготовить rollback для будущего Stage 4.3;
+* оставить embeddings runtime для отдельного Stage 4.4.
+
+Non-goals Stage 4.2:
+
+* не менять `docker-compose.yaml`;
+* не добавлять PostgreSQL service;
+* не скачивать Docker images;
+* не создавать volume;
+* не менять LiteLLM или Open WebUI routing;
+* не добавлять embedding service;
+* не индексировать документы;
+* не подключать Telegram или agents.
+
+Планируемый DB service для Stage 4.3:
+
+| Параметр | План |
+| --- | --- |
+| Compose service | `memory-db` |
+| Container name | `memory-db` |
+| Runtime | PostgreSQL + pgvector |
+| Image | pinned pgvector-enabled PostgreSQL image; точный tag выбрать и проверить перед Stage 4.3 |
+| Network | только Docker Compose network |
+| Host port | не публиковать по умолчанию |
+| Volume | named volume `memory-db-data` |
+| Secrets | только через `.env`, без реальных значений в git |
+
+Планируемые `.env` names:
+
+```text
+MEMORY_POSTGRES_DB
+MEMORY_POSTGRES_USER
+MEMORY_POSTGRES_PASSWORD
+```
+
+В `docker-compose.yaml` будущий service должен маппить эти значения в стандартные переменные PostgreSQL:
+
+```text
+POSTGRES_DB
+POSTGRES_USER
+POSTGRES_PASSWORD
+```
+
+DB не должна получать host-port на первом runtime stage. Доступ для диагностики должен идти через:
+
+```bash
+sudo docker compose exec memory-db psql
+```
+
+Если позже понадобится host-port для администрирования, это отдельная security-развилка.
+
+---
+
+## 14. Minimal schema areas for Stage 4.3
+
+Stage 4.3 должен начинаться с минимальной структуры, а не с универсальной платформы памяти.
+
+Минимальные области:
+
+| Area | Назначение |
+| --- | --- |
+| `documents` | известные source documents и их identity |
+| `document_chunks` | фрагменты документов с provenance |
+| `embedding_models` | metadata локальных embedding models |
+| `embeddings` | derived vector data для chunks |
+| `ingestion_runs` | история rebuild/index операций |
+| `memory_tasks` | будущая task/state область для agents |
+| `task_events` | события по задачам, если task state включён позже |
+| `access_rules` | будущие allowlist/policy records |
+| `audit_log` | действия memory/agent layer |
+
+Не включать в первую schema без отдельного решения:
+
+* Open WebUI conversations;
+* Telegram history;
+* raw logs;
+* secrets;
+* shell command output с чувствительными данными.
+
+Первый индексируемый corpus остаётся:
+
+```text
+README.md
+AGENTS.md
+docs/*.md
+```
+
+---
+
+## 15. Manual checks for future implementation
+
+Для Stage 4.2 достаточно документационных проверок:
+
+```bash
+git status --short
+git diff --stat
+git diff -- AGENTS.md docs/codex-context.md docs/memory.md docs/architecture.md docs/decisions.md docs/changelog.md
+git diff --check
+```
+
+Перед будущим Stage 4.3:
 
 ```bash
 cd /opt/llama-cluster
 sudo docker compose config --quiet
 ```
 
-После добавления DB service в отдельном будущем stage:
+После добавления `memory-db` в отдельном будущем stage:
 
 ```bash
-sudo docker compose up -d <memory-db-service>
+sudo docker compose up -d memory-db
 sudo docker compose ps
-sudo docker logs --tail=160 <memory-db-service>
+sudo docker logs --tail=160 memory-db
 ```
 
-Для Stage 4.1 эти команды не требуются, потому что runtime не меняется.
+Будущая проверка pgvector extension:
+
+```bash
+sudo docker compose exec memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Внутри `psql`:
+
+```sql
+SELECT extname FROM pg_extension WHERE extname = 'vector';
+```
+
+Для Stage 4.2 server/runtime checks не требуются, потому что runtime не меняется.
 
 ---
 
-## 14. Rollback
+## 16. Rollback
 
-Для Stage 4.1 rollback — только документационный:
+Для Stage 4.2 rollback — только документационный:
 
 ```bash
-git checkout -- docs/memory.md README.md docs/architecture.md docs/decisions.md docs/changelog.md docs/codex-context.md
+git checkout -- docs/memory.md docs/architecture.md docs/decisions.md docs/changelog.md docs/codex-context.md
 ```
 
-Для будущего implementation stage rollback должен быть отдельным и включать:
+Для будущего Stage 4.3 rollback должен быть отдельным и включать:
 
-* остановку нового service;
-* сохранение или удаление volume только после approval;
+* свежий dump перед destructive actions, если DB уже содержит state;
+* остановку `memory-db`;
+* сохранение или удаление `memory-db-data` только после approval;
 * возврат compose/config;
 * проверку `cluster-status.sh`;
 * запись в changelog.
 
 ---
 
-## 15. Открытые вопросы
+## 17. Открытые вопросы
 
-Перед implementation нужно решить:
+Перед Stage 4.3 нужно решить:
 
 * нужна ли отдельная embedding model;
-* какие документы индексировать в первой версии;
-* индексировать ли changelog и ADR целиком или summaries;
-* хранить ли Open WebUI conversations;
-* когда добавлять Telegram history;
-* когда добавлять agent task state;
-* какие backup expectations принять до появления stateful DB;
-* нужен ли Qdrant сразу или только как future upgrade path.
+* какой exact Docker image/tag использовать для PostgreSQL + pgvector;
+* где хранить DB dumps и нужен ли offline/encrypted backup сразу;
+* какой migration mechanism использовать для schema;
+* какой chunking/provenance формат принять для `docs/*.md`;
+* когда добавлять Open WebUI conversations, Telegram history и raw logs;
+* когда Qdrant нужен как future upgrade path.
 
 ---
 
-## 16. Рекомендуемый следующий этап
+## 18. Рекомендуемый следующий этап
 
 Рекомендуемый следующий этап:
 
 ```text
-Stage 4.2 — Memory implementation plan
+Stage 4.3 — Memory DB foundation
 ```
 
-Цель Stage 4.2:
+Цель Stage 4.3:
 
-* подготовить минимальный план внедрения PostgreSQL + pgvector как первого runtime stack;
-* описать минимальный compose/service plan;
-* описать backup/restore;
-* зафиксировать, что embeddings runtime откладывается до отдельного local RAG подэтапа;
-* зафиксировать initial indexed corpus: `README.md`, `AGENTS.md`, `docs/*.md`;
-* подготовить rollback.
+* добавить `memory-db` только после отдельного approval;
+* обновить `docker-compose.yaml`, `.env.example`, `.gitignore` при необходимости и docs;
+* проверить Compose config, container logs и pgvector extension;
+* выполнить backup/restore dry run;
+* не добавлять embeddings runtime и ingestion до Stage 4.4.
 
-До завершения Stage 4.2 не устанавливать новые runtime dependencies.
+До approval на Stage 4.3 не устанавливать новые runtime dependencies.

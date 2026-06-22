@@ -62,6 +62,45 @@
 
 ---
 
+## 2026-06-22 — Stage 4.2 Memory implementation plan
+
+### Изменено
+
+Обновлён `docs/memory.md`:
+
+* Stage 4.2 оформлен как documentation-only implementation plan;
+* будущий DB service зафиксирован как `memory-db`;
+* будущий runtime stack зафиксирован как PostgreSQL + pgvector;
+* host-port для DB не публикуется по умолчанию;
+* будущий volume зафиксирован как `memory-db-data`;
+* env names зафиксированы как `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
+* описаны минимальные schema areas, backup/restore contract, проверки и rollback для будущего Stage 4.3.
+
+Обновлены `docs/architecture.md`, `docs/decisions.md` и `docs/codex-context.md`:
+
+* Stage 4.1 больше не указан как следующий этап;
+* ADR-013 помечен как `superseded by ADR-020`;
+* ADR-020 дополнен начальными implementation defaults;
+* оставшиеся Memory/RAG вопросы сужены до image/tag, backup path, migration mechanism, chunking/provenance и future Qdrant path.
+
+### Проверено
+
+Проверка документационная. Runtime/server checks не требовались.
+
+### Результат
+
+Stage 4.2 подготовил безопасный план для будущего внедрения `memory-db`, не меняя `docker-compose.yaml`, LiteLLM config, ports, volumes или running services.
+
+### Замечания
+
+Следующий этап после отдельного approval:
+
+```text
+Stage 4.3 — Memory DB foundation
+```
+
+---
+
 ## 2026-06-22 — Roadmap forks resolved and Codex context updated
 
 ### Изменено

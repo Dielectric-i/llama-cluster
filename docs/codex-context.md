@@ -175,6 +175,14 @@ PostgreSQL + pgvector stores structured state, metadata, chunks, and derived vec
 
 Stage 4.2 must include a minimal backup/restore contract before any stateful DB is deployed.
 
+Stage 4.2 DB foundation defaults:
+
+* future Compose service: `memory-db`;
+* future volume: `memory-db-data`;
+* DB network exposure: Docker Compose network only, no host port by default;
+* planned env names: `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
+* exact Docker image/tag is chosen and verified immediately before Stage 4.3.
+
 ---
 
 ## 8. Telegram decisions

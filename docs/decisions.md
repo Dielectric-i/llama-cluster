@@ -76,7 +76,7 @@ ADR-XXX — Название решения
 | ADR-010 | Не хранить модели, кэш, данные и секреты в git          | принято               |
 | ADR-011 | Сначала документация и runbook, затем новые subsystem-ы | принято               |
 | ADR-012 | Gateway нужен, но не добавлять его до Stage 2           | superseded by ADR-015 |
-| ADR-013 | Memory stack пока не выбран                             | открыто; Stage 4.1 design создан |
+| ADR-013 | Memory stack пока не выбран                             | superseded by ADR-020 |
 | ADR-014 | Не открывать внутренние порты наружу                    | принято               |
 | ADR-015 | Использовать LiteLLM Proxy как первый gateway           | принято и внедрено    |
 | ADR-016 | Маршрутизировать Open WebUI через LiteLLM               | принято и внедрено    |
@@ -652,7 +652,7 @@ Gateway понадобится для:
 ## ADR-013 — Memory stack пока не выбран
 
 Дата: 2026-06-19
-Статус: открыто
+Статус: superseded by ADR-020
 Связанные документы: `docs/architecture.md`, `docs/memory.md`
 
 ### Контекст
@@ -690,13 +690,15 @@ Gateway понадобится для:
 
 ### Когда пересмотреть
 
-На Stage 4.1 — Memory / RAG design.
+Решение пересмотрено на Stage 4.1/4.2.
 
-Stage 4 — общий блок Memory / RAG. Stage 4.1 — ближайший конкретный design-only этап.
+Текущий выбор для планирования зафиксирован в ADR-020:
 
-Первый design-документ создан: `docs/memory.md`.
+```text
+PostgreSQL + pgvector
+```
 
-Перед runtime implementation нужен отдельный Stage 4.2 plan и approval.
+Stage 4.2 остаётся documentation-only plan. Runtime implementation требует отдельного approval на Stage 4.3.
 
 ---
 
@@ -1085,6 +1087,16 @@ PostgreSQL + pgvector
 
 Это решение не устанавливает БД и не меняет runtime baseline.
 
+Stage 4.2 implementation plan фиксирует начальные defaults для будущего Stage 4.3:
+
+* service name: `memory-db`;
+* container name: `memory-db`;
+* network: только Docker Compose network;
+* host port: не публиковать по умолчанию;
+* volume: `memory-db-data`;
+* `.env` names: `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
+* exact pgvector-enabled PostgreSQL image/tag выбирается и проверяется перед Stage 4.3.
+
 ### Причина
 
 PostgreSQL + pgvector лучше всего подходит как первый memory stack для `slowrig`, потому что одна БД может хранить:
@@ -1190,22 +1202,21 @@ Gateway выбран: LiteLLM Proxy.
 
 ### Q2. Какую память выбрать?
 
-Варианты:
-
-* Markdown + Git only;
-* PostgreSQL + pgvector — выбран как целевой вариант для Stage 4.2 implementation plan;
-* Qdrant;
-* Chroma;
-* LanceDB;
-* PostgreSQL + Qdrant hybrid.
-
-Текущая рекомендация для следующего этапа:
+Текущий выбор для планирования:
 
 ```text
-сначала docs/memory.md,
-потом Stage 4.2 implementation plan для PostgreSQL + pgvector,
-потом implementation только после approval
+PostgreSQL + pgvector
 ```
+
+Markdown + Git остаются source of truth. PostgreSQL + pgvector планируется как хранилище structured state, metadata, chunks и derived vector data.
+
+Оставшиеся вопросы:
+
+* exact Docker image/tag;
+* backup dump path и offline/encrypted policy;
+* schema migration mechanism;
+* chunking/provenance format;
+* когда Qdrant нужен как future upgrade path.
 
 ---
 

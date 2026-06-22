@@ -42,7 +42,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 1 | Inference baseline              | завершён               |
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
-| Stage 4 | Memory / RAG                    | следующий блок работ; ближайший этап — Stage 4.1 design |
+| Stage 4 | Memory / RAG                    | Stage 4.2 plan подготовлен; runtime не внедрён |
 | Stage 5 | Telegram bot                    | запланировано          |
 | Stage 6 | Agent framework                 | запланировано          |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
@@ -284,13 +284,13 @@ docs/runbook.md
 not implemented
 ```
 
-Следующий рекомендуемый stage:
+Текущий документационный stage:
 
 ```text
-Stage 4.1 — Memory / RAG design
+Stage 4.2 — Memory implementation plan
 ```
 
-Stage 4.1 design-документ:
+Основной документ:
 
 ```text
 docs/memory.md
@@ -310,26 +310,23 @@ Memory/RAG слой должен быть отдельным subsystem-ом, а 
 * пользовательские заметки;
 * searchable context для RAG.
 
-Что нужно решить до внедрения:
-
-* что остаётся в Markdown + Git;
-* что хранится в структурированной БД;
-* что индексируется в векторном виде;
-* какие данные нельзя embedding-ить;
-* как делать backup/restore;
-* как удалять данные;
-* как memory интегрируется с gateway и future agents.
-
-Возможные кандидаты для design stage:
+Принято для планирования:
 
 ```text
-Markdown + Git only
 PostgreSQL + pgvector
-Qdrant
-PostgreSQL + Qdrant hybrid
 ```
 
-До отдельного Stage 4.2 implementation plan не устанавливать БД, vector store или embedding service.
+Stage 4.2 фиксирует будущий минимальный DB foundation:
+
+```text
+service: memory-db
+network: Docker Compose network only
+host port: none by default
+volume: memory-db-data
+first corpus: README.md, AGENTS.md, docs/*.md
+```
+
+До отдельного approval на Stage 4.3 не устанавливать БД, vector store или embedding service.
 
 ---
 
@@ -879,28 +876,30 @@ completed
 Статус:
 
 ```text
-next major block; first concrete step is Stage 4.1 design
+Stage 4.2 implementation plan prepared; runtime not implemented
 ```
 
-Первый шаг:
+Принятый порядок:
 
 ```text
 Stage 4.1 — Memory / RAG design
+Stage 4.2 — Memory implementation plan
+Stage 4.3 — Memory DB foundation after approval
+Stage 4.4 — Local RAG ingestion
 docs/memory.md
 ```
 
-Цель:
+Текущее решение:
 
-* определить memory architecture;
-* выбрать stack;
-* отделить source of truth от searchable index;
-* определить backup/restore;
-* определить privacy boundaries;
-* подготовить future integration с Telegram и agents.
+```text
+PostgreSQL + pgvector is the first planned Memory DB stack.
+Markdown + Git remain the source of truth.
+PostgreSQL stores structured state, metadata, chunks and derived vector data.
+```
 
-Stage 4.1 не должен начинаться с установки базы данных, vector store или новых runtime-сервисов.
+Stage 4.2 не устанавливает базу данных, vector store или новые runtime-сервисы.
 
-Stage 4.1 design зафиксирован в:
+Stage 4.2 plan зафиксирован в:
 
 ```text
 docs/memory.md
@@ -1021,13 +1020,13 @@ changelog
 
 Открытые вопросы:
 
-* PostgreSQL + pgvector или Qdrant?
-* нужен ли hybrid stack?
-* что хранить в Markdown, а что в БД?
-* что embedding-ить?
-* как делать backup?
+* какой exact Docker image/tag использовать для PostgreSQL + pgvector?
+* где хранить DB dumps и нужен ли encrypted/offline backup сразу?
+* какой migration mechanism использовать для schema?
+* какой chunking/provenance формат принять для `docs/*.md`?
 * как удалять данные?
 * как memory будет использоваться агентами?
+* когда Qdrant понадобится как future upgrade path?
 
 ---
 

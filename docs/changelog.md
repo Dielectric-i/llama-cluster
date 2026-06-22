@@ -184,11 +184,13 @@ dropdb slowrig_memory_restore_check
 Результат:
 
 * `memory-db` остаётся `healthy`;
-* создан свежий dump `backups/memory-db-20260622-065432.dump`;
+* создан свежий dump `backups/memory-db-20260622-071845.dump`;
 * restore dry run во временную DB прошёл;
 * в restored DB видны 9 таблиц schema `memory`;
 * временная DB `slowrig_memory_restore_check` удалена после проверки;
 * нулевые dump-файлы от ранних quoting-сбоев удалены.
+
+Замечание для automation: если `docker compose exec` запускается из shell-скрипта, который сам передан через stdin, командам без собственного stdin нужно добавлять `</dev/null`. Иначе `docker compose exec` может съесть остаток скрипта. Для `pg_restore` stdin intentionally используется для dump-файла.
 
 После появления Docker group access для `discover` обновлён `scripts/cluster-status.sh`: теперь он использует `docker` без `sudo`, если это доступно, и сохраняет fallback на `sudo docker` для ручных запусков от пользователя без Docker group access.
 
@@ -203,6 +205,18 @@ bash -n scripts/cluster-status.sh
 
 * Docker containers и Compose services выводятся без `sudo`;
 * все LLM/API checks — `OK`;
+* `memory-db pg_isready` — `OK`;
+* `memory-db pgvector extension` — `OK`.
+
+Финальный запуск `/opt/llama-cluster/scripts/cluster-status.sh` после backup/restore dry run подтвердил:
+
+* `memory-db` — `Up` и `healthy`;
+* `litellm`, `open-webui`, `llama-coder`, `llama-architect` остаются запущены;
+* direct backend `8080` и `8081` отвечают;
+* Open WebUI `3000` отвечает;
+* LiteLLM `/v1/models` отвечает;
+* `slowrig/coder` и `slowrig/architect` отвечают через LiteLLM;
+* GPU VRAM соответствует baseline;
 * `memory-db pg_isready` — `OK`;
 * `memory-db pgvector extension` — `OK`.
 

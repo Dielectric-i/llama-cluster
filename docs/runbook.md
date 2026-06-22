@@ -836,6 +836,8 @@ sudo docker compose exec -T memory-db sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$P
 
 `backups/` исключён из git. Не коммитить dump-файлы.
 
+Если эти команды запускаются из automation shell-скрипта, который сам передан через stdin, добавлять `</dev/null` к `docker compose exec`, если команда не должна читать stdin. Иначе `docker compose exec` может съесть остаток скрипта.
+
 ### 10.2 Restore dry run в отдельную DB
 
 Заменить `<dump-file>` на конкретный файл:

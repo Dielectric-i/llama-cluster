@@ -91,6 +91,7 @@ ADR-XXX — Название решения
 | ADR-025 | Реализовывать первый Telegram runtime без отдельной Telegram library | superseded by ADR-026 |
 | ADR-026 | Реализовывать первый Telegram runtime на C#/.NET | принято; code добавлен |
 | ADR-027 | Использовать разные context sizes для `architect` и `coder` | принято и внедрено |
+| ADR-028 | Проектировать agent layer как custom lightweight orchestration | принято; design добавлен |
 
 ---
 
@@ -1596,6 +1597,50 @@ C# даёт типизированный компактный service без Pyt
 
 ---
 
+## ADR-028 — Проектировать agent layer как custom lightweight orchestration
+
+Дата: 2026-06-23
+Статус: принято; design добавлен
+Связанные документы: `docs/agents.md`, `docs/codex-context.md`, `docs/changelog.md`
+
+### Контекст
+
+`slowrig` должен постепенно получить controlled agent workflows, но текущий кластер остаётся домашней инфраструктурой с реальными сервисами, GPU, secrets и stateful data. Полноценный agent framework на старте увеличит surface area, права и operational complexity.
+
+### Решение
+
+Первый Stage 6 design выбирает:
+
+```text
+custom lightweight orchestration / Codex-driven workflow
+```
+
+Agent capabilities должны расти через permission ladder:
+
+```text
+read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox autonomy
+```
+
+### Причина
+
+Такой подход сохраняет:
+
+* маленький blast radius;
+* понятный audit trail;
+* human approval для опасных действий;
+* совместимость с существующими docs/git workflows;
+* routing через LiteLLM вместо прямого backend access.
+
+### Компромисс
+
+На первом этапе не будет rich autonomous framework, task queue, plugin ecosystem и сложной multi-agent координации. Это осознанный обмен скорости внедрения на безопасность и контролируемость.
+
+### Когда пересмотреть
+
+Если появится устойчивый набор повторяемых workflows, понятный diagnostics allowlist, требования к очередям задач, persistent agent state или необходимость интеграции с Telegram/IDE/API beyond simple patch/report workflows.
+
+---
+
 ## 4. Открытые вопросы
 
 ### Q1. Какие routing policy добавить в gateway?
@@ -1652,15 +1697,15 @@ Telegram bot не должен иметь произвольный shell-дос�
 
 ---
 
-### Q4. Какие права будут у агентов?
+### Q4. Какой diagnostics allowlist дать агентам?
 
-Варианты:
+Лестница прав выбрана в ADR-028:
 
-* только читать;
-* читать и предлагать изменения;
-* выполнять команды после подтверждения;
-* выполнять автономно только в sandbox;
-* выполнять ограниченные predefined команды.
+```text
+read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox autonomy
+```
+
+Открытым остаётся точный список Level 2 diagnostics commands, формат отчёта и правила sanitization.
 
 Ключевое ограничение:
 

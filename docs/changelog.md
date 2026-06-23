@@ -62,6 +62,27 @@
 
 ---
 
+## 2026-06-23 — Stage 6 Agents design
+
+### Изменено
+
+* Добавлен `docs/agents.md` как первый design-документ Stage 6.
+* Зафиксирован первый agent подход: custom lightweight orchestration / Codex-driven workflow.
+* Описана permission ladder: read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox autonomy.
+* Добавлен ADR-028 и обновлён README documentation index.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Проверить локально: `git diff --stat` и `git diff -- README.md docs/agents.md docs/decisions.md docs/codex-context.md docs/changelog.md`.
+
+### Результат
+
+* Stage 6 остаётся design-first: новые services, frameworks, MCP servers, queues и agent runtime не добавлены.
+* Следующий рекомендуемый шаг: Stage 6.1 Agents implementation plan.
+
+---
+
 ## 2026-06-23 — Accepted increased model context baseline
 
 ### Изменено

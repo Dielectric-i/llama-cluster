@@ -141,7 +141,7 @@ Stage 4.4 — Local RAG ingestion (done and server-validated)
 Stage 5   — Telegram bot design (done)
 Stage 5.1 — Telegram implementation plan (done; runtime not implemented)
 Stage 5.2 — Telegram runtime code/config (done)
-Stage 6   — Agents
+Stage 6   — Agents design (done; runtime not implemented)
 Stage 7   — Monitoring / Security / Backups
 ```
 
@@ -238,7 +238,7 @@ Approved first agents direction:
 custom lightweight orchestration / Codex-driven workflow
 ```
 
-Do not install CrewAI, OpenClaw, or another full agent framework before `docs/agents.md` exists and Александр approves it.
+Do not install CrewAI, OpenClaw, or another full agent framework before a dedicated implementation stage proves that lightweight orchestration is insufficient and Александр approves the dependency.
 
 Agent permission ladder:
 
@@ -330,7 +330,7 @@ Known future forks:
 * PostgreSQL schema details;
 * backup encryption and restore rehearsal details;
 * Telegram command surface;
-* agent diagnostics allowlist;
+* exact agent diagnostics allowlist for Stage 6.1;
 * when to restrict or close direct backend ports;
 * whether Qdrant is needed later if pgvector becomes insufficient;
 * whether Open WebUI data should be backed up or indexed.

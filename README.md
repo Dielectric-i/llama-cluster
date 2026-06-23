@@ -202,6 +202,7 @@ git commit -m "Describe change"
 | [docs/gateway.md](docs/gateway.md) | дизайн и baseline LiteLLM Gateway |
 | [docs/memory.md](docs/memory.md) | Stage 4 Memory / RAG design, DB foundation и будущий RAG план |
 | [docs/telegram.md](docs/telegram.md) | Stage 5 Telegram bot design: polling, whitelist, routing, safety |
+| [docs/agents.md](docs/agents.md) | Stage 6 Agents design: лестница прав, safety boundaries, будущий implementation plan |
 | [docs/decisions.md](docs/decisions.md) | журнал архитектурных решений и компромиссов |
 | [docs/changelog.md](docs/changelog.md) | фактическая история изменений, проверок и измерений |
 | [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline |

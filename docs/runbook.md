@@ -488,6 +488,25 @@ Warnings не дают non-zero exit code на первом этапе. Для �
 
 ---
 
+## 4.11 Backup/restore plan reference
+
+Stage 7.2 фиксирует backup/restore implementation plan в:
+
+```text
+docs/backups.md
+```
+
+Текущий минимальный scope:
+
+* git-backed docs/config/scripts/source files;
+* `.env` offline отдельно, не в git;
+* `memory-db` dump в `backups/memory-db/` с offline copy;
+* model inventory by filename/path, без backup GGUF на первом этапе.
+
+Manual DB dump command описан в `docs/backups.md`. Не выполнять restore поверх текущей DB без отдельного approval.
+
+---
+
 ## 5. Логи
 
 ### 5.1 Логи 27B

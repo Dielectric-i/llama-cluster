@@ -62,6 +62,26 @@
 
 ---
 
+## 2026-06-23 — Stage 7.2 backup/restore implementation plan
+
+### Изменено
+
+* В `docs/backups.md` добавлен Stage 7.2 implementation plan для минимального backup/restore contract.
+* Добавлен ADR-033.
+* `docs/runbook.md` и `docs/codex-context.md` обновлены ссылкой на backup/restore plan.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Проверить локально: `git diff --stat`, `git diff -- docs/backups.md docs/runbook.md docs/decisions.md docs/codex-context.md docs/changelog.md`, `git diff --check`.
+
+### Результат
+
+* Stage 7.2 остаётся plan-only: backup helper, cron/systemd automation, encryption automation, DB dump и restore dry run не выполнялись.
+* Следующий возможный шаг после approval: Stage 7.2 implementation — создать explicit `memory-db` backup helper.
+
+---
+
 ## 2026-06-23 — Stage 7.1 cluster-health-lite implementation
 
 ### Изменено

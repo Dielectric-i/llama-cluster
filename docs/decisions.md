@@ -96,6 +96,7 @@ ADR-XXX — Название решения
 | ADR-030 | Зафиксировать Stage 7 monitoring/security/backups defaults | принято; design добавлен |
 | ADR-031 | Реализовать `cluster-health-lite.sh` как дешёвый health check | принято и внедрено |
 | ADR-032 | Завершить Stage 6 read-only docs drift helper | принято и внедрено |
+| ADR-033 | Планировать минимальный backup/restore contract для `memory-db` | принято; plan добавлен |
 
 ---
 
@@ -1783,6 +1784,44 @@ Helper не является полноценным agent framework, не име
 ### Когда пересмотреть
 
 Если docs drift helper станет недостаточным, можно проектировать Level 2 diagnostics allowlist, Memory/RAG retrieval for agent context, Telegram-to-agent escalation или маленький local service.
+
+---
+
+## ADR-033 — Планировать минимальный backup/restore contract для `memory-db`
+
+Дата: 2026-06-23
+Статус: принято; plan добавлен
+Связанные документы: `docs/backups.md`, `docs/runbook.md`, `docs/codex-context.md`, `docs/changelog.md`
+
+### Контекст
+
+После внедрения `memory-db` появился stateful PostgreSQL volume. Перед дальнейшими schema/stateful changes нужен минимальный backup/restore contract, но автоматизация backup jobs и restore dry run могут быть рискованными без отдельного stage.
+
+### Решение
+
+Stage 7.2 фиксирует plan-only backup/restore contract:
+
+```text
+git-backed repo + offline .env + memory-db pg_dump
+```
+
+Первый DB dump формат:
+
+```text
+pg_dump -Fc -> backups/memory-db/slowrig-memory-YYYYMMDD-HHMMSS.dump
+```
+
+### Причина
+
+Такой план закрывает базовую операционную неопределённость без чтения secrets, без cron/systemd automation и без изменения текущей DB.
+
+### Компромисс
+
+Stage 7.2 не создаёт backup helper script, не делает dump прямо сейчас, не выполняет restore dry run и не решает encryption/offline retention полностью. Это остаётся следующим implementation stage.
+
+### Когда пересмотреть
+
+Перед schema migrations, production-like Memory usage, backup automation, restore rehearsal или включением Open WebUI data в backup scope.
 
 ---
 

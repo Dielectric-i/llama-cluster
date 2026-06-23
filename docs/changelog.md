@@ -62,6 +62,30 @@
 
 ---
 
+## 2026-06-23 — Stage 7.3 first manual memory-db backup
+
+### Изменено
+
+* Выполнен первый ручной `memory-db` backup через `scripts/backup-memory-db.sh`.
+* `docs/backups.md` и `docs/codex-context.md` обновлены фактом проверки.
+
+### Проверка
+
+* `scripts/backup-memory-db.sh` создал custom-format `pg_dump`.
+* Встроенная проверка `pg_restore --list` прошла успешно.
+* `git check-ignore -v` подтвердил, что dump и metadata игнорируются через `backups/`.
+* Restore не выполнялся.
+
+### Результат
+
+* Созданы ignored-by-git файлы:
+  * `backups/memory-db/slowrig-memory-20260623-080317.dump`, `964K`;
+  * `backups/memory-db/slowrig-memory-20260623-080317.txt`, `365 bytes`.
+* Offline copy остаётся ручной задачей оператора.
+* Cron/systemd automation, encryption automation и restore dry run не выполнялись.
+
+---
+
 ## 2026-06-23 — Stage 7.2 manual memory-db backup helper
 
 ### Изменено

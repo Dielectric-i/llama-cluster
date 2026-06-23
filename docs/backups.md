@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Backups Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 7 design; Stage 7.2 manual backup helper implemented; automation не внедрена
+Статус: Stage 7 design; Stage 7.2 manual backup helper implemented; Stage 7.3 first manual backup completed; automation не внедрена
 
 ## 1. Назначение
 
@@ -198,6 +198,24 @@ git checkout -- scripts/backup-memory-db.sh README.md docs/backups.md docs/chang
 ```
 
 Если был создан плохой dump file, удалить только явно выбранный файл в `backups/memory-db/` после проверки пути.
+
+### First manual backup check
+
+Stage 7.3 first manual backup был выполнен 2026-06-23 через:
+
+```bash
+scripts/backup-memory-db.sh
+```
+
+Результат:
+
+```text
+dump: backups/memory-db/slowrig-memory-20260623-080317.dump, 964K
+metadata: backups/memory-db/slowrig-memory-20260623-080317.txt, 365 bytes
+pg_restore metadata check passed
+```
+
+Файлы находятся под `backups/`, ignored by git. Restore не выполнялся. Offline copy остаётся operator task.
 
 ### Implementation boundary
 

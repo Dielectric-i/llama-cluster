@@ -1,7 +1,7 @@
 # Codex Context — slowrig AI Cluster
 
 Created: 2026-06-21
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 Status: supplemental context for Codex
 
 ## 1. Purpose
@@ -140,7 +140,7 @@ Stage 4.3 — Memory DB foundation (done and server-validated)
 Stage 4.4 — Local RAG ingestion (done and server-validated)
 Stage 5   — Telegram bot design (done)
 Stage 5.1 — Telegram implementation plan (done; runtime not implemented)
-Stage 5.2 — Telegram runtime code/config (added; real Telegram validation pending)
+Stage 5.2 — Telegram runtime code/config (done)
 Stage 6   — Agents
 Stage 7   — Monitoring / Security / Backups
 ```
@@ -226,7 +226,7 @@ Stage 5.1 implementation plan originally chose no separate Telegram framework/li
 
 Stage 5.2 adds `src/telegram-bot` and a `telegram-bot` Compose service under profile `telegram`. Do not start it until real `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS` are added to server `.env`. Telegram UI validation belongs to Stage 5.3.
 
-If the server cannot reach `api.telegram.org:443`, Telegram needs server routing/VPN, a reverse proxy base URL in `TELEGRAM_API_BASE_URL`, or an HTTP(S) proxy in `TELEGRAM_PROXY_URL`. Telegram `tg://proxy?...` MTProto links are not supported by Bot API HTTP polling. If Cloudflare Worker is used, keep it narrow and use short polling in the bot: only Bot API paths, no public generic proxy behavior, no long polling through Workers.
+If the server cannot reach `api.telegram.org:443`, Telegram needs server routing/VPN, a reverse proxy base URL in `TELEGRAM_API_BASE_URL`, or an HTTP(S) proxy in `TELEGRAM_PROXY_URL`. Telegram `tg://proxy?...` MTProto links are not supported by Bot API HTTP polling. If Cloudflare Worker is used, keep it narrow and use short polling in the bot: only Bot API paths, no public generic proxy behavior, no long polling through Workers. Telegram prompts currently disable Qwen/llama.cpp thinking through `chat_template_kwargs.enable_thinking=false`; text `/no_think` was tested and did not work for this runtime path. Increasing `max_tokens` for reasoning+answer can be considered later as a tuning step.
 
 ---
 

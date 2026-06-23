@@ -235,6 +235,13 @@ telegram-bot
 
 Runtime добавлен как source under `src/telegram-bot` и собирается Docker multi-stage build-ом.
 
+Поведение thinking для текущего Qwen/llama.cpp runtime:
+
+* обычные Telegram chat requests передают в LiteLLM `chat_template_kwargs.enable_thinking=false`;
+* текстовый `/no_think` проверен и недостаточен для текущего runtime path: модель воспринимает его как prompt text и возвращает `reasoning_content` при пустом `content`;
+* bot logs показывают `thinking_enabled=false`, `finish_reason`, `content_chars` и `reasoning_chars`, но не печатают текст пользовательского prompt;
+* если позже понадобится deep reasoning в Telegram, нужно увеличить `max_tokens` и определить отдельную команду или режим, а не включать reasoning молча для обычного chat.
+
 ---
 
 ## 9. Security and privacy
@@ -595,7 +602,10 @@ Transport hardening defaults после Stage 5.4:
 * idle delay after empty poll: `1200ms`;
 * обычные Telegram API calls, включая `sendMessage`: `25s`;
 * `sendMessage` retry attempts: `3`;
-* logs показывают method, attempt, elapsed time, update checkpoint, LLM request/response timing, но не печатают message text или secrets.
+* logs показывают method, attempt, elapsed time, update checkpoint, LLM request/response timing, `finish_reason`, `content_chars` и `reasoning_chars`, но не печатают message text или secrets;
+* обычные Telegram prompts отправляются в LiteLLM с `chat_template_kwargs.enable_thinking=false`, чтобы короткие ответы возвращались в `content`, а не уходили целиком в `reasoning_content`.
+
+Будущая опция: увеличить `max_tokens`, если понадобится отдельный Telegram режим с включённым reasoning и финальным ответом. Это отдельный tuning step, не текущий default.
 
 Rollback:
 

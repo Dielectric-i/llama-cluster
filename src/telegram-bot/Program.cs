@@ -245,12 +245,19 @@ sealed class SlowrigTelegramBot
 
         var model = GetUserModel(userId);
         var context = _contexts.GetOrAdd(userId, _ => []);
-        var messages = context.TakeLast(MaxContextMessages).Append(new ChatMessage("user", text)).ToList();
-        var payload = new ChatCompletionRequest(model, messages, 0.2, 768);
+        var modelInput = text.Trim();
+        var messages = context.TakeLast(MaxContextMessages).Append(new ChatMessage("user", modelInput)).ToList();
+        var payload = new ChatCompletionRequest(model, messages, 0.2, 768, new ChatTemplateKwargs(false));
         var stopwatch = Stopwatch.StartNew();
-        Log($"llm request user_id={userId}; model={model}; input_chars={text.Length}; context_messages={messages.Count}");
+        Log($"llm request user_id={userId}; model={model}; input_chars={text.Length}; model_input_chars={modelInput.Length}; thinking_enabled=false; context_messages={messages.Count}");
         var response = await LiteLlmAsync<ChatCompletionResponse>("/chat/completions", payload);
-        var answer = response.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
+        var choice = response.Choices?.FirstOrDefault();
+        var message = choice?.Message;
+        var rawContentChars = message?.Content?.Length ?? 0;
+        var reasoningChars = message?.ReasoningContent?.Length ?? 0;
+        var answer = message?.Content?.Trim();
+
+        Log($"llm response shape user_id={userId}; model={model}; finish_reason={choice?.FinishReason ?? "unknown"}; content_chars={rawContentChars}; reasoning_chars={reasoningChars}");
 
         if (string.IsNullOrWhiteSpace(answer))
         {
@@ -548,10 +555,16 @@ sealed record ChatCompletionRequest(
     string Model,
     List<ChatMessage> Messages,
     double Temperature,
-    [property: JsonPropertyName("max_tokens")] int MaxTokens);
+    [property: JsonPropertyName("max_tokens")] int MaxTokens,
+    [property: JsonPropertyName("chat_template_kwargs")] ChatTemplateKwargs ChatTemplateKwargs);
 
-sealed record ChatMessage(string Role, string Content);
+sealed record ChatTemplateKwargs([property: JsonPropertyName("enable_thinking")] bool EnableThinking);
+
+sealed record ChatMessage(
+    string Role,
+    string? Content,
+    [property: JsonPropertyName("reasoning_content")] string? ReasoningContent = null);
 sealed record ChatCompletionResponse(List<ChatChoice>? Choices);
-sealed record ChatChoice(ChatMessage? Message);
+sealed record ChatChoice(ChatMessage? Message, [property: JsonPropertyName("finish_reason")] string? FinishReason);
 sealed record ModelsResponse(List<ModelInfo>? Data);
 sealed record ModelInfo(string? Id);

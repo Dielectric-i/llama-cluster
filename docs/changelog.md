@@ -1,6 +1,6 @@
 # slowrig AI Cluster — Changelog v0.2
 
-Дата актуализации: 2026-06-22
+Дата актуализации: 2026-06-23
 Статус: журнал фактических изменений, проверок и измерений
 
 ## 1. Назначение
@@ -59,6 +59,29 @@
 * если изменение только документационное, явно указывать, что server/runtime checks не требовались;
 * если изменение затрагивает архитектурное решение, также обновлять `docs/decisions.md`;
 * если изменение затрагивает эксплуатационные команды, также обновлять `docs/runbook.md`.
+
+---
+
+## 2026-06-23 — Stage 5.6 Telegram thinking disable fix
+
+### Изменено
+
+* `telegram-bot` больше не полагается на текстовый `/no_think`: прямой тест показал, что текущая связка `llama.cpp`/LiteLLM воспринимает его как обычный текст и всё равно возвращает `reasoning_content` без `content`.
+* Запросы Telegram к LiteLLM теперь передают `chat_template_kwargs.enable_thinking=false`.
+* Лог `llm request` показывает `thinking_enabled=false`, а `llm response shape` показывает `finish_reason`, `content_chars` и `reasoning_chars` без печати текста пользователя или ответа.
+
+### Проверка
+
+* Прямой запрос к `llama-coder` показал: обычный prompt и prompt с `/no_think` возвращают `content_len=0` и ненулевой `reasoning_len`.
+* Прямой запрос к `llama-coder` с `chat_template_kwargs.enable_thinking=false` вернул `finish stop`, `content_len=2`, `reasoning_len=0`, `content 'OK'`.
+* Запрос через LiteLLM с `chat_template_kwargs.enable_thinking=false` вернул `finish stop`, `content_len=2`, `reasoning_len=0`, `content 'OK'`.
+* `docker compose config --quiet` успешен.
+* `telegram-bot` пересобран и перезапущен через `docker compose up -d --build telegram-bot`.
+
+### Результат
+
+* Корректный механизм отключения thinking для Telegram runtime — `chat_template_kwargs.enable_thinking=false`, а не добавление `/no_think` в prompt.
+* Следующая ручная проверка: отправить короткое Telegram-сообщение и убедиться, что в логах `content_chars > 0`, `reasoning_chars=0`.
 
 ---
 

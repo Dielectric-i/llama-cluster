@@ -191,7 +191,13 @@ host GPU 0 + host GPU 2
 Контекст:
 
 ```text
-ctx-size 40000
+ctx-size 60000
+```
+
+Распределение GPU:
+
+```text
+tensor-split 1.06,1
 ```
 
 Назначение:
@@ -248,7 +254,7 @@ host GPU 1
 Контекст:
 
 ```text
-ctx-size 40000
+ctx-size 128000
 ```
 
 Назначение:
@@ -378,11 +384,12 @@ OPENAI_API_KEYS      -> LITELLM_MASTER_KEY
 | 9B coder      | `Qwen3.5-9B-UD-Q4_K_XL.gguf`  | `llama-coder`     |
 | embeddings    | `embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf` | `memory-embed` |
 
-Обе модели работают с:
+Текущие контексты:
 
-```text
-ctx-size 40000
-```
+| Сервис | Контекст |
+| --- | ---: |
+| `llama-architect` | `ctx-size 60000` |
+| `llama-coder` | `ctx-size 128000` |
 
 Третья LLM-модель в текущем baseline не добавлена.
 
@@ -402,7 +409,8 @@ Stage 1 inference baseline завершён.
 * короткие запросы работают;
 * длинные логи работают;
 * несколько файлов в контексте работают;
-* обе модели работают с `ctx-size 40000`.
+* `llama-architect` работает с `ctx-size 60000` и `tensor-split 1.06,1`;
+* `llama-coder` работает с `ctx-size 128000`.
 
 Stage 2 operational baseline завершён.
 

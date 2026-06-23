@@ -59,8 +59,8 @@ slowrig/architect
 
 | Сервис | Модель | Контекст |
 | --- | --- | ---: |
-| `llama-architect` | `Qwen3.6-27B-UD-Q4_K_XL.gguf` | `ctx-size 40000` |
-| `llama-coder` | `Qwen3.5-9B-UD-Q4_K_XL.gguf` | `ctx-size 40000` |
+| `llama-architect` | `Qwen3.6-27B-UD-Q4_K_XL.gguf` | `ctx-size 60000` |
+| `llama-coder` | `Qwen3.5-9B-UD-Q4_K_XL.gguf` | `ctx-size 128000` |
 | `memory-embed` | `embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf` | `ctx-size 32768` |
 
 ## Основные файлы и директории
@@ -143,7 +143,7 @@ docs/runbook.md
 Не делать без отдельного плана и проверки:
 
 * увеличивать `parallel` у `llama-architect`;
-* увеличивать `ctx-size`;
+* дальше увеличивать `ctx-size` без отдельного плана и проверки;
 * менять GPU mapping;
 * менять model files;
 * включать CPU offload как штатный режим;

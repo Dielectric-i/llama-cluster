@@ -62,6 +62,28 @@
 
 ---
 
+## 2026-06-23 — Accepted increased model context baseline
+
+### Изменено
+
+* Принята текущая `docker-compose.yaml` конфигурация моделей как рабочий baseline:
+  * `llama-architect`: `ctx-size 60000`, `tensor-split 1.06,1`;
+  * `llama-coder`: `ctx-size 128000`.
+* `README.md`, `docs/passport.md` и `docs/decisions.md` обновлены под фактическое состояние.
+* ADR-006 помечен как заменённый, добавлен ADR-027 для разных context sizes по ролям моделей.
+
+### Проверка
+
+* Пользователь подтвердил, что модели стабильно работают с этими параметрами `ctx-size` и `tensor-split`.
+* Codex проверил `docker compose config --quiet` после принятия текущей `docker-compose.yaml` конфигурации.
+
+### Результат
+
+* Значения `ctx-size 40000` остаются только в исторических stage/changelog записях.
+* Дальнейшее увеличение context size, изменение `tensor-split`, `parallel`, GPU mapping или model files требует отдельного test plan.
+
+---
+
 ## 2026-06-23 — Stage 5.6 Telegram thinking disable fix
 
 ### Изменено

@@ -45,7 +45,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
 | Stage 5 | Telegram bot                    | runtime внедрён; Cloudflare short polling работает; thinking disabled через request params |
 | Stage 6 | Agents                          | design и Stage 6.1 docs drift workflow plan добавлены |
-| Stage 7 | Monitoring / Security / Backups | запланировано          |
+| Stage 7 | Monitoring / Security / Backups | design docs добавлены; runtime не внедрён |
 
 Ключевое текущее состояние:
 
@@ -1001,10 +1001,10 @@ docs/agents.md
 Статус:
 
 ```text
-planned
+design documented; runtime hardening/automation not implemented
 ```
 
-Возможные design docs:
+Design docs:
 
 ```text
 docs/monitoring.md

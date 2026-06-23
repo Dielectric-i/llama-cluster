@@ -93,6 +93,7 @@ ADR-XXX — Название решения
 | ADR-027 | Использовать разные context sizes для `architect` и `coder` | принято и внедрено |
 | ADR-028 | Проектировать agent layer как custom lightweight orchestration | принято; design добавлен |
 | ADR-029 | Начать agents с docs drift / repo patch assistant workflow | принято; plan добавлен |
+| ADR-030 | Зафиксировать Stage 7 monitoring/security/backups defaults | принято; design добавлен |
 
 ---
 
@@ -1678,6 +1679,40 @@ Level 1 patches
 ### Когда пересмотреть
 
 После нескольких успешных docs/config drift audits можно перейти к Level 2 diagnostics allowlist или Telegram-to-agent escalation, если будет понятен список безопасных команд и формат отчётов.
+
+---
+
+## ADR-030 — Зафиксировать Stage 7 monitoring/security/backups defaults
+
+Дата: 2026-06-23
+Статус: принято; design добавлен
+Связанные документы: `docs/monitoring.md`, `docs/security.md`, `docs/backups.md`, `docs/codex-context.md`, `docs/changelog.md`
+
+### Контекст
+
+После Memory, Telegram и Agents design проекту нужен safety baseline для наблюдаемости, доступа и восстановления. При этом тяжёлые monitoring stacks, public exposure и backup automation увеличивают operational complexity и требуют отдельной проверки.
+
+### Решение
+
+Stage 7 defaults:
+
+```text
+monitoring: cluster-health-lite.sh как будущий дешёвый health check; cluster-status.sh остаётся ручной глубокой диагностикой
+security: LAN/VPN first; без public WebUI/Gateway; direct ports 8080/8081 пока оставить для diagnostics
+backups: git docs/config/scripts + offline .env + PostgreSQL dumps; models не backup-ить на первом этапе
+```
+
+### Причина
+
+Такой baseline улучшает operational safety без новых сервисов, firewall changes, cron jobs, Prometheus/Grafana stack или рискованных runtime mutations.
+
+### Компромисс
+
+На этом этапе нет автоматического мониторинга, alerting, backup jobs, encrypted restore rehearsal или security hardening. Они должны идти отдельными implementation stages после design review.
+
+### Когда пересмотреть
+
+Перед public access, firewall/reverse proxy/VPN changes, Open WebUI auth changes, backup automation, Prometheus/Grafana/Loki rollout или закрытием direct backend ports.
 
 ---
 

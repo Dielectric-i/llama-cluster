@@ -205,6 +205,9 @@ git commit -m "Describe change"
 | [docs/memory.md](docs/memory.md) | Stage 4 Memory / RAG design, DB foundation и будущий RAG план |
 | [docs/telegram.md](docs/telegram.md) | Stage 5 Telegram bot design: polling, whitelist, routing, safety |
 | [docs/agents.md](docs/agents.md) | Stage 6 Agents design: лестница прав, safety boundaries, будущий implementation plan |
+| [docs/monitoring.md](docs/monitoring.md) | Stage 7 Monitoring design: lightweight health checks без тяжёлого monitoring stack |
+| [docs/security.md](docs/security.md) | Stage 7 Security design: LAN/VPN-first, secrets, direct port hardening plan |
+| [docs/backups.md](docs/backups.md) | Stage 7 Backups design: минимальный backup scope и restore order |
 | [docs/decisions.md](docs/decisions.md) | журнал архитектурных решений и компромиссов |
 | [docs/changelog.md](docs/changelog.md) | фактическая история изменений, проверок и измерений |
 | [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline |

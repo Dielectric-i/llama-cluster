@@ -62,6 +62,30 @@
 
 ---
 
+## 2026-06-23 — Stage 7 Monitoring/Security/Backups design
+
+### Изменено
+
+* Добавлены design-документы Stage 7:
+  * `docs/monitoring.md`;
+  * `docs/security.md`;
+  * `docs/backups.md`.
+* README documentation index обновлён.
+* Добавлен ADR-030 с defaults: lightweight health check direction, LAN/VPN-first security posture и минимальный backup scope.
+* `docs/architecture.md` и `docs/codex-context.md` обновлены под Stage 7 design status.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Проверить локально: `git diff --stat`, `git diff -- README.md docs/`, `git diff --check`.
+
+### Результат
+
+* Stage 7 остаётся design-only: новые services, cron jobs, firewall rules, backup automation и monitoring stack не добавлены.
+* Следующий рекомендуемый шаг: Stage 7.1 — `cluster-health-lite.sh` implementation plan.
+
+---
+
 ## 2026-06-23 — Stage 6.2 First docs/config drift audit
 
 ### Изменено

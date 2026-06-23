@@ -145,7 +145,7 @@ Stage 5.5 — Telegram Cloudflare short polling transport (done)
 Stage 5.6 — Telegram thinking disabled through request params (done)
 Stage 6   — Agents design (done; runtime not implemented)
 Stage 6.1 — Docs drift / repo patch assistant plan (done; runtime not implemented)
-Stage 7   — Monitoring / Security / Backups
+Stage 7   — Monitoring / Security / Backups design (done; runtime not implemented)
 ```
 
 No new runtime dependencies should be installed before the relevant design/implementation plan is approved.
@@ -303,7 +303,7 @@ Backup scope for first stateful stages:
 * model files are documented by filename/source, but not backed up in the first backup scope;
 * Open WebUI data is not included until a dedicated backup decision includes it.
 
-Future artifacts:
+Stage 7 artifacts:
 
 ```text
 docs/monitoring.md

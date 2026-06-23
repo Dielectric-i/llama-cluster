@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Backups Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 7 design; Stage 7.2 manual backup helper implemented; Stage 7.3 first manual backup completed; automation не внедрена
+Статус: Stage 7 design; manual backup helper implemented; first manual backup completed; restore dry run deferred; automation не внедрена
 
 ## 1. Назначение
 
@@ -216,6 +216,22 @@ pg_restore metadata check passed
 ```
 
 Файлы находятся под `backups/`, ignored by git. Restore не выполнялся. Offline copy остаётся operator task.
+
+### Restore dry run status
+
+Решение Stage 7.5: restore dry run намеренно отложен.
+
+Текущий уровень проверки backup:
+
+* dump file был создан;
+* metadata sidecar был создан;
+* pg_restore --list прошёл успешно;
+* dump и metadata игнорируются git;
+* restore в отдельную DB/container не выполнялся.
+
+Причина отсрочки: текущий backup достаточно полезен как первый safety artifact, а restore rehearsal требует отдельного careful stage, чтобы не затронуть production memory-db.
+
+До отдельного approval не выполнять restore command поверх текущей memory-db.
 
 ### Implementation boundary
 

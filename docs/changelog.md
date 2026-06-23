@@ -62,6 +62,27 @@
 
 ---
 
+## 2026-06-23 — Stage 7.5 restore dry run deferred
+
+### Изменено
+
+* Зафиксировано решение отложить restore dry run для `memory-db` backup.
+* Добавлен ADR-035.
+* `docs/backups.md`, `docs/stage7-summary.md` и `docs/codex-context.md` обновлены текущим статусом restore.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Restore command не выполнялась.
+* `git diff --check`.
+
+### Результат
+
+* Первый backup остаётся полезным safety artifact, проверенным через `pg_restore --list`.
+* Полный restore dry run остаётся отдельным future stage с отдельным approval.
+
+---
+
 ## 2026-06-23 — Stage 7 summary
 
 ### Изменено

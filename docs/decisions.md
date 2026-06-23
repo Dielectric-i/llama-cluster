@@ -98,6 +98,7 @@ ADR-XXX — Название решения
 | ADR-032 | Завершить Stage 6 read-only docs drift helper | принято и внедрено |
 | ADR-033 | Планировать минимальный backup/restore contract для `memory-db` | принято; plan добавлен |
 | ADR-034 | Реализовать ручной backup helper для `memory-db` | принято и внедрено |
+| ADR-035 | Отложить restore dry run для `memory-db` backup | принято |
 
 ---
 
@@ -1860,6 +1861,36 @@ Helper:
 ### Когда пересмотреть
 
 Перед включением регулярных backup jobs, encryption/retention policy, restore dry run или backup scope для Open WebUI data.
+
+---
+
+## ADR-035 — Отложить restore dry run для `memory-db` backup
+
+Дата: 2026-06-23
+Статус: принято
+Связанные документы: `docs/backups.md`, `docs/stage7-summary.md`, `docs/changelog.md`, `docs/codex-context.md`
+
+### Контекст
+
+После первого manual `memory-db` backup dump был создан и проверен через `pg_restore --list`. Следующий возможный шаг — restore dry run — имеет несколько вариантов: metadata-only check, temporary DB в текущем контейнере, отдельный temporary PostgreSQL/pgvector контейнер или отсрочка.
+
+### Решение
+
+Выбран вариант отсрочки restore dry run.
+
+Текущий backup считается полезным safety artifact, но не считается полностью проверенным восстановлением.
+
+### Причина
+
+Restore rehearsal затрагивает stateful path и требует отдельного аккуратного stage. Отсрочка сохраняет текущий стабильный baseline и не создаёт риск случайного воздействия на production `memory-db`.
+
+### Компромисс
+
+Пока нет доказательства полного восстановления dump в отдельную DB/container. Перед schema migrations, retention automation или серьёзным использованием Memory state restore dry run нужно вернуться отдельным stage.
+
+### Когда пересмотреть
+
+Перед schema migration, регулярной backup automation, encryption/retention policy, переносом сервера или любыми destructive/stateful изменениями в `memory-db`.
 
 ---
 

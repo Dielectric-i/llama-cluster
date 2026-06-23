@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Stage 7 Summary
 
 Дата завершения: 2026-06-23
-Статус: завершённый Stage 7 baseline для monitoring, security и backups
+Статус: завершённый Stage 7 baseline для monitoring, security и backups; restore dry run отложен
 
 ## 1. Область этапа
 
@@ -116,7 +116,7 @@ backups/memory-db/slowrig-memory-20260623-080317.txt   365 bytes
 
 Встроенная проверка `pg_restore --list` прошла успешно.
 
-Restore не выполнялся.
+Restore не выполнялся. Решение Stage 7.5: restore dry run отложен, потому что rehearsal требует отдельного изолированного сценария и approval.
 
 ---
 
@@ -170,4 +170,4 @@ Backup-файлы в `backups/memory-db/` не tracked by git. Удалять и
 Stage 7.5 — restore dry run design
 ```
 
-До выбора restore strategy не выполнять restore command.
+Решение Stage 7.5: restore dry run отложен. До отдельного approval не выполнять restore command.

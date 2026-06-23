@@ -146,6 +146,7 @@ Stage 5.6 — Telegram thinking disabled through request params (done)
 Stage 6   — Agents design (done; runtime not implemented)
 Stage 6.1 — Docs drift / repo patch assistant plan (done; runtime not implemented)
 Stage 7   — Monitoring / Security / Backups design (done; runtime not implemented)
+Stage 7.1 — cluster-health-lite.sh implementation plan (done; script not implemented)
 ```
 
 No new runtime dependencies should be installed before the relevant design/implementation plan is approved.
@@ -281,7 +282,7 @@ docs/agents.md
 Monitoring direction:
 
 ```text
-future cluster-health-lite.sh -> cheap frequent health check
+cluster-health-lite.sh -> planned cheap frequent health check; plan added, script not implemented
 scripts/cluster-status.sh    -> deep manual diagnostic
 ```
 

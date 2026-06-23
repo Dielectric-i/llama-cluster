@@ -94,6 +94,7 @@ ADR-XXX — Название решения
 | ADR-028 | Проектировать agent layer как custom lightweight orchestration | принято; design добавлен |
 | ADR-029 | Начать agents с docs drift / repo patch assistant workflow | принято; plan добавлен |
 | ADR-030 | Зафиксировать Stage 7 monitoring/security/backups defaults | принято; design добавлен |
+| ADR-031 | Планировать `cluster-health-lite.sh` как дешёвый health check | принято; plan добавлен |
 
 ---
 
@@ -1713,6 +1714,40 @@ backups: git docs/config/scripts + offline .env + PostgreSQL dumps; models не 
 ### Когда пересмотреть
 
 Перед public access, firewall/reverse proxy/VPN changes, Open WebUI auth changes, backup automation, Prometheus/Grafana/Loki rollout или закрытием direct backend ports.
+
+---
+
+## ADR-031 — Планировать `cluster-health-lite.sh` как дешёвый health check
+
+Дата: 2026-06-23
+Статус: принято; plan добавлен
+Связанные документы: `docs/monitoring.md`, `docs/codex-context.md`, `docs/changelog.md`
+
+### Контекст
+
+`cluster-status.sh` полезен для ручной диагностики, но он может выполнять реальные LLM checks и поэтому не подходит как частый автоматический healthcheck.
+
+### Решение
+
+Stage 7.1 планирует будущий:
+
+```text
+scripts/cluster-health-lite.sh
+```
+
+Он должен проверять только дешёвые readiness/status признаки и не выполнять LLM generation.
+
+### Причина
+
+Такой health check можно будет запускать чаще и безопаснее, не расходуя GPU/LLM resources и не создавая ложных задержек из-за генерации.
+
+### Компромисс
+
+Lite-check не доказывает качество генерации моделей. Глубокая проверка остаётся задачей `scripts/cluster-status.sh` и ручной диагностики.
+
+### Когда пересмотреть
+
+Перед добавлением cron/systemd timer, alerting, Prometheus/Grafana или любых automated remediation actions.
 
 ---
 

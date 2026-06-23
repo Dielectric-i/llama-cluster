@@ -62,6 +62,27 @@
 
 ---
 
+## 2026-06-23 — Stage 7.1 cluster-health-lite implementation plan
+
+### Изменено
+
+* В `docs/monitoring.md` добавлен Stage 7.1 implementation plan для будущего `scripts/cluster-health-lite.sh`.
+* Зафиксированы checks v1, output format, exit codes, secrets handling и rollback boundary.
+* Добавлен ADR-031.
+* `docs/codex-context.md` обновлён: plan добавлен, script не реализован.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Проверить локально: `git diff --stat`, `git diff -- docs/monitoring.md docs/decisions.md docs/codex-context.md docs/changelog.md`, `git diff --check`.
+
+### Результат
+
+* Stage 7.1 остаётся plan-only: `scripts/cluster-health-lite.sh`, cron/systemd timer и automated remediation не добавлены.
+* Следующий возможный шаг после approval: Stage 7.1 implementation — создать `scripts/cluster-health-lite.sh`.
+
+---
+
 ## 2026-06-23 — Stage 7 Monitoring/Security/Backups design
 
 ### Изменено

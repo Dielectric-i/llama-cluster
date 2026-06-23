@@ -62,6 +62,25 @@
 
 ---
 
+## 2026-06-23 — Stage 7.4 post-backup docs drift audit
+
+### Изменено
+
+* Выполнен read-only `scripts/docs-drift-agent.sh` после Stage 7.2/7.3.
+* `docs/codex-context.md` обновлён отметкой о завершённом audit.
+
+### Проверка
+
+* `scripts/docs-drift-agent.sh` вернул `summary: ok=44 warn=0 fail=0`.
+* Runtime/server changes не выполнялись.
+
+### Результат
+
+* Документационный drift после backup stages не найден.
+* Дополнительные исправления документации не потребовались.
+
+---
+
 ## 2026-06-23 — Stage 7.3 first manual memory-db backup
 
 ### Изменено

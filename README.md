@@ -4,13 +4,21 @@
 
 ## Быстрый статус
 
-Главная команда проверки:
+Лёгкая частая проверка:
+
+```bash
+/opt/llama-cluster/scripts/cluster-health-lite.sh
+```
+
+Глубокая ручная диагностика:
 
 ```bash
 /opt/llama-cluster/scripts/cluster-status.sh
 ```
 
-Она показывает:
+`cluster-health-lite.sh` не запускает LLM generation и подходит для частой дешёвой проверки.
+
+`cluster-status.sh` показывает:
 
 * состояние Docker-контейнеров;
 * распределение GPU;
@@ -74,6 +82,7 @@ slowrig/architect
 /opt/llama-cluster/config/litellm.config.yaml
 /opt/llama-cluster/.env.example
 /opt/llama-cluster/scripts/cluster-status.sh
+/opt/llama-cluster/scripts/cluster-health-lite.sh
 /opt/llama-cluster/scripts/docs-drift-agent.sh
 /opt/llama-cluster/scripts/memory-ingest-docs.py
 /opt/llama-cluster/config/memory/init/001-memory-foundation.sql
@@ -106,6 +115,7 @@ slowrig/architect
 
 ```bash
 /opt/llama-cluster/scripts/cluster-status.sh
+/opt/llama-cluster/scripts/cluster-health-lite.sh
 ```
 
 Проверить контейнеры:

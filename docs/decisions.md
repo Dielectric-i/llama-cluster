@@ -94,7 +94,7 @@ ADR-XXX — Название решения
 | ADR-028 | Проектировать agent layer как custom lightweight orchestration | принято; design добавлен |
 | ADR-029 | Начать agents с docs drift / repo patch assistant workflow | принято; plan добавлен |
 | ADR-030 | Зафиксировать Stage 7 monitoring/security/backups defaults | принято; design добавлен |
-| ADR-031 | Планировать `cluster-health-lite.sh` как дешёвый health check | принято; plan добавлен |
+| ADR-031 | Реализовать `cluster-health-lite.sh` как дешёвый health check | принято и внедрено |
 | ADR-032 | Завершить Stage 6 read-only docs drift helper | принято и внедрено |
 
 ---
@@ -1648,7 +1648,7 @@ read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox
 ## ADR-029 — Начать agents с docs drift / repo patch assistant workflow
 
 Дата: 2026-06-23
-Статус: принято; plan добавлен
+Статус: принято и внедрено
 Связанные документы: `docs/agents.md`, `docs/codex-context.md`, `docs/changelog.md`
 
 ### Контекст
@@ -1718,11 +1718,11 @@ backups: git docs/config/scripts + offline .env + PostgreSQL dumps; models не 
 
 ---
 
-## ADR-031 — Планировать `cluster-health-lite.sh` как дешёвый health check
+## ADR-031 — Реализовать `cluster-health-lite.sh` как дешёвый health check
 
 Дата: 2026-06-23
-Статус: принято; plan добавлен
-Связанные документы: `docs/monitoring.md`, `docs/codex-context.md`, `docs/changelog.md`
+Статус: принято и внедрено
+Связанные документы: `scripts/cluster-health-lite.sh`, `docs/monitoring.md`, `docs/codex-context.md`, `docs/changelog.md`
 
 ### Контекст
 
@@ -1730,21 +1730,21 @@ backups: git docs/config/scripts + offline .env + PostgreSQL dumps; models не 
 
 ### Решение
 
-Stage 7.1 планирует будущий:
+Stage 7.1 реализует:
 
 ```text
 scripts/cluster-health-lite.sh
 ```
 
-Он должен проверять только дешёвые readiness/status признаки и не выполнять LLM generation.
+Он проверяет только дешёвые readiness/status признаки и не выполняет LLM generation.
 
 ### Причина
 
-Такой health check можно будет запускать чаще и безопаснее, не расходуя GPU/LLM resources и не создавая ложных задержек из-за генерации.
+Такой health check можно запускать чаще и безопаснее, не расходуя GPU/LLM resources и не создавая ложных задержек из-за генерации.
 
 ### Компромисс
 
-Lite-check не доказывает качество генерации моделей. Глубокая проверка остаётся задачей `scripts/cluster-status.sh` и ручной диагностики.
+Lite-check не доказывает качество генерации моделей. Глубокая проверка остаётся задачей `scripts/cluster-status.sh` и ручной диагностики. Timer/cron/systemd и automated remediation не добавлены.
 
 ### Когда пересмотреть
 

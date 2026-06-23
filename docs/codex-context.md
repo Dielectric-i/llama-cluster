@@ -147,7 +147,7 @@ Stage 6   — Agents baseline (done; docs drift helper implemented)
 Stage 6.1 — Docs drift / repo patch assistant plan (done)
 Stage 6.3 — docs-drift-agent.sh helper (done)
 Stage 7   — Monitoring / Security / Backups design (done; runtime not implemented)
-Stage 7.1 — cluster-health-lite.sh implementation plan (done; script not implemented)
+Stage 7.1 — cluster-health-lite.sh implemented (done; no timer/automation)
 ```
 
 No new runtime dependencies should be installed before the relevant design/implementation plan is approved.
@@ -283,7 +283,7 @@ docs/agents.md
 Monitoring direction:
 
 ```text
-cluster-health-lite.sh -> planned cheap frequent health check; plan added, script not implemented
+cluster-health-lite.sh -> implemented cheap frequent read-only health check; no timer/automation
 scripts/cluster-status.sh    -> deep manual diagnostic
 ```
 

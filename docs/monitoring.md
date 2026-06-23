@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Monitoring Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 7 design; Stage 7.1 implementation plan added; runtime не внедрён
+Статус: Stage 7 design; Stage 7.1 `cluster-health-lite.sh` implemented
 
 ## 1. Назначение
 
@@ -42,7 +42,7 @@ cluster-status.sh      -> глубокая ручная диагностика
 
 `cluster-status.sh` остаётся ручной диагностикой, потому что он может выполнять реальные LLM-запросы и читать больше состояния.
 
-Будущий `cluster-health-lite.sh` должен проверять только дешёвые признаки:
+`cluster-health-lite.sh` проверяет только дешёвые признаки:
 
 * Docker container status;
 * HTTP readiness endpoints без генерации;
@@ -74,12 +74,12 @@ Monitoring script не должен:
 Статус:
 
 ```text
-plan only; script not implemented
+implemented
 ```
 
 ### Цель
 
-Будущий `scripts/cluster-health-lite.sh` должен быстро отвечать на вопрос:
+`scripts/cluster-health-lite.sh` быстро отвечает на вопрос:
 
 ```text
 можно ли считать кластер живым без запуска дорогих LLM generation checks?
@@ -87,7 +87,7 @@ plan only; script not implemented
 
 ### Checks v1
 
-Планируемые дешёвые checks:
+Дешёвые checks v1:
 
 | Check | Что проверяет | Failure | Warning |
 | --- | --- | --- | --- |
@@ -169,4 +169,30 @@ git checkout -- scripts/cluster-health-lite.sh docs/monitoring.md docs/changelog
 
 ### Implementation boundary
 
-Stage 7.1 не создаёт script. Реализация `scripts/cluster-health-lite.sh` требует отдельного approval.
+Stage 7.1 реализовал `scripts/cluster-health-lite.sh`, но не добавил cron/systemd timer, alerting или automated remediation. Любая автоматизация запуска требует отдельного approval.
+
+
+---
+
+## 6. Проверенный результат Stage 7.1
+
+Проверено на сервере:
+
+```bash
+bash -n scripts/cluster-health-lite.sh
+scripts/cluster-health-lite.sh
+```
+
+Результат:
+
+```text
+summary: ok=21 warn=2 fail=0
+exit_code=0
+```
+
+Warnings на момент проверки:
+
+* working tree had uncommitted Stage 7.1 changes;
+* tiny swap usage was detected.
+
+После commit первый warning должен исчезнуть. Swap warning не является failure.

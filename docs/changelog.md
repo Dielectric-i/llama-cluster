@@ -62,6 +62,27 @@
 
 ---
 
+## 2026-06-23 — Stage 7.1 cluster-health-lite implementation
+
+### Изменено
+
+* Добавлен `scripts/cluster-health-lite.sh` как read-only лёгкий health helper.
+* README, runbook, monitoring docs, codex context и ADR-031 обновлены под реализованный script.
+* Timer/cron/systemd, alerting и automated remediation не добавлены.
+
+### Проверка
+
+* `bash -n scripts/cluster-health-lite.sh`.
+* `scripts/cluster-health-lite.sh` вернул `summary: ok=21 warn=2 fail=0` и exit code `0`.
+* `git diff --check`.
+
+### Результат
+
+* Health-lite проверяет Docker/container status, disk/memory/GPU, локальные model endpoints, Open WebUI, Memory embed и LiteLLM `/v1/models` без LLM generation.
+* Secrets не печатаются; `.env` загружается только для authenticated LiteLLM models check.
+
+---
+
 ## 2026-06-23 — Stage 6 completed with docs drift helper
 
 ### Изменено

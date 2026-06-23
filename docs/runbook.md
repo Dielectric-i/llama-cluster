@@ -455,6 +455,39 @@ TELEGRAM_PROXY_URL
 
 ---
 
+## 4.10 Быстрая лёгкая проверка кластера
+
+`cluster-health-lite.sh` выполняет дешёвые read-only checks и не запускает LLM generation:
+
+```bash
+cd /opt/llama-cluster
+scripts/cluster-health-lite.sh
+```
+
+Ожидаемый успешный результат:
+
+```text
+summary: ok=<n> warn=<n> fail=0
+```
+
+Exit codes:
+
+```text
+0  no FAIL
+1  one or more FAIL
+2  script usage/config error
+```
+
+Warnings не дают non-zero exit code на первом этапе. Для глубокой ручной диагностики использовать:
+
+```bash
+/opt/llama-cluster/scripts/cluster-status.sh
+```
+
+`cluster-health-lite.sh` не делает restart/down/up, не очищает cache/logs, не пишет в Memory/RAG и не печатает secrets.
+
+---
+
 ## 5. Логи
 
 ### 5.1 Логи 27B

@@ -62,6 +62,25 @@
 
 ---
 
+## 2026-06-23 — Stage 7 summary
+
+### Изменено
+
+* Добавлен `docs/stage7-summary.md` как итог Stage 7 monitoring/security/backups baseline.
+* README documentation index и `docs/codex-context.md` обновлены ссылкой на summary.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* `git diff --check`.
+
+### Результат
+
+* Stage 7 baseline зафиксирован отдельно от changelog.
+* Следующая развилка перед runtime-действиями: restore dry run strategy.
+
+---
+
 ## 2026-06-23 — Stage 7.4 post-backup docs drift audit
 
 ### Изменено

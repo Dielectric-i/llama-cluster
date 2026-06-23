@@ -225,5 +225,6 @@ git commit -m "Describe change"
 | [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline |
 | [docs/stage3-summary.md](docs/stage3-summary.md) | итог Stage 3 gateway baseline |
 | [docs/stage6-summary.md](docs/stage6-summary.md) | итог Stage 6 agents baseline |
+| [docs/stage7-summary.md](docs/stage7-summary.md) | итог Stage 7 monitoring/security/backups baseline |
 
 Если появляется новый значимый subsystem, для него нужно создать отдельный документ в `docs/` и добавить его в эту таблицу.

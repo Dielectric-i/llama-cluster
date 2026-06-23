@@ -1,6 +1,6 @@
 # slowrig AI Cluster — Architecture v0.2
 
-Дата актуализации: 2026-06-22
+Дата актуализации: 2026-06-23
 Статус: текущая и целевая архитектура проекта
 
 ## 1. Назначение документа
@@ -43,8 +43,8 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
-| Stage 5 | Telegram bot                    | runtime code/config добавлены; Telegram UI validation pending |
-| Stage 6 | Agent framework                 | запланировано          |
+| Stage 5 | Telegram bot                    | runtime внедрён; Cloudflare short polling работает; thinking disabled через request params |
+| Stage 6 | Agents                          | design и Stage 6.1 docs drift workflow plan добавлены |
 | Stage 7 | Monitoring / Security / Backups | запланировано          |
 
 Ключевое текущее состояние:
@@ -54,8 +54,8 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * Open WebUI подключён через LiteLLM;
 * прямые backend-порты сохранены для диагностики;
 * memory/RAG foundation внедрён, local docs ingestion добавлен;
-* Telegram bot runtime code/config добавлены, запуск ждёт real secrets и ручную Telegram UI проверку;
-* agent framework ещё не внедрён;
+* Telegram bot runtime внедрён как C#/.NET service в Compose profile `telegram`; Cloudflare short polling и LiteLLM path проверены;
+* agent runtime ещё не внедрён; Stage 6 design и Stage 6.1 docs drift workflow plan добавлены;
 * полноценный monitoring/security/backups stage ещё не внедрён.
 
 ---
@@ -388,7 +388,7 @@ dangerous actions require explicit human approval
 Статус:
 
 ```text
-runtime code/config added; Telegram UI validation pending
+design documented; Stage 6.1 docs drift workflow plan added; runtime not implemented
 ```
 
 Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
@@ -409,23 +409,32 @@ LiteLLM Gateway
   +--> Task State
 ```
 
-Возможные варианты:
+Принятый первый вариант:
 
-* CrewAI;
-* OpenClaw;
-* custom lightweight orchestrator;
+```text
+custom lightweight orchestration / Codex-driven workflow
+```
+
+Первый concrete workflow:
+
+```text
+docs drift / repo patch assistant
+```
+
+Будущие возможные роли:
+
 * repo-auditor;
 * documentation worker;
 * code-review worker;
 * ops diagnostic worker.
 
-До внедрения нужен отдельный документ:
+Основной документ:
 
 ```text
 docs/agents.md
 ```
 
-Agent design должен определить:
+Agent design определяет:
 
 * какие агенты нужны;
 * какие модели они используют;
@@ -443,7 +452,7 @@ Agent design должен определить:
 Статус:
 
 ```text
-design documented; runtime not implemented
+runtime implemented; polling + whitelist through LiteLLM; no shell access
 ```
 
 Telegram bot должен быть отдельным интерфейсом, а не заменой Open WebUI и не agent framework.
@@ -478,13 +487,13 @@ Telegram -> slowrig/coder
 
 Telegram bot не должен иметь произвольный shell-доступ.
 
-До внедрения нужен отдельный документ:
+Основной документ:
 
 ```text
 docs/telegram.md
 ```
 
-Stage 5 design принимает первый вариант:
+Stage 5 реализует первый вариант:
 
 ```text
 Telegram Bot API polling + whitelist -> LiteLLM Gateway -> slowrig/coder
@@ -720,7 +729,7 @@ User/admin -> 8081 -> llama-coder
 Статус:
 
 ```text
-design documented; runtime not implemented
+implemented as polling bot service under Compose profile telegram
 ```
 
 Схема:
@@ -735,7 +744,7 @@ Default:
 Telegram -> slowrig/coder
 ```
 
-Требуется отдельный design stage.
+Runtime использует C#/.NET service `telegram-bot`, whitelist, LiteLLM Gateway и optional Cloudflare Worker base URL для Telegram Bot API egress.
 
 ---
 
@@ -932,7 +941,7 @@ docs/memory.md
 Статус:
 
 ```text
-planned
+runtime implemented; transport and LiteLLM path validated
 ```
 
 Первый шаг:
@@ -958,16 +967,16 @@ polling, whitelist, LiteLLM Gateway, default slowrig/coder, explicit slowrig/arc
 
 Stage 5.1 implementation plan выбирал минимальный runtime без отдельной Telegram framework/library. Stage 5.2 по запросу пользователя переделан на C#/.NET runtime с `HttpClient`.
 
-Stage 5.2 добавляет `src/telegram-bot` и Compose service `telegram-bot` в profile `telegram`. Обычный `docker compose up -d` не стартует bot.
+Stage 5.2 добавил `src/telegram-bot` и Compose service `telegram-bot` в profile `telegram`. Обычный `docker compose up -d` не стартует bot; запуск выполняется через profile `telegram`. Stage 5.5 перевёл Cloudflare transport на short polling, Stage 5.6 отключил Qwen/llama.cpp thinking через `chat_template_kwargs.enable_thinking=false`.
 
 ---
 
-## Stage 6 — Agent framework
+## Stage 6 — Agents
 
 Статус:
 
 ```text
-planned
+design documented; Stage 6.1 docs drift workflow plan added; runtime not implemented
 ```
 
 Первый шаг:
@@ -1092,14 +1101,18 @@ routing по сложности лучше отложить до agent/memory de
 
 ## 11.4 Agents
 
+Принято:
+
+* первый подход — custom lightweight orchestration / Codex-driven workflow;
+* первый workflow — docs drift / repo patch assistant;
+* Stage 6.1 остаётся на Level 0/1: read/report и patches.
+
 Открытые вопросы:
 
-* CrewAI, OpenClaw или custom orchestrator;
-* какие agent roles нужны;
-* где хранить task state;
-* какие tools разрешить;
-* как оформлять approvals;
-* где хранить результаты работы.
+* точный Level 2 diagnostics allowlist;
+* нужен ли task queue или достаточно git branches + markdown reports;
+* где хранить persistent agent state, если он понадобится;
+* когда подключать Telegram-to-agent escalation.
 
 ---
 

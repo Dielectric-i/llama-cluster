@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Telegram Bot Design v0.1
 
-Дата: 2026-06-22
-Статус: Stage 5.2 runtime config/code добавлены; запуск требует real `.env` secrets и ручной Telegram check
+Дата: 2026-06-23
+Статус: runtime внедрён; Cloudflare short polling и LiteLLM path проверены; no shell/admin access
 
 ## 1. Назначение
 
@@ -84,7 +84,7 @@ deny by default
 
 Нужен whitelist Telegram user IDs.
 
-Планируемые env names для будущего implementation stage:
+Env names текущего runtime:
 
 ```text
 TELEGRAM_BOT_TOKEN
@@ -97,7 +97,7 @@ LITELLM_BASE_URL
 LITELLM_MASTER_KEY
 ```
 
-Реальные значения должны жить только в `/opt/llama-cluster/.env` или в будущем dedicated secrets механизме. В git допустимы только placeholders в `.env.example`, когда runtime stage будет одобрен.
+Реальные значения должны жить только в `/opt/llama-cluster/.env` или в будущем dedicated secrets механизме. В git допустимы только placeholders в `.env.example`, для документирования runtime placeholders.
 
 Минимальные правила:
 
@@ -621,14 +621,13 @@ docker compose --profile telegram stop telegram-bot
 Рекомендуемый следующий этап:
 
 ```text
-Stage 5.3 — Telegram runtime validation
+Telegram hardening / command policy tuning, только после отдельного approval
 ```
 
-Цель Stage 5.3:
+Возможные будущие работы:
 
-* добавить real Telegram secrets в server `.env`;
-* собрать `telegram-bot` image;
-* запустить `telegram-bot` profile;
-* выполнить ручную проверку Telegram UI;
-* зафиксировать результаты в `docs/changelog.md`;
-* не добавлять admin commands, RAG writes или history persistence.
+* отдельный deep reasoning режим с большим `max_tokens`;
+* уточнение command policy;
+* Telegram-to-agent escalation после agent safety stage;
+* rate limits и abuse handling;
+* не добавлять admin commands, RAG writes или history persistence без отдельного design/approval.

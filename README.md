@@ -37,6 +37,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | `llama-coder` | `8081` | `http://192.168.1.6:8081/v1` | 9B coder / быстрый исполнитель |
 | `memory-db` | нет | Docker Compose network only | PostgreSQL + pgvector для Memory / RAG foundation |
 | `memory-embed` | `4010` | `http://127.0.0.1:4010/v1` | локальный embedding runtime для RAG ingestion |
+| `telegram-bot` | нет | outbound Telegram Bot API | Telegram polling interface через LiteLLM |
 
 Gateway model names:
 
@@ -76,6 +77,7 @@ slowrig/architect
 /opt/llama-cluster/scripts/memory-ingest-docs.py
 /opt/llama-cluster/config/memory/init/001-memory-foundation.sql
 /opt/llama-cluster/config/cloudflare/telegram-worker.js
+/opt/llama-cluster/src/telegram-bot
 ```
 
 Локальный файл секретов, не хранится в git:

@@ -139,8 +139,10 @@ Stage 4.2 — Memory implementation plan (done)
 Stage 4.3 — Memory DB foundation (done and server-validated)
 Stage 4.4 — Local RAG ingestion (done and server-validated)
 Stage 5   — Telegram bot design (done)
-Stage 5.1 — Telegram implementation plan (done; runtime not implemented)
+Stage 5.1 — Telegram implementation plan (done; superseded by C# runtime decision)
 Stage 5.2 — Telegram runtime code/config (done)
+Stage 5.5 — Telegram Cloudflare short polling transport (done)
+Stage 5.6 — Telegram thinking disabled through request params (done)
 Stage 6   — Agents design (done; runtime not implemented)
 Stage 6.1 — Docs drift / repo patch assistant plan (done; runtime not implemented)
 Stage 7   — Monitoring / Security / Backups
@@ -221,11 +223,9 @@ First artifact:
 docs/telegram.md
 ```
 
-Stage 5 design is captured in `docs/telegram.md`. Do not add Telegram runtime, packages, services, or real bot tokens until a separate runtime implementation stage is approved.
+Stage 5 design is captured in `docs/telegram.md`. Stage 5.2 was revised by user request to C#/.NET: current runtime uses `src/telegram-bot`, `HttpClient`, Telegram Bot API HTTP polling, and local Docker build. `.env.example` contains placeholders only; real `TELEGRAM_BOT_TOKEN` and allowed user IDs stay in `.env`.
 
-Stage 5.1 implementation plan originally chose no separate Telegram framework/library. Stage 5.2 was revised by user request to C#/.NET: first runtime uses `src/telegram-bot`, `HttpClient`, Telegram Bot API HTTP polling, and local Docker build. `.env.example` contains placeholders only; real `TELEGRAM_BOT_TOKEN` and allowed user IDs stay in `.env`.
-
-Stage 5.2 adds `src/telegram-bot` and a `telegram-bot` Compose service under profile `telegram`. Do not start it until real `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_IDS` are added to server `.env`. Telegram UI validation belongs to Stage 5.3.
+Stage 5.2 adds `src/telegram-bot` and a `telegram-bot` Compose service under profile `telegram`. The bot has been started on the server with real `.env` secrets and optional Cloudflare Worker base URL. Keep Telegram no-shell/no-Docker/no-filesystem-access boundaries.
 
 If the server cannot reach `api.telegram.org:443`, Telegram needs server routing/VPN, a reverse proxy base URL in `TELEGRAM_API_BASE_URL`, or an HTTP(S) proxy in `TELEGRAM_PROXY_URL`. Telegram `tg://proxy?...` MTProto links are not supported by Bot API HTTP polling. If Cloudflare Worker is used, keep it narrow and use short polling in the bot: only Bot API paths, no public generic proxy behavior, no long polling through Workers. Telegram prompts currently disable Qwen/llama.cpp thinking through `chat_template_kwargs.enable_thinking=false`; text `/no_think` was tested and did not work for this runtime path. Increasing `max_tokens` for reasoning+answer can be considered later as a tuning step.
 

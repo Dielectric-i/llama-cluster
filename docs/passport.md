@@ -1,6 +1,6 @@
 # slowrig AI Cluster — Passport v0.2
 
-Дата актуализации: 2026-06-22
+Дата актуализации: 2026-06-23
 Статус: текущий фактический паспорт стенда
 
 ## 1. Назначение документа
@@ -39,7 +39,7 @@ Passport не заменяет:
 * работы с кодом и логами;
 * подготовки контекста для тяжёлых моделей;
 * ручной работы через Open WebUI;
-* будущего подключения Telegram bot;
+* Telegram bot interface;
 * будущего подключения IDE-клиентов;
 * будущего подключения агентского слоя;
 * будущей системы памяти/RAG.
@@ -147,12 +147,15 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | `llama-coder`     |    `8081` | 9B coder / fast worker backend         |
 | `memory-db`       |     нет    | PostgreSQL + pgvector Memory DB        |
 | `memory-embed`    |    `4010` | local embedding runtime, loopback only |
+| `telegram-bot`    |     нет    | Telegram polling interface через LiteLLM |
 
 Прямые backend-порты `8080` и `8081` оставлены для диагностики. Обычный клиентский путь должен идти через LiteLLM Gateway.
 
 `memory-db` не публикует host-port и доступен только внутри Docker Compose network.
 
 `memory-embed` публикуется только на `127.0.0.1:4010` для локального ingestion-скрипта и не должен быть доступен из LAN.
+
+`telegram-bot` не публикует inbound host-port, работает через Telegram Bot API polling и обращается к LiteLLM внутри Docker Compose network.
 
 ---
 
@@ -368,7 +371,53 @@ OPENAI_API_KEYS      -> LITELLM_MASTER_KEY
 
 ---
 
-## 11. Модели
+## 11. `telegram-bot`
+
+Роль:
+
+```text
+Telegram polling interface через LiteLLM Gateway
+```
+
+Docker service:
+
+```text
+telegram-bot
+```
+
+Profile:
+
+```text
+telegram
+```
+
+Inbound host port:
+
+```text
+none
+```
+
+Нормальный путь:
+
+```text
+Telegram Bot API -> telegram-bot -> LiteLLM -> slowrig/coder / slowrig/architect
+```
+
+Текущий runtime:
+
+* C#/.NET console service в `src/telegram-bot`;
+* whitelist через `TELEGRAM_ALLOWED_USER_IDS`;
+* real token хранится только в `.env`;
+* default model: `slowrig/coder`;
+* `slowrig/architect` используется только явной командой;
+* shell/Docker/filesystem access не предоставляется;
+* Telegram history не пишется в Memory/RAG;
+* Cloudflare Worker / `TELEGRAM_API_BASE_URL` используется как optional Telegram Bot API reverse proxy mode;
+* обычные prompts отправляются с `chat_template_kwargs.enable_thinking=false`.
+
+---
+
+## 12. Модели
 
 Модели хранятся в:
 
@@ -395,7 +444,7 @@ OPENAI_API_KEYS      -> LITELLM_MASTER_KEY
 
 ---
 
-## 12. Проверенный baseline
+## 13. Проверенный baseline
 
 Stage 1 inference baseline завершён.
 
@@ -438,7 +487,7 @@ Stage 3 gateway baseline завершён.
 
 ---
 
-## 13. Измерения baseline
+## 14. Измерения baseline
 
 Измеренная примерная скорость генерации:
 
@@ -468,7 +517,7 @@ Stage 3 gateway baseline завершён.
 
 ---
 
-## 14. Репозиторий и файлы
+## 15. Репозиторий и файлы
 
 Основная директория проекта:
 
@@ -510,7 +559,7 @@ README.md
 
 ---
 
-## 15. Данные, кэш и секреты
+## 16. Данные, кэш и секреты
 
 Не хранить в git:
 
@@ -540,7 +589,7 @@ docker-compose.stage1-baseline.yaml
 
 ---
 
-## 16. Текущая security posture
+## 17. Текущая security posture
 
 Текущий режим:
 
@@ -575,7 +624,7 @@ home LAN baseline
 
 ---
 
-## 17. Что не описывает этот документ
+## 18. Что не описывает этот документ
 
 Этот документ намеренно не содержит:
 

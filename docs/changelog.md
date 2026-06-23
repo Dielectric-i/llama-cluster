@@ -62,6 +62,29 @@
 
 ---
 
+## 2026-06-23 — Stage 6.2 First docs/config drift audit
+
+### Изменено
+
+* Выполнен первый docs/config drift audit по Stage 6.1 workflow.
+* Исправлены актуальные документы, которые отставали от текущего `docker-compose.yaml` и Stage 5/6 статуса:
+  * README service list теперь включает `telegram-bot`;
+  * `docs/passport.md` фиксирует `telegram-bot` как текущий service без inbound host-port;
+  * `docs/architecture.md` обновлён для Telegram runtime, Stage 6 design и Stage 6.1 workflow;
+  * `docs/telegram.md`, `docs/codex-context.md`, `docs/decisions.md` и `docs/gateway.md` больше не описывают Telegram как pending/not connected.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Проверить локально: `git diff --stat`, `git diff -- README.md docs/`, `git diff --check`.
+
+### Результат
+
+* Docs теперь согласованы с текущими Stage 5.5/5.6 и Stage 6/6.1 решениями.
+* Runtime/config files не менялись.
+
+---
+
 ## 2026-06-23 — Stage 6.1 Agents docs drift workflow plan
 
 ### Изменено

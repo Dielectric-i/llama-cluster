@@ -549,7 +549,7 @@ sudo docker compose up -d open-webui
 * pipeline `9B -> 27B` не реализован;
 * LiteLLM не является memory/RAG-слоем;
 * LiteLLM не является agent framework;
-* Telegram ещё не подключён;
+* Telegram подключён через `telegram-bot` -> LiteLLM в profile `telegram`;
 * IDE-клиенты ещё не подключены;
 * CrewAI/OpenClaw ещё не подключены;
 * прямые порты `8080` и `8081` пока оставлены для диагностики;

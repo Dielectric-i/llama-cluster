@@ -89,7 +89,7 @@ ADR-XXX — Название решения
 | ADR-023 | Использовать локальный `llama.cpp` embedding service для Stage 4.4 | принято и проверено |
 | ADR-024 | Проектировать первый Telegram bot как polling + whitelist клиент LiteLLM | принято; design добавлен |
 | ADR-025 | Реализовывать первый Telegram runtime без отдельной Telegram library | superseded by ADR-026 |
-| ADR-026 | Реализовывать первый Telegram runtime на C#/.NET | принято; code добавлен |
+| ADR-026 | Реализовывать первый Telegram runtime на C#/.NET | принято; runtime validated |
 | ADR-027 | Использовать разные context sizes для `architect` и `coder` | принято и внедрено |
 | ADR-028 | Проектировать agent layer как custom lightweight orchestration | принято; design добавлен |
 | ADR-029 | Начать agents с docs drift / repo patch assistant workflow | принято; plan добавлен |
@@ -1526,7 +1526,7 @@ TELEGRAM_ARCHITECT_MODEL
 ## ADR-026 — Реализовывать первый Telegram runtime на C#/.NET
 
 Дата: 2026-06-22
-Статус: принято; runtime code добавлен, Telegram UI validation pending
+Статус: принято; runtime validated
 Заменяет: ADR-025
 Связанные документы: `docker-compose.yaml`, `src/telegram-bot`, `docs/telegram.md`, `docs/runbook.md`, `docs/changelog.md`
 

@@ -62,6 +62,26 @@
 
 ---
 
+## 2026-06-23 — Stage 6.1 Agents docs drift workflow plan
+
+### Изменено
+
+* В `docs/agents.md` добавлен Stage 6.1 implementation plan для выбранного workflow: docs drift / repo patch assistant.
+* Добавлен ADR-029: agents начинаются с read/report и patch workflow, без diagnostics allowlist и без runtime service.
+* `docs/codex-context.md` обновлён: Stage 6.1 зафиксирован как план без runtime implementation.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Проверить локально: `git diff --stat`, `git diff -- README.md docs/agents.md docs/decisions.md docs/codex-context.md docs/changelog.md`, `git diff --check`.
+
+### Результат
+
+* Первый agent workflow выбран и описан.
+* Следующий рекомендуемый шаг: Stage 6.2 — первый реальный docs/config drift audit using this workflow.
+
+---
+
 ## 2026-06-23 — Stage 6 Agents design
 
 ### Изменено

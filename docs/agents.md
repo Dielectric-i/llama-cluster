@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Agents Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 6 design; runtime не реализован
+Статус: Stage 6 design; Stage 6.1 docs drift workflow plan added; runtime не реализован
 
 ## 1. Назначение
 
@@ -228,35 +228,169 @@ Agent layer не должен записывать новые private user memor
 
 ---
 
-## 11. Минимальный implementation plan для следующего stage
+## 11. Stage 6.1 — Docs Drift / Repo Patch Assistant plan
 
-Рекомендуемый следующий Stage 6.1:
+Выбранный первый workflow:
 
 ```text
-Agents implementation plan
+docs drift / repo patch assistant
 ```
 
-Он должен определить:
+Статус:
 
-* первый concrete workflow;
-* будет ли это scripts-only, Codex procedure или маленький local service;
-* Level 2 diagnostics allowlist;
-* формат agent task file/report;
-* как агент получает context из docs/Memory;
-* как создаются patches;
-* какие operations требуют approval;
-* manual checks и rollback.
+```text
+implementation plan; runtime не реализован
+```
 
-Runtime не внедрять до завершения Stage 6.1 и отдельного approval.
+### Цель
+
+Первый agent workflow должен помогать находить расхождения между документацией, config и git-состоянием, а затем готовить маленький patch и отчёт.
+
+Он работает на безопасных уровнях:
+
+```text
+Level 0 read/report
+Level 1 patches
+```
+
+Level 2 diagnostics allowlist в Stage 6.1 не включается.
+
+### Входы
+
+Разрешённые входы:
+
+* `README.md`;
+* `AGENTS.md`;
+* `docs/*.md`;
+* `docker-compose.yaml`;
+* `config/**/*.yaml`;
+* `scripts/*.sh` и небольшие project scripts;
+* `git status --short`;
+* `git diff --stat`;
+* `git diff -- <explicit-files>`;
+* `git log --oneline -20`.
+
+Запрещённые входы без отдельного approval:
+
+* `.env`;
+* secrets;
+* raw Docker logs;
+* database dumps;
+* Telegram private history;
+* Open WebUI private data;
+* model/cache files.
+
+### Основной workflow
+
+```text
+1. Read README.md as documentation index.
+2. Read AGENTS.md and docs/codex-context.md.
+3. Read task-relevant docs.
+4. Compare docs against config files and git state.
+5. Report mismatches with source references.
+6. Prepare a focused patch only for accepted docs/config drift.
+7. Provide validation commands and rollback.
+8. Commit only after explicit user approval or direct instruction.
+```
+
+### Типы drift, которые workflow должен искать
+
+* ports, service names, model names и route mismatches;
+* `ctx-size`, `tensor-split`, `parallel`, GPU mapping drift;
+* outdated stage status;
+* README documentation index gaps;
+* ADR status that conflicts with current docs/config;
+* changelog entries that claim unverified checks;
+* runbook commands that no longer match compose/config;
+* missing rollback notes for operational changes.
+
+### Output format
+
+Для audit-only режима:
+
+```text
+Stage:
+Scope:
+Files read:
+Findings:
+Risks:
+Recommended patch:
+Validation:
+Rollback:
+Next stage:
+```
+
+Для patch режима:
+
+```text
+Stage:
+What changed:
+Files changed:
+Checks performed:
+Checks not performed:
+Rollback:
+Remaining forks:
+Recommended next stage:
+```
+
+### Patch rules
+
+* предпочитать documentation patch перед runtime patch;
+* не менять runtime/config по результатам audit без отдельного approval;
+* не исправлять исторические stage summaries, если они корректно описывают прошлое состояние;
+* явно помечать superseded ADR вместо удаления старого решения;
+* не использовать `git add .`;
+* не коммитить `.env` или generated/runtime data.
+
+### Проверки Stage 6.1
+
+Для документационных правок:
+
+```bash
+git status --short
+git diff --stat
+git diff -- README.md AGENTS.md docs/
+git diff --check
+```
+
+Для config-aware audit без runtime mutation:
+
+```bash
+git diff -- docker-compose.yaml config/ scripts/
+```
+
+Server/runtime checks не требуются, пока workflow не меняет `docker-compose.yaml`, LiteLLM config, ports, volumes, services или scripts with operational behavior.
+
+### Rollback
+
+Откатить только файлы Stage 6.1:
+
+```bash
+git checkout -- docs/agents.md docs/decisions.md docs/codex-context.md docs/changelog.md
+```
+
+Если был создан отдельный audit report file в будущем stage, откатывать его отдельно.
+
+### Non-goals Stage 6.1
+
+Stage 6.1 не добавляет:
+
+* agent runtime service;
+* task queue;
+* Telegram-to-agent escalation;
+* diagnostics command execution allowlist;
+* Memory/RAG retrieval API;
+* autonomous shell;
+* new dependencies.
 
 ---
 
 ## 12. Открытые вопросы
 
-Открытые вопросы перед implementation:
+Открытые вопросы перед runtime implementation:
 
-* какой первый workflow важнее: docs drift audit, repo patch assistant, diagnostic assistant или Telegram-to-agent escalation;
 * нужен ли отдельный task queue или достаточно git branches + markdown task reports;
-* точный diagnostics allowlist;
+* точный Level 2 diagnostics allowlist;
 * формат хранения agent state, если он вообще нужен;
-* нужно ли подключать Memory/RAG retrieval в первом runtime или оставить docs/git read напрямую.
+* нужно ли подключать Memory/RAG retrieval в первом runtime или оставить docs/git read напрямую;
+* когда подключать Telegram-to-agent escalation.

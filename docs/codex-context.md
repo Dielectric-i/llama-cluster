@@ -142,6 +142,7 @@ Stage 5   — Telegram bot design (done)
 Stage 5.1 — Telegram implementation plan (done; runtime not implemented)
 Stage 5.2 — Telegram runtime code/config (done)
 Stage 6   — Agents design (done; runtime not implemented)
+Stage 6.1 — Docs drift / repo patch assistant plan (done; runtime not implemented)
 Stage 7   — Monitoring / Security / Backups
 ```
 
@@ -247,6 +248,14 @@ Agent permission ladder:
 3. predefined diagnostics allowlist;
 4. approved mutations;
 5. sandbox/worktree autonomy.
+
+First concrete Stage 6.1 workflow:
+
+```text
+docs drift / repo patch assistant
+```
+
+It stays at Level 0/1: read/report and patches only. Do not add diagnostics command execution, Telegram escalation, queues, persistent state, or new dependencies in Stage 6.1.
 
 Dangerous real-infrastructure actions still require approval:
 

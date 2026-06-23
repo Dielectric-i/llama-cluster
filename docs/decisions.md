@@ -92,6 +92,7 @@ ADR-XXX — Название решения
 | ADR-026 | Реализовывать первый Telegram runtime на C#/.NET | принято; code добавлен |
 | ADR-027 | Использовать разные context sizes для `architect` и `coder` | принято и внедрено |
 | ADR-028 | Проектировать agent layer как custom lightweight orchestration | принято; design добавлен |
+| ADR-029 | Начать agents с docs drift / repo patch assistant workflow | принято; plan добавлен |
 
 ---
 
@@ -1638,6 +1639,45 @@ read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox
 ### Когда пересмотреть
 
 Если появится устойчивый набор повторяемых workflows, понятный diagnostics allowlist, требования к очередям задач, persistent agent state или необходимость интеграции с Telegram/IDE/API beyond simple patch/report workflows.
+
+---
+
+## ADR-029 — Начать agents с docs drift / repo patch assistant workflow
+
+Дата: 2026-06-23
+Статус: принято; plan добавлен
+Связанные документы: `docs/agents.md`, `docs/codex-context.md`, `docs/changelog.md`
+
+### Контекст
+
+После Stage 6 design нужно выбрать первый concrete agent workflow. Рассматривались безопасный docs drift assistant, diagnostics assistant, Telegram-to-agent escalation и task queue / persistent state.
+
+### Решение
+
+Первый Stage 6.1 workflow:
+
+```text
+docs drift / repo patch assistant
+```
+
+Он работает только на уровнях:
+
+```text
+Level 0 read/report
+Level 1 patches
+```
+
+### Причина
+
+Этот workflow даёт практическую пользу сразу, но не требует runtime service, shell access, Telegram escalation, task queue, новых dependencies или доступа к secrets.
+
+### Компромисс
+
+Он не решает operational diagnostics automation и не даёт полноценной автономии. Это осознанный первый шаг, чтобы отработать audit trail, patch discipline и безопасный agent workflow на документации и config drift.
+
+### Когда пересмотреть
+
+После нескольких успешных docs/config drift audits можно перейти к Level 2 diagnostics allowlist или Telegram-to-agent escalation, если будет понятен список безопасных команд и формат отчётов.
 
 ---
 

@@ -148,7 +148,7 @@ Stage 6.1 — Docs drift / repo patch assistant plan (done)
 Stage 6.3 — docs-drift-agent.sh helper (done)
 Stage 7   — Monitoring / Security / Backups design (done; runtime not implemented)
 Stage 7.1 — cluster-health-lite.sh implemented (done; no timer/automation)
-Stage 7.2 — backup/restore implementation plan (done; no automation)
+Stage 7.2 — manual memory-db backup helper (done; no automation/restore)
 ```
 
 No new runtime dependencies should be installed before the relevant design/implementation plan is approved.
@@ -302,7 +302,7 @@ Backup scope for first stateful stages:
 
 * git-backed docs/config/scripts;
 * `.env` stored separately offline, never in git;
-* PostgreSQL dump plan for `memory-db` added in Stage 7.2; helper/automation not implemented;
+* manual PostgreSQL dump helper for `memory-db` added in Stage 7.2; automation/restore not implemented;
 * model files are documented by filename/source, but not backed up in the first backup scope;
 * Open WebUI data is not included until a dedicated backup decision includes it.
 

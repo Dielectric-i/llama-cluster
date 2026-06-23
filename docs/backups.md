@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Backups Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 7 design; Stage 7.2 backup/restore implementation plan added; automation не внедрена
+Статус: Stage 7 design; Stage 7.2 manual backup helper implemented; automation не внедрена
 
 ## 1. Назначение
 
@@ -78,7 +78,7 @@ pg_dump -> backups/ -> offline copy
 Статус:
 
 ```text
-plan only; helper scripts and automation not implemented
+manual helper implemented; automation and restore are not implemented
 ```
 
 ### Цель
@@ -122,6 +122,27 @@ Metadata может содержать:
 * database name only if not sensitive;
 * command version;
 * restore notes.
+
+### Manual backup helper
+
+Ручной helper:
+
+```bash
+cd /opt/llama-cluster
+scripts/backup-memory-db.sh --check-only
+scripts/backup-memory-db.sh
+```
+
+`--check-only` проверяет prerequisites и показывает planned paths, но не создаёт dump.
+
+Helper создаёт:
+
+```text
+backups/memory-db/slowrig-memory-YYYYMMDD-HHMMSS.dump
+backups/memory-db/slowrig-memory-YYYYMMDD-HHMMSS.txt
+```
+
+Metadata sidecar не должен содержать secrets.
 
 ### Manual backup commands
 
@@ -170,14 +191,14 @@ docker compose exec -T memory-db sh -lc 'pg_restore --list' < backups/memory-db/
 
 ### Rollback
 
-Если будущий backup helper окажется неверным:
+Если backup helper окажется неверным:
 
 ```bash
-git checkout -- docs/backups.md docs/changelog.md docs/runbook.md docs/codex-context.md docs/decisions.md
+git checkout -- scripts/backup-memory-db.sh README.md docs/backups.md docs/changelog.md docs/runbook.md docs/codex-context.md docs/decisions.md
 ```
 
 Если был создан плохой dump file, удалить только явно выбранный файл в `backups/memory-db/` после проверки пути.
 
 ### Implementation boundary
 
-Stage 7.2 добавляет только plan. Backup helper script, cron/systemd timer, encryption automation и restore dry run требуют отдельного approval.
+Stage 7.2 добавляет manual backup helper. Cron/systemd timer, encryption automation, DB dump execution и restore dry run требуют отдельного approval.

@@ -488,12 +488,13 @@ Warnings не дают non-zero exit code на первом этапе. Для �
 
 ---
 
-## 4.11 Backup/restore plan reference
+## 4.11 Backup/restore helper
 
-Stage 7.2 фиксирует backup/restore implementation plan в:
+Stage 7.2 фиксирует backup/restore implementation plan и ручной backup helper:
 
 ```text
 docs/backups.md
+scripts/backup-memory-db.sh
 ```
 
 Текущий минимальный scope:
@@ -503,7 +504,21 @@ docs/backups.md
 * `memory-db` dump в `backups/memory-db/` с offline copy;
 * model inventory by filename/path, без backup GGUF на первом этапе.
 
-Manual DB dump command описан в `docs/backups.md`. Не выполнять restore поверх текущей DB без отдельного approval.
+Проверить helper без создания dump:
+
+```bash
+cd /opt/llama-cluster
+scripts/backup-memory-db.sh --check-only
+```
+
+Создать ручной dump:
+
+```bash
+cd /opt/llama-cluster
+scripts/backup-memory-db.sh
+```
+
+Ожидаемый результат: `.dump` и `.txt` files в `backups/memory-db/`. Не выполнять restore поверх текущей DB без отдельного approval.
 
 ---
 

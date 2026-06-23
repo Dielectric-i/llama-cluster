@@ -97,6 +97,7 @@ ADR-XXX — Название решения
 | ADR-031 | Реализовать `cluster-health-lite.sh` как дешёвый health check | принято и внедрено |
 | ADR-032 | Завершить Stage 6 read-only docs drift helper | принято и внедрено |
 | ADR-033 | Планировать минимальный backup/restore contract для `memory-db` | принято; plan добавлен |
+| ADR-034 | Реализовать ручной backup helper для `memory-db` | принято и внедрено |
 
 ---
 
@@ -1822,6 +1823,43 @@ Stage 7.2 не создаёт backup helper script, не делает dump пр�
 ### Когда пересмотреть
 
 Перед schema migrations, production-like Memory usage, backup automation, restore rehearsal или включением Open WebUI data в backup scope.
+
+---
+
+## ADR-034 — Реализовать ручной backup helper для `memory-db`
+
+Дата: 2026-06-23
+Статус: принято и внедрено
+Связанные документы: `scripts/backup-memory-db.sh`, `docs/backups.md`, `docs/runbook.md`, `docs/changelog.md`
+
+### Контекст
+
+После Stage 7.2 plan нужен простой operator-run helper, который создаёт PostgreSQL dump без автоматизации и без чтения/печати secrets в чат.
+
+### Решение
+
+Добавить `scripts/backup-memory-db.sh` как ручной helper для `memory-db`.
+
+Helper:
+
+* создаёт `pg_dump -Fc` в `backups/memory-db/`;
+* создаёт `.txt` metadata sidecar без secrets;
+* проверяет dump через `pg_restore --list`;
+* поддерживает `--check-only`;
+* не запускает cron/systemd timer;
+* не выполняет restore.
+
+### Причина
+
+Это даёт минимальную воспроизводимую backup operation перед дальнейшими stateful изменениями, но не меняет текущую runtime topology и не добавляет automation risk.
+
+### Компромисс
+
+Реальный backup всё ещё должен запускаться operator вручную. Offline copy, retention, encryption automation и restore rehearsal остаются отдельными задачами.
+
+### Когда пересмотреть
+
+Перед включением регулярных backup jobs, encryption/retention policy, restore dry run или backup scope для Open WebUI data.
 
 ---
 

@@ -83,6 +83,7 @@ slowrig/architect
 /opt/llama-cluster/.env.example
 /opt/llama-cluster/scripts/cluster-status.sh
 /opt/llama-cluster/scripts/cluster-health-lite.sh
+/opt/llama-cluster/scripts/backup-memory-db.sh
 /opt/llama-cluster/scripts/docs-drift-agent.sh
 /opt/llama-cluster/scripts/memory-ingest-docs.py
 /opt/llama-cluster/config/memory/init/001-memory-foundation.sql

@@ -62,6 +62,27 @@
 
 ---
 
+## 2026-06-23 — Stage 7.2 manual memory-db backup helper
+
+### Изменено
+
+* Добавлен `scripts/backup-memory-db.sh` для ручного `memory-db` dump.
+* README, runbook, backup docs, Codex context и ADR обновлены под новый helper.
+* Добавлен ADR-034.
+
+### Проверка
+
+* `bash -n scripts/backup-memory-db.sh`.
+* `scripts/backup-memory-db.sh --check-only`.
+* `git diff --check`.
+
+### Результат
+
+* Helper готовит `pg_dump -Fc` в `backups/memory-db/` и metadata sidecar без secrets.
+* Реальный DB dump, restore dry run, cron/systemd automation и encryption automation не выполнялись.
+
+---
+
 ## 2026-06-23 — Stage 7.2 backup/restore implementation plan
 
 ### Изменено

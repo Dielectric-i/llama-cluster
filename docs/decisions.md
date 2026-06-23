@@ -95,6 +95,7 @@ ADR-XXX — Название решения
 | ADR-029 | Начать agents с docs drift / repo patch assistant workflow | принято; plan добавлен |
 | ADR-030 | Зафиксировать Stage 7 monitoring/security/backups defaults | принято; design добавлен |
 | ADR-031 | Планировать `cluster-health-lite.sh` как дешёвый health check | принято; plan добавлен |
+| ADR-032 | Завершить Stage 6 read-only docs drift helper | принято и внедрено |
 
 ---
 
@@ -1748,6 +1749,40 @@ Lite-check не доказывает качество генерации мод�
 ### Когда пересмотреть
 
 Перед добавлением cron/systemd timer, alerting, Prometheus/Grafana или любых automated remediation actions.
+
+---
+
+## ADR-032 — Завершить Stage 6 read-only docs drift helper
+
+Дата: 2026-06-23
+Статус: принято и внедрено
+Связанные документы: `scripts/docs-drift-agent.sh`, `docs/agents.md`, `docs/stage6-summary.md`, `docs/changelog.md`
+
+### Контекст
+
+Stage 6 выбрал lightweight agent direction и первый workflow `docs drift / repo patch assistant`. Чтобы считать Stage 6 завершённым, нужен практический, безопасный baseline без framework, shell autonomy и новых dependencies.
+
+### Решение
+
+Завершить Stage 6 через read-only helper:
+
+```text
+scripts/docs-drift-agent.sh
+```
+
+Helper работает на Level 0/1: read/report и patch-support. Он проверяет repo/docs/config drift, но не меняет файлы и не выполняет runtime operations.
+
+### Причина
+
+Это даёт первый воспроизводимый agent workflow, сохраняя маленький blast radius и соответствие `AGENTS.md`: documentation-first, explicit approvals, no secrets, no dangerous automation.
+
+### Компромисс
+
+Helper не является полноценным agent framework, не имеет task queue, persistent state, Telegram escalation или diagnostics command allowlist. Эти возможности остаются будущими stages.
+
+### Когда пересмотреть
+
+Если docs drift helper станет недостаточным, можно проектировать Level 2 diagnostics allowlist, Memory/RAG retrieval for agent context, Telegram-to-agent escalation или маленький local service.
 
 ---
 

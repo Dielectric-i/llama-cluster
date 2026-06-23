@@ -143,8 +143,9 @@ Stage 5.1 — Telegram implementation plan (done; superseded by C# runtime decis
 Stage 5.2 — Telegram runtime code/config (done)
 Stage 5.5 — Telegram Cloudflare short polling transport (done)
 Stage 5.6 — Telegram thinking disabled through request params (done)
-Stage 6   — Agents design (done; runtime not implemented)
-Stage 6.1 — Docs drift / repo patch assistant plan (done; runtime not implemented)
+Stage 6   — Agents baseline (done; docs drift helper implemented)
+Stage 6.1 — Docs drift / repo patch assistant plan (done)
+Stage 6.3 — docs-drift-agent.sh helper (done)
 Stage 7   — Monitoring / Security / Backups design (done; runtime not implemented)
 Stage 7.1 — cluster-health-lite.sh implementation plan (done; script not implemented)
 ```
@@ -256,7 +257,7 @@ First concrete Stage 6.1 workflow:
 docs drift / repo patch assistant
 ```
 
-It stays at Level 0/1: read/report and patches only. Do not add diagnostics command execution, Telegram escalation, queues, persistent state, or new dependencies in Stage 6.1.
+Stage 6 completed with `scripts/docs-drift-agent.sh`, a read-only Level 0/1 helper. Do not add diagnostics command execution, Telegram escalation, queues, persistent state, or new dependencies without a future stage.
 
 Dangerous real-infrastructure actions still require approval:
 

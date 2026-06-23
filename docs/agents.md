@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Agents Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 6 design; Stage 6.1 docs drift workflow plan added; runtime не реализован
+Статус: Stage 6 завершён; первый docs drift helper реализован
 
 ## 1. Назначение
 
@@ -62,7 +62,7 @@ Agent workflow -> LiteLLM Gateway -> slowrig/coder или slowrig/architect
 Agent workflow -> project docs/git files -> optional Memory/RAG retrieval -> LiteLLM Gateway
 ```
 
-Первый runtime, когда он будет одобрен, должен быть маленьким и проверяемым. Предпочтение:
+Первый реализованный helper является маленьким и проверяемым: `scripts/docs-drift-agent.sh`. Для будущих runtime-расширений предпочтение остаётся таким:
 
 * plain scripts или небольшой local service только после отдельного implementation plan;
 * явные allowlists;
@@ -239,7 +239,7 @@ docs drift / repo patch assistant
 Статус:
 
 ```text
-implementation plan; runtime не реализован
+implemented as read-only helper script
 ```
 
 ### Цель
@@ -383,11 +383,43 @@ Stage 6.1 не добавляет:
 * autonomous shell;
 * new dependencies.
 
+### Stage 6 completion helper
+
+Реализованный helper:
+
+```text
+scripts/docs-drift-agent.sh
+```
+
+Он выполняет read-only audit:
+
+* проверяет наличие ключевых документов;
+* проверяет, что `.env` не tracked и не виден как untracked;
+* проверяет README documentation index;
+* сверяет Compose services с README/passport;
+* ищет stale формулировки в актуальных docs;
+* проверяет ключевые значения `ctx-size`, `tensor-split`, Telegram thinking mode и Stage 6 workflow.
+
+Helper не читает `.env`, не запускает Docker, не вызывает LLM generation, не пишет в Memory/RAG и не меняет файлы.
+
+Проверка:
+
+```bash
+bash -n scripts/docs-drift-agent.sh
+scripts/docs-drift-agent.sh
+```
+
+Ожидаемый результат:
+
+```text
+summary: ok=<n> warn=<n> fail=0
+```
+
 ---
 
 ## 12. Открытые вопросы
 
-Открытые вопросы перед runtime implementation:
+Stage 6 baseline завершён. Открытые вопросы относятся к будущим расширениям после Stage 6:
 
 * нужен ли отдельный task queue или достаточно git branches + markdown task reports;
 * точный Level 2 diagnostics allowlist;

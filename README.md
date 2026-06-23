@@ -74,6 +74,7 @@ slowrig/architect
 /opt/llama-cluster/config/litellm.config.yaml
 /opt/llama-cluster/.env.example
 /opt/llama-cluster/scripts/cluster-status.sh
+/opt/llama-cluster/scripts/docs-drift-agent.sh
 /opt/llama-cluster/scripts/memory-ingest-docs.py
 /opt/llama-cluster/config/memory/init/001-memory-foundation.sql
 /opt/llama-cluster/config/cloudflare/telegram-worker.js
@@ -212,5 +213,6 @@ git commit -m "Describe change"
 | [docs/changelog.md](docs/changelog.md) | фактическая история изменений, проверок и измерений |
 | [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline |
 | [docs/stage3-summary.md](docs/stage3-summary.md) | итог Stage 3 gateway baseline |
+| [docs/stage6-summary.md](docs/stage6-summary.md) | итог Stage 6 agents baseline |
 
 Если появляется новый значимый subsystem, для него нужно создать отдельный документ в `docs/` и добавить его в эту таблицу.

@@ -62,6 +62,28 @@
 
 ---
 
+## 2026-06-23 — Stage 6 completed with docs drift helper
+
+### Изменено
+
+* Добавлен read-only helper `scripts/docs-drift-agent.sh` для первого Stage 6 workflow: docs drift / repo patch assistant.
+* Добавлен `docs/stage6-summary.md`.
+* `README.md`, `docs/agents.md`, `docs/codex-context.md`, `docs/architecture.md` и `docs/decisions.md` обновлены под завершённый Stage 6 baseline.
+* Добавлен ADR-032.
+
+### Проверка
+
+* `bash -n scripts/docs-drift-agent.sh`.
+* `scripts/docs-drift-agent.sh`.
+* `git diff --check`.
+
+### Результат
+
+* Stage 6 завершён без agent framework, Docker service, task queue, Telegram escalation, shell autonomy, diagnostics allowlist и новых runtime dependencies.
+* Первый helper работает только как read-only audit/report tool и не читает `.env`.
+
+---
+
 ## 2026-06-23 — Stage 7.1 cluster-health-lite implementation plan
 
 ### Изменено

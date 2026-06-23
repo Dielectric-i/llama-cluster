@@ -44,7 +44,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 3 | Gateway baseline                | завершён               |
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
 | Stage 5 | Telegram bot                    | runtime внедрён; Cloudflare short polling работает; thinking disabled через request params |
-| Stage 6 | Agents                          | design и Stage 6.1 docs drift workflow plan добавлены |
+| Stage 6 | Agents                          | baseline завершён; `docs-drift-agent.sh` реализован |
 | Stage 7 | Monitoring / Security / Backups | design docs добавлены; runtime не внедрён |
 
 Ключевое текущее состояние:
@@ -55,7 +55,7 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * прямые backend-порты сохранены для диагностики;
 * memory/RAG foundation внедрён, local docs ingestion добавлен;
 * Telegram bot runtime внедрён как C#/.NET service в Compose profile `telegram`; Cloudflare short polling и LiteLLM path проверены;
-* agent runtime ещё не внедрён; Stage 6 design и Stage 6.1 docs drift workflow plan добавлены;
+* Stage 6 agents baseline завершён: docs drift helper реализован без framework и без опасных прав;
 * полноценный monitoring/security/backups stage ещё не внедрён.
 
 ---
@@ -388,7 +388,7 @@ dangerous actions require explicit human approval
 Статус:
 
 ```text
-design documented; Stage 6.1 docs drift workflow plan added; runtime not implemented
+baseline completed; docs drift helper implemented; no autonomous runtime service
 ```
 
 Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
@@ -976,7 +976,7 @@ Stage 5.2 добавил `src/telegram-bot` и Compose service `telegram-bot` в
 Статус:
 
 ```text
-design documented; Stage 6.1 docs drift workflow plan added; runtime not implemented
+baseline completed; docs drift helper implemented; no autonomous runtime service
 ```
 
 Первый шаг:

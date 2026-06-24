@@ -1,15 +1,22 @@
+litellm_settings:
+  request_timeout: 9000  # Увеличит таймаут до 150 минут
+
 model_list:
   - model_name: slowrig/coder
     litellm_params:
       model: openai/Qwen3.5-9B-UD-Q4_K_XL
       api_base: http://llama-coder:8080/v1
       api_key: dummy
+      timeout: 9000
+      stream_timeout: 9000
 
   - model_name: slowrig/architect
     litellm_params:
       model: openai/Qwen3.6-27B-UD-Q4_K_XL
       api_base: http://llama-architect:8080/v1
       api_key: dummy
+      timeout: 9000
+      stream_timeout: 9000
 
 general_settings:
   store_model_in_db: false

@@ -43,6 +43,10 @@ services:
       --cache-type-k q8_0
       --cache-type-v q8_0
       --cache-ram 0
+      --slot-save-path /cache
+      --cont-batching
+      --timeout 9000
+      --sse-ping-interval 15
 
   llama-coder:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
@@ -86,6 +90,10 @@ services:
       --cache-type-k q8_0
       --cache-type-v q8_0
       --cache-ram 0
+      --slot-save-path /cache
+      --cont-batching
+      --timeout 9000
+      --sse-ping-interval 15
 
   litellm:
     image: ghcr.io/berriai/litellm:main-stable
@@ -194,8 +202,6 @@ services:
     image: slowrig/telegram-bot:local
     container_name: telegram-bot
     restart: unless-stopped
-    profiles:
-      - telegram
 
     env_file:
       - .env

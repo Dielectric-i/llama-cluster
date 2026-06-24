@@ -199,54 +199,54 @@ For non-trivial stages, work in a dedicated branch.
 Branch names should use the prefix:
 
 ```text
-codex/
+qwen/
 ```
 
 Examples:
 
 ```text
-codex/stage-4-memory-design
-codex/telegram-design
-codex/gateway-policy
-codex/runbook-cleanup
-codex/agents-design
+qwen/stage-8-rag-retrieval
+qwen/stage-9-agent-runtime
+qwen/stage-11-telegram-personas
 ```
 
 Expected workflow:
 
 1. inspect current state;
-2. create or switch to a `codex/...` branch;
+2. create or switch to a `qwen/...` branch;
 3. make the smallest coherent change;
 4. update affected documentation;
 5. provide validation commands;
 6. wait for user review and real checks when needed;
-7. merge or fast-forward into the Codex integration branch only after full verification and user approval.
+7. merge or fast-forward into the Qwen integration branch only after full verification and user approval.
 
 Do not merge automatically unless the user explicitly asks.
 
-In this repository the active Codex integration branch is:
+In this repository the active integration branch is:
 
 ```text
-codex/main
+qwen/main
 ```
 
 The legacy branch `master` must not be used for new work, stage integration, or routine pushes unless the user explicitly overrides this rule.
 
-Do not work directly on `codex/main` for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
+The legacy `codex/` branches are frozen and must not be used for new work.
+
+Do not work directly on `qwen/main` for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
 
 For normal stages:
 
-1. create or continue a dedicated stage branch such as `codex/stage-4`;
+1. create or continue a dedicated stage branch such as `qwen/stage-8`;
 2. implement and verify the stage there;
-3. push the stage result into `codex/main`;
-4. start the next stage from updated `codex/main` in a new `codex/...` branch.
+3. push the stage result into `qwen/main`;
+4. start the next stage from updated `qwen/main` in a new `qwen/...` branch.
 
 When moving from one stage to the next:
 
 1. finish and review the current stage branch;
-2. merge or fast-forward the completed `codex/...` branch into `codex/main` after user approval;
-3. push `codex/main`;
-4. create the next `codex/...` branch from updated `codex/main`;
+2. merge or fast-forward the completed `qwen/...` branch into `qwen/main` after user approval;
+3. push `qwen/main`;
+4. create the next `qwen/...` branch from updated `qwen/main`;
 4. keep only the new stage changes in the new branch.
 
 If next-stage work was started before the previous branch was merged, temporarily stash or otherwise preserve those uncommitted changes, merge the completed branch first, create the new stage branch from updated main, and only then restore the next-stage changes.
@@ -268,7 +268,7 @@ git status --short
 If a new stage branch is needed:
 
 ```bash
-git checkout -b codex/<stage-or-task-name>
+git checkout -b qwen/<stage-or-task-name>
 ```
 
 After changing files, summarize:

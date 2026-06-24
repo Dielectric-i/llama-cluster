@@ -433,6 +433,13 @@ Telegram Bot API -> telegram-bot -> LiteLLM -> slowrig/coder / slowrig/architect
 | 9B coder      | `Qwen3.5-9B-UD-Q4_K_XL.gguf`  | `llama-coder`     |
 | embeddings    | `embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf` | `memory-embed` |
 
+Неактивные модели на диске (не используются в текущем compose):
+
+| Файл модели | Статус |
+| --- | --- |
+| `Qwen3-8B-UD-Q4_K_XL.gguf` | устаревшая, предшественник 9B coder |
+| `Qwen3.6-27B-Q4_K_M.gguf` | устаревшая, предшественник 27B architect |
+
 Текущие контексты:
 
 | Сервис | Контекст |
@@ -535,6 +542,11 @@ AGENTS.md
 .env.example
 config/litellm.config.yaml
 scripts/cluster-status.sh
+scripts/cluster-health-lite.sh
+scripts/backup-memory-db.sh
+scripts/memory-ingest-docs.py
+scripts/docs-drift-agent.sh
+src/telegram-bot/
 ```
 
 Локальный файл секретов:

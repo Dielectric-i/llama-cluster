@@ -48,3 +48,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Archived/obsolete documentation
+docs/old.docs/

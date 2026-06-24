@@ -515,6 +515,7 @@ partially manual, not a full monitoring stack
 
 ```text
 scripts/cluster-status.sh
+scripts/cluster-health-lite.sh
 docker ps
 docker compose ps
 nvidia-smi
@@ -595,7 +596,14 @@ docs/security.md
 Статус:
 
 ```text
-not implemented as a documented subsystem
+partial: memory-db backup script exists; full backup subsystem not implemented
+```
+
+Существующие компоненты:
+
+```text
+scripts/backup-memory-db.sh — бэкап PostgreSQL memory-db
+backups/ — хранилище дампов (исключён из Git через .gitignore)
 ```
 
 Backup должен быть отдельным stage, потому что разные данные требуют разной стратегии.

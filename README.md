@@ -191,8 +191,10 @@ git diff --stat
 Для изменений, подготовленных Codex, предпочтительно использовать отдельную ветку:
 
 ```bash
-git checkout -b codex/<stage-or-task-name>
+git checkout -b qwen/<stage-or-task-name>
 ```
+
+Активная интеграционная ветка: `qwen/main`. Ветки `codex/*` заморожены и не используются для новой работы.
 
 После успешной проверки добавлять файлы явно, по смыслу изменения:
 
@@ -222,9 +224,6 @@ git commit -m "Describe change"
 | [docs/backups.md](docs/backups.md) | Stage 7 Backups design: минимальный backup scope и restore order |
 | [docs/decisions.md](docs/decisions.md) | журнал архитектурных решений и компромиссов |
 | [docs/changelog.md](docs/changelog.md) | фактическая история изменений, проверок и измерений |
-| [docs/stage2-summary.md](docs/stage2-summary.md) | итог Stage 2 operational baseline |
-| [docs/stage3-summary.md](docs/stage3-summary.md) | итог Stage 3 gateway baseline |
-| [docs/stage6-summary.md](docs/stage6-summary.md) | итог Stage 6 agents baseline |
-| [docs/stage7-summary.md](docs/stage7-summary.md) | итог Stage 7 monitoring/security/backups baseline |
+| [docs/roadmap.md](docs/roadmap.md) | дорожная карта Stages 1-15, критический путь, текущие gaps |
 
 Если появляется новый значимый subsystem, для него нужно создать отдельный документ в `docs/` и добавить его в эту таблицу.

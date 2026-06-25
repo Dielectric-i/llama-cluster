@@ -431,6 +431,18 @@ structured task state backup -> mandatory after implementation
 
 ---
 
+### Фактическая backup-практика
+
+После внедрения `memory-db` backup выполняется через:
+
+```bash
+scripts/backup-memory-db.sh
+```
+
+Скрипт создаёт custom-format dump в `backups/` с timestamp в имени файла. Папка `backups/` исключена из git через `.gitignore`.
+
+---
+
 ## 13. Stage 4.2 implementation plan
 
 Статус:
@@ -752,15 +764,23 @@ Documents/chunks/embeddings in PostgreSQL are rebuildable derived data for the a
 Рекомендуемый следующий этап:
 
 ```text
-Stage 5 — Telegram bot design
+Stage 5 — Telegram bot — завершён
 ```
 
-Цель Stage 5:
+Telegram bot уже внедрён:
 
-* создать `docs/telegram.md`;
-* описать polling + whitelist;
-* провести Telegram через LiteLLM Gateway;
-* не давать bot shell/Docker доступ;
-* не хранить Telegram history в Memory/RAG без отдельного privacy decision.
+* `docs/telegram.md` — документация;
+* `src/telegram-bot/` — C#/.NET исходный код;
+* `docker-compose.yaml` — сервис `telegram-bot`;
+* polling + whitelist через Cloudflare;
+* маршрутизация через LiteLLM Gateway;
+* shell/Docker доступ не предоставлен.
 
-Не начинать runtime-внедрение Telegram без отдельного approval.
+После Stage 4.4 и Stage 5 остаётся решить:
+
+* нужен ли отдельный retrieval API поверх `memory-db` или сначала достаточно DB-level retrieval;
+* как оформлять retrieval context для Telegram/agent клиентов;
+* нужен ли offline/encrypted backup сверх локальных dumps;
+* какой migration mechanism использовать для следующих schema changes;
+* когда добавлять Open WebUI conversations, Telegram history и raw logs;
+* когда Qdrant нужен как future upgrade path.

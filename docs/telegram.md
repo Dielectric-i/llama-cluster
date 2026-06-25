@@ -270,15 +270,15 @@ Logs:
 
 ---
 
-## 10. Проверки для будущего runtime stage
+## 10. Проверки runtime
 
-Когда будет одобрен implementation stage, минимальные проверки:
+Проверки текущего runtime:
 
 ```bash
 cd /opt/llama-cluster
-TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
-docker compose --profile telegram up -d telegram-bot
-docker compose --profile telegram ps telegram-bot
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose config --quiet
+docker compose up -d telegram-bot
+docker compose ps telegram-bot
 docker logs --tail=120 telegram-bot
 ```
 
@@ -296,13 +296,13 @@ Functional checks:
 
 ---
 
-## 11. Rollback для будущего runtime stage
+## 11. Rollback
 
-Если будущий `telegram-bot` ломает только себя:
+Если `telegram-bot` ломает только себя:
 
 ```bash
 cd /opt/llama-cluster
-docker compose --profile telegram stop telegram-bot
+docker compose stop telegram-bot
 ```
 
 Если нужно откатить config/docs будущего stage:
@@ -321,18 +321,18 @@ git reset --hard
 
 ---
 
-## 12. Открытые вопросы перед runtime
+## 12. Закрытые runtime-развилки
 
-Stage 5.1/5.2 закрывают часть runtime-развилок:
+Stage 5.1/5.2 закрыли следующие развилки:
 
-* Telegram library: не добавлять отдельную Telegram library на первом runtime stage, использовать C# `HttpClient` + Telegram Bot API HTTP polling;
+* Telegram library: не добавлять отдельную Telegram library, используется C# `HttpClient` + Telegram Bot API HTTP polling;
 * container strategy: отдельный `telegram-bot` Docker service, local Docker build, .NET 8 runtime image;
-* `/status`: сначала только bot + LiteLLM reachability, без Docker/log access;
-* `/rag`: не добавлять в первый runtime, оставить для отдельного read-only RAG stage;
+* `/status`: только bot + LiteLLM reachability, без Docker/log access;
+* `/rag`: не добавлен в первый runtime, оставлен для отдельного read-only RAG stage;
 * short context: in-memory per-user context с жёстким лимитом;
 * logs: технические события без полного текста сообщений и без secrets.
 
-Открытые вопросы после Stage 5.1:
+Открытые вопросы:
 
 * точные input/context limits после первого ручного теста;
 * нужен ли read-only `/rag` command после появления Telegram baseline;
@@ -340,170 +340,31 @@ Stage 5.1/5.2 закрывают часть runtime-развилок:
 
 ---
 
-## 13. Stage 5.1 implementation plan
+## 13. Runtime implementation
 
 Статус:
 
 ```text
-documentation/config-template plan; runtime not implemented
+runtime внедрён; Cloudflare short polling и LiteLLM path проверены; no shell/admin access
 ```
 
-Принято для будущего runtime:
-
-```text
-custom lightweight C#/.NET bot, HttpClient polling, no Telegram framework package
-```
-
-Причина:
-
-* нет отдельной Telegram package dependency;
-* проще audit;
-* меньше hidden behavior;
-* достаточно для polling + whitelist + LiteLLM calls;
-* легче сохранить запрет на shell/Docker access.
-
-Будущие файлы runtime stage:
-
-```text
-src/telegram-bot/Program.cs
-src/telegram-bot/Slowrig.TelegramBot.csproj
-src/telegram-bot/Dockerfile
-docker-compose.yaml
-.env.example
-docs/telegram.md
-docs/runbook.md
-docs/changelog.md
-```
-
-Планируемый service:
-
-```text
-telegram-bot
-```
-
-Планируемые env names:
-
-```text
-TELEGRAM_BOT_TOKEN
-TELEGRAM_ALLOWED_USER_IDS
-TELEGRAM_DEFAULT_MODEL
-TELEGRAM_ARCHITECT_MODEL
-LITELLM_MASTER_KEY
-```
-
-`LITELLM_BASE_URL` не нужен, если bot работает внутри Docker Compose network и использует fixed endpoint:
-
-```text
-http://litellm:4000/v1
-```
-
-Если позже потребуется запускать bot вне Compose, `LITELLM_BASE_URL` можно добавить отдельным change.
-
-Планируемый compose outline:
-
-```yaml
-telegram-bot:
-  build:
-    context: /opt/llama-cluster/src/telegram-bot
-  image: slowrig/telegram-bot:local
-  container_name: telegram-bot
-  restart: unless-stopped
-  env_file:
-    - .env
-  depends_on:
-    - litellm
-```
-
-Не монтировать:
-
-```text
-/var/run/docker.sock
-/opt/llama-cluster
-models/
-cache/
-logs/
-secrets/
-```
-
-Первый runtime должен уметь:
-
-* polling `getUpdates`;
-* whitelist по numeric user id;
-* `/start`, `/help`, `/status`, `/model`, `/coder`, `/architect`, `/reset`;
-* обычный text prompt -> LiteLLM chat completions;
-* short in-memory context per allowed user;
-* basic rate/input limits;
-* sanitized logs.
-
-Первый runtime не должен уметь:
-
-* shell;
-* Docker;
-* file reads/writes;
-* git;
-* service restarts;
-* raw log access;
-* Memory/RAG writes;
-* Telegram history persistence.
-
-Проверки будущего runtime:
-
-```bash
-cd /opt/llama-cluster
-TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
-docker compose --profile telegram build telegram-bot
-docker compose --profile telegram up -d telegram-bot
-docker compose --profile telegram ps telegram-bot
-docker logs --tail=120 telegram-bot
-```
-
-Manual Telegram checks:
-
-* unknown user получает отказ;
-* allowed user получает ответ на `/start`;
-* `/status` показывает bot/gateway OK;
-* обычный prompt отвечает через `slowrig/coder`;
-* `/architect` переключает запрос на `slowrig/architect`;
-* `/reset` сбрасывает in-memory context.
-
-Rollback future runtime:
-
-```bash
-cd /opt/llama-cluster
-docker compose --profile telegram stop telegram-bot
-git checkout -- docker-compose.yaml .env.example src/telegram-bot docs/telegram.md docs/runbook.md docs/changelog.md docs/decisions.md docs/codex-context.md
-```
-
----
-
-## 14. Stage 5.2 runtime implementation
-
-Статус:
-
-```text
-config/code added; not started without real Telegram secrets
-```
-
-Добавлены:
+Реализованы:
 
 ```text
 src/telegram-bot/Program.cs
 src/telegram-bot/Slowrig.TelegramBot.csproj
 src/telegram-bot/Dockerfile
 docker-compose.yaml service telegram-bot
+config/cloudflare/telegram-worker.js
 ```
 
-`telegram-bot` находится в Docker Compose profile:
+`telegram-bot` — обычный сервис в docker-compose.yaml (без отдельного profile).
 
-```text
-telegram
-```
-
-Обычный `docker compose up -d` не стартует Telegram bot. Явный запуск:
+Запуск:
 
 ```bash
 cd /opt/llama-cluster
-docker compose --profile telegram up -d telegram-bot
+docker compose up -d telegram-bot
 ```
 
 Runtime использует:
@@ -568,7 +429,7 @@ Proxy применяется только к Telegram Bot API. Запросы к
 
 ```bash
 cd /opt/llama-cluster
-TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose config --quiet
 ```
 
 Проверить syntax:
@@ -582,7 +443,7 @@ dotnet build
 
 ```bash
 cd /opt/llama-cluster
-docker compose --profile telegram build telegram-bot
+docker compose build telegram-bot
 ```
 
 Manual Telegram checks после запуска:
@@ -611,20 +472,12 @@ Rollback:
 
 ```bash
 cd /opt/llama-cluster
-docker compose --profile telegram stop telegram-bot
+docker compose stop telegram-bot
 ```
 
 ---
 
-## 15. Рекомендуемый следующий этап
-
-Рекомендуемый следующий этап:
-
-```text
-Telegram hardening / command policy tuning, только после отдельного approval
-```
-
-Возможные будущие работы:
+## 14. Возможные будущие работы
 
 * отдельный deep reasoning режим с большим `max_tokens`;
 * уточнение command policy;

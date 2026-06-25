@@ -1549,7 +1549,7 @@ TELEGRAM_ARCHITECT_MODEL
 * no Docker socket;
 * no filesystem access к host;
 * no Telegram history persistence;
-* profile `telegram`, чтобы обычный `docker compose up -d` не запускал bot.
+* все сервисы запускаются без `--profile` (профили удалены).
 
 ### Решение
 
@@ -1913,15 +1913,15 @@ Gateway выбран: LiteLLM Proxy.
 
 ---
 
-### Q2. Какую память выбрать?
+### Q2. Какую память выбрать? → РЕШЕНО
 
-Текущий выбор для планирования:
+Выбрано и внедрено:
 
 ```text
 PostgreSQL + pgvector
 ```
 
-Markdown + Git остаются source of truth. PostgreSQL + pgvector планируется как хранилище structured state, metadata, chunks и derived vector data.
+`memory-db` сервис запущен, схема `001-memory-foundation.sql` применена, embedding через `memory-embed` (Qwen3-Embedding-0.6B-Q8_0, CPU-only).
 
 Оставшиеся вопросы:
 
@@ -1932,17 +1932,18 @@ Markdown + Git остаются source of truth. PostgreSQL + pgvector план�
 
 ---
 
-### Q3. Каким будет Telegram bot?
+### Q3. Каким будет Telegram bot? → РЕШЕНО
 
-Варианты:
+Реализован как C#/.NET сервис `telegram-bot` в `src/telegram-bot/`:
 
-* простой chat bot;
-* bot с выбором модели;
-* bot с памятью;
-* bot как интерфейс к агентам;
-* bot с ограниченным набором безопасных команд диагностики.
+* polling через Cloudflare short polling;
+* whitelist по user IDs;
+* routing через LiteLLM Gateway;
+* default модель: `slowrig/coder`, `slowrig/architect` по команде;
+* no shell, no Docker access, no arbitrary filesystem;
+* без сохранения истории в Memory/RAG.
 
-Ключевое ограничение:
+Ключевое ограничение сохранено:
 
 ```text
 Telegram bot не должен иметь произвольный shell-доступ.
@@ -1950,7 +1951,7 @@ Telegram bot не должен иметь произвольный shell-дос�
 
 ---
 
-### Q4. Какой diagnostics allowlist дать агентам?
+### Q4. Какой diagnostics allowlist дать агентам? → ЧАСТИЧНО РЕШЕНО
 
 Лестница прав выбрана в ADR-028:
 
@@ -1958,9 +1959,11 @@ Telegram bot не должен иметь произвольный shell-дос�
 read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox autonomy
 ```
 
+Первый helper реализован: `scripts/docs-drift-agent.sh` (Level 0/1 — read/report и patches).
+
 Открытым остаётся точный список Level 2 diagnostics commands, формат отчёта и правила sanitization.
 
-Ключевое ограничение:
+Ключевое ограничение сохранено:
 
 ```text
 опасные действия требуют подтверждения пользователя.
@@ -1968,17 +1971,21 @@ read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox
 
 ---
 
-### Q5. Как делать backup?
+### Q5. Как делать backup? → ЧАСТИЧНО РЕШЕНО
 
-Нужно отдельно решить backup для:
+Реализовано:
 
-* compose/config/docs/scripts;
+* git-backed repo для compose/config/docs/scripts;
+* ручной backup helper `scripts/backup-memory-db.sh` для `memory-db` (pg_dump -Fc);
+* `.env` — offline copy, не коммитится.
+
+Не решено:
+
 * моделей;
 * Open WebUI data;
-* memory DB;
 * логов;
 * agent state;
-* `.env` и секретов без попадания в git.
+* retention/encryption automation.
 
 ---
 

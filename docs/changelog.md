@@ -1,7 +1,48 @@
 # slowrig AI Cluster — Changelog v0.2
 
-Дата актуализации: 2026-06-23
+Дата актуализации: 2026-06-27
 Статус: журнал фактических изменений, проверок и измерений
+
+## 2026-06-27 — ide-proxy: SSE heartbeat proxy для VS Code
+
+### Добавлено
+
+* `proxy/ide-proxy/` — C# ASP.NET Core Minimal API проект
+  * `Slowrig.IdeProxy.csproj` — .NET 8 LTS
+  * `Program.cs` — 4 endpoint'а, SSE streaming с heartbeat
+  * `Dockerfile` — multi-stage build
+  * `.dockerignore`
+  * `README.md`
+* `docs/ide-proxy.md` — документация по эксплуатации
+* `docker-compose.yaml` — новый сервис `ide-proxy` на порту 4011
+* `scripts/cluster-status.sh` — проверка ide-proxy health/models/logs
+
+### Цель
+
+Решить проблему таймаута VS Code / Copilot / LLM Gateway через ~300 секунд
+при prompt processing больших контекстов (40k–60k токенов) на slowrig/architect.
+
+Прокси отправляет SSE heartbeat (`: ping\n\n`) каждые 10 секунд, удерживая
+соединение живым, пока upstream (LiteLLM → llama.cpp) молчит.
+
+### Проверено
+
+* [ ] сборка Docker-образа
+* [ ] /health endpoint
+* [ ] /v1/models через proxy
+* [ ] small streaming request
+* [ ] big streaming request > 300 секунд с heartbeat
+* [ ] busy protection (HTTP 429)
+* [ ] cancellation / client disconnect
+* [ ] VS Code integration
+
+### Замечания
+
+* Порт 4011 выбран, так как 4010 занят memory-embed
+* Open WebUI не затронут — продолжает работать через LiteLLM:4000
+* Rollback: вернуть serverUrl на 4000 и остановить ide-proxy
+
+---
 
 ## 1. Назначение
 

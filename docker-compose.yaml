@@ -30,7 +30,7 @@ services:
       --host 0.0.0.0
       --port 8080
       --model /models/Qwen3.6-27B-UD-Q4_K_XL.gguf
-      --ctx-size 60000
+      --ctx-size 65000
       --flash-attn on
       --gpu-layers 999
       --parallel 1
@@ -214,6 +214,27 @@ services:
       - LITELLM_BASE_URL=http://litellm:4000/v1
       - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-https://api.telegram.org}
       - TELEGRAM_PROXY_URL=${TELEGRAM_PROXY_URL:-}
+
+    depends_on:
+      - litellm
+
+  ide-proxy:
+    build:
+      context: ./proxy/ide-proxy
+    container_name: ide-proxy
+    restart: unless-stopped
+
+    environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:4011
+      - UPSTREAM_BASE_URL=http://litellm:4000/v1
+      - HEARTBEAT_INTERVAL_SECONDS=10
+      - UPSTREAM_CONNECT_TIMEOUT_SECONDS=10
+      - UPSTREAM_TOTAL_TIMEOUT_SECONDS=0
+      - MAX_ACTIVE_ARCHITECT_REQUESTS=1
+      - BUSY_MODE=reject
+
+    ports:
+      - "4011:4011"
 
     depends_on:
       - litellm

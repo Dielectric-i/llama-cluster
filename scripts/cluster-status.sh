@@ -130,6 +130,7 @@ check_url "llama-architect 27B" "http://127.0.0.1:8080/v1/models"
 check_url "llama-coder 9B"      "http://127.0.0.1:8081/v1/models"
 check_url "memory-embed"        "http://127.0.0.1:4010/v1/models"
 check_url "open-webui"          "http://127.0.0.1:3000"
+check_url "ide-proxy health"    "http://127.0.0.1:4011/health"
 
 if [ -f /opt/llama-cluster/.env ]; then
   set -a
@@ -143,6 +144,30 @@ check_litellm_chat "slowrig/coder" "9B"
 check_litellm_chat "slowrig/architect" "27B"
 check_memory_db
 
+# ide-proxy models check
+check_ide_proxy_models() {
+  echo -n "ide-proxy models -> http://127.0.0.1:4011/v1/models : "
+
+  if [ -z "${LITELLM_MASTER_KEY:-}" ]; then
+    echo "SKIP"
+    echo "  reason: LITELLM_MASTER_KEY is not loaded"
+    return 0
+  fi
+
+  if curl -fsS --max-time 8 \
+    -H "Authorization: Bearer ${LITELLM_MASTER_KEY}" \
+    "http://127.0.0.1:4011/v1/models" \
+    >/tmp/cluster-status-ide-proxy-models.json \
+    2>/tmp/cluster-status-error.log; then
+    echo "OK"
+  else
+    echo "FAIL"
+    echo "  error: $(cat /tmp/cluster-status-error.log)"
+  fi
+}
+
+check_ide_proxy_models
+
 echo
 
 echo "== Recent suspicious log lines =="
@@ -153,6 +178,10 @@ for c in llama-architect llama-coder litellm open-webui memory-db memory-embed; 
   "${DOCKER_CMD[@]}" logs --tail=250 "$c" 2>&1 | grep -Ei 'error|failed|fail|oom|out of memory|cuda error|cudamalloc|exception|traceback|unhealthy|killed|segmentation fault|illegal memory|invalid device' | tail -30 || true
   echo
 done
+
+echo "-- ide-proxy --"
+"${DOCKER_CMD[@]}" logs --tail=250 ide-proxy 2>&1 | grep -Ei 'upstream_error|proxy_error|client_disconnect|slowrig_model_busy|busy_rejected' | tail -30 || true
+echo
 
 echo "============================================================"
 echo " Done"

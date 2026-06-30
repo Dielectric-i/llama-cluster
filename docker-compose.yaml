@@ -47,6 +47,9 @@ services:
       --cont-batching
       --timeout 9000
       --sse-ping-interval 15
+      --jinja
+      --reasoning-format deepseek
+      --chat-template-kwargs '{"enable_thinking": false}'
 
   llama-coder:
     image: ghcr.io/ggml-org/llama.cpp:server-cuda
@@ -94,6 +97,9 @@ services:
       --cont-batching
       --timeout 9000
       --sse-ping-interval 15
+      --jinja
+      --reasoning-format deepseek
+      --chat-template-kwargs '{"enable_thinking": false}'
 
   litellm:
     image: ghcr.io/berriai/litellm:main-stable

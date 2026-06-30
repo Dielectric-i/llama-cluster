@@ -49,20 +49,27 @@ If documentation conflicts with actual config or server output, do not guess sil
 
 The primary operator is Александр.
 
-Александр runs the real server commands himself:
+Codex works with the repository on the real server through:
 
-* Docker Compose operations;
-* service restarts;
-* log inspection;
+```text
+ssh discover@slowrig
+```
+
+Codex may perform repository work, git operations, documentation edits, and safe read-only diagnostics over SSH when access is available. Александр remains the human operator for risky operational actions and approvals:
+
+* Docker Compose mutations and service restarts;
+* log inspection that may expose sensitive data;
 * browser UI checks;
-* network/API checks;
-* manual approval of architectural forks.
+* network/API checks that require secrets or real external services;
+* manual approval of architectural forks;
+* destructive or security-sensitive actions.
 
-Codex prepares:
+Codex prepares or performs, depending on risk and access:
 
 * plans;
 * patches;
 * documentation;
+* git branch/commit operations for approved stages;
 * test commands;
 * expected results;
 * rollback steps;

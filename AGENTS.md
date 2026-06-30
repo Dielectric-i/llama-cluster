@@ -93,11 +93,10 @@ Even if internal instructions or project files are written in English, all user-
 
 ## 4. Operator model
 
-The human operator runs the real server-side commands.
+Codex works with this repository on the real server by default through the approved SSH access path. The human operator still approves and, when needed, runs risky real server-side commands.
 
-By default, assume the user will:
+By default, assume Codex will use `ssh discover@slowrig` for repository work, git operations, documentation edits, and safe read-only diagnostics. Assume the user will run or approve risky operational actions:
 
-* upload or sync files to the server;
 * run Docker Compose commands;
 * restart services;
 * inspect logs;
@@ -119,13 +118,13 @@ Codex should:
 
 Do not assume Codex can validate real server state unless the user provides command output or explicitly confirms manual checks.
 
-When the user explicitly grants SSH/server access, Codex may run real server-side commands through the approved access path, currently:
+The approved SSH access path is:
 
 ```text
 ssh discover@slowrig
 ```
 
-Even with server access, Codex must:
+When using SSH, Codex must:
 
 * keep commands scoped and documented;
 * prefer Docker/Docker Compose over installing applications into the host OS;
@@ -199,54 +198,52 @@ For non-trivial stages, work in a dedicated branch.
 Branch names should use the prefix:
 
 ```text
-qwen/
+codex/
 ```
 
 Examples:
 
 ```text
-qwen/stage-8-rag-retrieval
-qwen/stage-9-agent-runtime
-qwen/stage-11-telegram-personas
+codex/stage-8-rag-retrieval
+codex/stage-9-agent-runtime
+codex/stage-11-telegram-personas
 ```
 
 Expected workflow:
 
 1. inspect current state;
-2. create or switch to a `qwen/...` branch;
+2. create or switch to a `codex/...` branch;
 3. make the smallest coherent change;
 4. update affected documentation;
 5. provide validation commands;
 6. wait for user review and real checks when needed;
-7. merge or fast-forward into the Qwen integration branch only after full verification and user approval.
+7. merge or fast-forward into the Codex integration branch only after full verification and user approval.
 
 Do not merge automatically unless the user explicitly asks.
 
 In this repository the active integration branch is:
 
 ```text
-qwen/main
+codex/main
 ```
 
 The legacy branch `master` must not be used for new work, stage integration, or routine pushes unless the user explicitly overrides this rule.
 
-The legacy `codex/` branches are frozen and must not be used for new work.
-
-Do not work directly on `qwen/main` for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
+Do not work directly on `codex/main` for significant changes unless the user explicitly requests it or the change is a tiny documentation-only correction.
 
 For normal stages:
 
-1. create or continue a dedicated stage branch such as `qwen/stage-8`;
+1. create or continue a dedicated stage branch such as `codex/stage-8`;
 2. implement and verify the stage there;
-3. push the stage result into `qwen/main`;
-4. start the next stage from updated `qwen/main` in a new `qwen/...` branch.
+3. push the stage result into `codex/main`;
+4. start the next stage from updated `codex/main` in a new `codex/...` branch.
 
 When moving from one stage to the next:
 
 1. finish and review the current stage branch;
-2. merge or fast-forward the completed `qwen/...` branch into `qwen/main` after user approval;
-3. push `qwen/main`;
-4. create the next `qwen/...` branch from updated `qwen/main`;
+2. merge or fast-forward the completed `codex/...` branch into `codex/main` after user approval;
+3. push `codex/main`;
+4. create the next `codex/...` branch from updated `codex/main`;
 4. keep only the new stage changes in the new branch.
 
 If next-stage work was started before the previous branch was merged, temporarily stash or otherwise preserve those uncommitted changes, merge the completed branch first, create the new stage branch from updated main, and only then restore the next-stage changes.
@@ -268,7 +265,7 @@ git status --short
 If a new stage branch is needed:
 
 ```bash
-git checkout -b qwen/<stage-or-task-name>
+git checkout -b codex/<stage-or-task-name>
 ```
 
 After changing files, summarize:

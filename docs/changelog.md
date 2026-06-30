@@ -1,7 +1,23 @@
 # slowrig AI Cluster — Changelog v0.2
 
-Дата актуализации: 2026-06-27
+Дата актуализации: 2026-06-30
 Статус: журнал фактических изменений, проверок и измерений
+
+## 2026-06-30 — Codex SSH workflow and branch prefix restored
+
+### Изменено
+
+* `AGENTS.md` снова фиксирует рабочий режим Codex через `ssh discover@slowrig` на реальном сервере.
+* Для каждого нового этапа используется отдельная ветка с префиксом `codex/`.
+* Активная интеграционная ветка: `codex/main`.
+* `README.md`, `docs/roadmap.md` и `docs/codex-context.md` синхронизированы с этим workflow.
+
+### Проверка
+
+* Изменение документационное; runtime/server checks не требуются.
+* Проверить: `git diff --stat`, `git diff -- AGENTS.md README.md docs/roadmap.md docs/codex-context.md docs/changelog.md`.
+
+---
 
 ## 2026-06-27 — ide-proxy: SSE heartbeat proxy для VS Code
 

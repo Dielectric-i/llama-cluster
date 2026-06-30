@@ -1,317 +1,145 @@
-# slowrig AI Cluster — Дорожная карта
+# slowrig AI Cluster — Roadmap v0.3
 
-Дата создания: 2026-06-23
-Источник: `codex/main`
-Активная ветка: `codex/main`
-Префикс веток: `codex/`
+Дата актуализации: 2026‑07‑01
+Статус: **главный план действий** (docs‑as‑source‑of‑truth). Этот файл описывает _следующие_ этапы и критический путь. Завершённые стадии, подробные факты стенда, история изменений и ADR живут в других документах (см. §2).
 
 ---
 
-## Целевое видение
+## 1. Назначение документа
 
-Автономная AI-инфраструктура, где:
-
-1. **Агент разработки** может получить план и автономно выполнять длительную итеративную разработку в песочнице, с approval для критичных действий
-2. **Чат-бот** может быть настроен для выполнения различных ролей, общаться автономно в чатах, иметь несколько персонажей
-3. **Система расширяема** — можно добавлять новые модели, роли, серверы, плагины
+`docs/roadmap.md` фиксирует **порядок будущих этапов**, их цели, зависимости и открытые развилки. Он **не** заменяет паспорт стенда, runbook, changelog, audit‑reports или branch workflow.
 
 ---
 
-## Завершённые этапы
+## 2. Source‑of‑truth boundaries
 
-| Этап | Описание | Статус |
-| --- | --- | --- |
-| Stage 1 | Inference baseline (2 модели, 3 GPU) | ✅ сервер |
-| Stage 2 | Operational foundation | ✅ сервер |
-| Stage 3 | Gateway baseline (LiteLLM) | ✅ сервер |
-| Stage 4.2 | Memory implementation plan | ✅ сервер |
-| Stage 4.3 | Memory DB foundation (PostgreSQL + pgvector) | ✅ сервер |
-| Stage 4.4 | Local RAG ingestion | ✅ сервер |
-| Stage 5.2 | Telegram runtime (C#) | ✅ сервер |
-| Stage 5.5 | Cloudflare short polling | ✅ сервер |
-| Stage 5.6 | Thinking disabled | ✅ сервер |
-| Stage 6 | Agents baseline (design) | ✅ сервер |
-| Stage 6.1 | Docs drift plan | ✅ сервер |
-| Stage 6.3 | docs-drift-agent.sh | ✅ сервер |
-| Stage 7 | Monitoring/Security/Backups design | ✅ сервер |
-| Stage 7.1 | cluster-health-lite plan | ✅ сервер |
-
----
-
-## План: этапы до конца
-
-### Критический путь
-
-```
-Stage 8 (RAG Retrieval) → Stage 9 (Agent Runtime) → Stage 11 (Personas)
-         ↓                       ↓
-    Stage 10 (MCP) → Tool Calling для агента
-```
-
-Минимальный viable продукт для целевого видения:
-1. Stage 8 — RAG retrieval
-2. Stage 9 — Agent runtime
-3. Stage 11 — Telegram personas
-4. Stage 15 — Ops hardening
+| Тема | Главный источник |
+| --- | --- |
+| Индекс документации | `README.md` |
+| Фактическое состояние стенда | `docs/passport.md` |
+| Эксплуатация и rollback | `docs/runbook.md` |
+| Текущая и целевая архитектура | `docs/architecture.md` |
+| Gateway baseline | `docs/gateway.md` |
+| Memory / RAG | `docs/memory.md` |
+| Telegram bot | `docs/telegram.md` |
+| Agent framework | `docs/agent-framework.md` |
+| Monitoring | `docs/monitoring.md` |
+| Security | `docs/security.md` |
+| Backups | `docs/backups.md` |
+| ADR / причины решений | `docs/decisions.md` |
+| История изменений | `docs/changelog.md` |
+| План действий | `docs/roadmap.md` (этот файл) |
 
 ---
 
-### Stage 8 — RAG Retrieval
+## 3. Текущий baseline (2026‑07‑01)
 
-**Цель:** Подключить RAG retrieval к клиентам.
-
-**Разрыв:** Ingestion есть (embeddings записаны в DB), retrieval нет. Ни Telegram, ни WebUI, ни агенты не используют RAG.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 8.1 | RAG retrieval API — HTTP-эндпоинт для semantic search | `codex/stage-8-rag-retrieval` |
-| 8.2 | RAG для Telegram — retrieval + контекст в system prompt | `codex/stage-8-rag-retrieval` |
-| 8.3 | RAG для Open WebUI — hook или plugin | `codex/stage-8-rag-retrieval` |
-| 8.4 | RAG для агентов — API для agent retrieval | `codex/stage-8-rag-retrieval` |
-
-**Затронутые файлы:**
-- `docker-compose.yaml` — новый сервис или расширение embedding-runtime
-- `scripts/memory-ingest-docs.py` — добавить retrieval mode
-- `src/telegram-bot/Program.cs` — RAG context injection
-- `docs/memory.md` — retrieval architecture
-- `docs/changelog.md`
-
-**Риск:** Низкий. DB и ingestion уже работают.
+* Home server `slowrig`, Docker Compose‑based.
+* Логическая цепочка:
+  ```text
+  Open WebUI (manual UI) → LiteLLM Gateway :4000 → llama‑coder (9B/fast, ctx 128k) :8081
+                                               ↘ llama‑architect (27B/deep, ctx 65000) :8080
+  ```
+* Сервисы в compose: `llama‑architect`, `llama‑coder`, `litellm`, `open-webui`, `memory-db`, `memory-embed`, `telegram-bot`, `ide-proxy` (IDE SSE heartbeat experiment).
+* Memory DB (`postgresql+pgvector`) и локальный embedding service (`memory-embed`) существуют; индексирован только проектный docs‑корпус.
+* Telegram bot — отдельный контейнер, всегда запускается, **без** profile.
+* Direct backend порт 8080/8081 оставлены для диагностики в LAN.
+* Multi‑node кластер — дальняя опция, не план ближайших стадий.
 
 ---
 
-### Stage 9 — Agent Runtime
+## 4. Стратегическая цель
 
-**Цель:** Сервис автономного агента с песочницей.
+> **Autonomous Development Agent** — контролируемый агент, способный готовить патчи, отчёты и выполнять согласованные действия, используя Gateway, Memory/RAG и безопасные tools с audit trail и rollback.
 
-**Разрыв:** Есть только `docs-drift-agent.sh` (bash-скрипт, работает на хосте). Нет сервиса, песочницы, tool calling, task queue.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 9.1 | Agent service design — orchestrator + worker | `codex/stage-9-agent-runtime` |
-| 9.2 | Agent sandbox — Docker container / worktree, resource limits | `codex/stage-9-agent-runtime` |
-| 9.3 | Agent orchestrator — task queue, plan parser, step executor, approval gate | `codex/stage-9-agent-runtime` |
-| 9.4 | Agent tools v1 — git, file, terminal, LLM, RAG | `codex/stage-9-agent-runtime` |
-| 9.5 | Agent API — HTTP API, WebSocket/SSE, Telegram integration | `codex/stage-9-agent-runtime` |
-
-**Затронутые файлы:**
-- `docker-compose.yaml` — agent-runtime сервис
-- `src/agent-runtime/` — новый каталог
-- `docs/agent-runtime.md` — новый документ
-- `docs/agents.md` — обновление
-- `docs/changelog.md`
-
-**Риск:** Средний. Новый сервис, требует careful sandboxing.
+Open WebUI остаётся ручным интерфейсом, Telegram — отдельным пользовательским интерфейсом, `ide-proxy` — эксперимент для VS Code/Copilot, **не** осевая архитектура. Никаких новых runtime‑зависимостей без отдельного design/approval stage.
 
 ---
 
-### Stage 10 — Tool Calling & MCP
-
-**Цель:** Tool calling и MCP для агента.
-
-**Разрыв:** Нет MCP server, нет tool definitions, нет tool calling в моделях.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 10.1 | MCP Server — protocol implementation | `codex/stage-10-mcp` |
-| 10.2 | Tool definitions — git, file, terminal, web, RAG | `codex/stage-10-mcp` |
-| 10.3 | Tool security — classification, approval flow, audit log | `codex/stage-10-mcp` |
-| 10.4 | Model tool calling — настроить llama.cpp | `codex/stage-10-mcp` |
-
-**Затронутые файлы:**
-- `config/litellm.config.yaml` — MCP configuration
-- `src/agent-runtime/` — MCP server
-- `docs/mcp.md` — новый документ
-- `docs/changelog.md`
-
-**Риск:** Средний. Зависит от поддержки tool calling в моделях.
-
----
-
-### Stage 11 — Telegram Personas & Auto-Chats
-
-**Цель:** Система персонажей, ролей и автономных чатов.
-
-**Разрыв:** Telegram бот — один монолитный файл, одна роль, только 1-on-1 диалог.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 11.1 | Persona system design — структура, хранение | `codex/stage-11-telegram-personas` |
-| 11.2 | Persona config files — YAML файлы персонажей | `codex/stage-11-telegram-personas` |
-| 11.3 | Telegram persona commands — /persona, /persona create | `codex/stage-11-telegram-personas` |
-| 11.4 | Auto-chat engine — group monitoring, trigger rules | `codex/stage-11-telegram-personas` |
-| 11.5 | Multi-agent dialogue — внутренние чаты между персонажами | `codex/stage-11-telegram-personas` |
-| 11.6 | RAG для персонажей — individual RAG corpus | `codex/stage-11-telegram-personas` |
-
-**Затронутые файлы:**
-- `src/telegram-bot/Program.cs` — рефакторинг + personas
-- `config/personas/` — новый каталог
-- `docs/personas.md` — новый документ
-- `docs/telegram.md` — обновление
-- `docs/changelog.md`
-
-**Риск:** Низкий-средний. Расширение существующего бота.
-
----
-
-### Stage 12 — Multi-Model & External API
-
-**Цель:** Поддержка нескольких моделей и внешних API.
-
-**Разрыв:** Только 2 локальные модели в LiteLLM, нет внешних API.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 12.1 | Model registry — реестр моделей, метаданные | `codex/stage-12-multi-model` |
-| 12.2 | External API models — провайдеры в LiteLLM | `codex/stage-12-multi-model` |
-| 12.3 | Dynamic model loading — hot-swap | `codex/stage-12-multi-model` |
-| 12.4 | Smart routing — по размеру, сложности, доступности | `codex/stage-12-multi-model` |
-
-**Затронутые файлы:**
-- `config/litellm.config.yaml` — новые модели
-- `docker-compose.yaml` — новые llama.cpp сервисы
-- `docs/gateway.md` — обновление
-- `docs/changelog.md`
-
-**Риск:** Низкий. LiteLLM уже поддерживает.
-
----
-
-### Stage 13 — Plugin System
-
-**Цель:** Система плагинов для расширения функционала.
-
-**Разрыв:** Нет системы плагинов.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 13.1 | Plugin architecture — manifest, lifecycle, sandboxing | `codex/stage-13-plugin-system` |
-| 13.2 | Plugin types — tools, personas, channels, RAG sources | `codex/stage-13-plugin-system` |
-| 13.3 | Plugin registry — config/plugins/ | `codex/stage-13-plugin-system` |
-| 13.4 | Plugin API — HTTP/gRPC, event system, security | `codex/stage-13-plugin-system` |
-
-**Затронутые файлы:**
-- `src/plugin-host/` — новый каталог
-- `config/plugins/` — новый каталог
-- `docs/plugins.md` — новый документ
-- `docs/changelog.md`
-
-**Риск:** Средний. Новая архитектура.
-
----
-
-### Stage 14 — Cluster Orchestration
-
-**Цель:** Поддержка нескольких серверов.
-
-**Разрыв:** Один сервер, нет оркестрации.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 14.1 | Multi-node design — leader/follower, discovery, LB | `codex/stage-14-cluster` |
-| 14.2 | LiteLLM multi-node — несколько backend-узлов | `codex/stage-14-cluster` |
-| 14.3 | Shared state — replication, config sync, secrets | `codex/stage-14-cluster` |
-| 14.4 | Node management — add/remove, GPU pool, model placement | `codex/stage-14-cluster` |
-
-**Затронутые файлы:**
-- `docker-compose.yaml` — multi-node
-- `config/` — cluster config
-- `docs/clustering.md` — новый документ
-- `docs/changelog.md`
-
-**Риск:** Высокий. Значительная архитектурная переделка.
-
----
-
-### Stage 15 — Ops Hardening
-
-**Цель:** Monitoring, security, backup runtime.
-
-**Разрыв:** Дизайн готов, runtime не реализован.
-
-**Подэтапы:**
-
-| Подэтап | Описание | Ветка |
-| --- | --- | --- |
-| 15.1 | cluster-health-lite.sh — реализовать и запустить | `codex/stage-15-ops-hardening` |
-| 15.2 | Security hardening — auth, firewall, VPN | `codex/stage-15-ops-hardening` |
-| 15.3 | Backup automation — pg_dump, retention, restore test | `codex/stage-15-ops-hardening` |
-| 15.4 | Monitoring dashboard — GPU, services, alerts | `codex/stage-15-ops-hardening` |
-
-**Затронутые файлы:**
-- `scripts/cluster-health-lite.sh` — новый файл
-- `docker-compose.yaml` — monitoring сервисы
-- `docs/monitoring.md` — обновление
-- `docs/security.md` — обновление
-- `docs/backups.md` — обновление
-- `docs/changelog.md`
-
-**Риск:** Низкий. Дизайн готов.
-
----
-
-## Несоответствия с текущим состоянием
-
-| Проблема | Где | Решение |
-| --- | --- | --- |
-| RAG ingestion работает, retrieval нет | `memory-ingest-docs.py` | Stage 8.1 |
-| Telegram бот — монолит | `Program.cs` ~500 строк | Stage 11 |
-| LiteLLM config минимальный | 2 модели, нет tool calling | Stage 10 |
-| Нет agent state storage | Только docs chunks в DB | Stage 9.3 |
-| Нет approval workflow | Агенты не запрашивают approval | Stage 9.3 |
-| Нет sandbox isolation | `docs-drift-agent.sh` на хосте | Stage 9.2 |
-| Backup только ручной | 6 dump-файлов без retention | Stage 15.3 |
-| Security только на бумаге | Порты открыты, auth выключен | Stage 15.2 |
-| Нет health monitoring | Только ручной `cluster-status.sh` | Stage 15.1 |
-
----
-
-## Веточная стратегия
+## 5. Критический путь
 
 ```text
-codex/main  ← активная интеграционная ветка
-  ├── codex/stage-8-rag-retrieval
-  ├── codex/stage-9-agent-runtime
-  ├── codex/stage-10-mcp
-  ├── codex/stage-11-telegram-personas
-  ├── codex/stage-12-multi-model
-  ├── codex/stage-13-plugin-system
-  ├── codex/stage-14-cluster
-  └── codex/stage-15-ops-hardening
-
-master — не используется
+Stage 8  Docs alignment  →  Stage 9  RAG Retrieval v1 (Telegram)  →
+Stage 10 Agent Runtime design  →  Stage 11 Agent Runtime MVP  →
+Stage 12 Tool permissions/Approval v1  →  Stage 13 MCP decision  →
+Stage 14 Telegram→Agent escalation  →  Stage 15 Ops hardening continuation
 ```
-
-Порядок работы:
-1. создать `codex/stage-X` от `codex/main`
-2. реализовать и проверить на сервере через `ssh discover@slowrig`
-3. merge в `codex/main` после approval
-4. следующий stage от обновлённого `codex/main`
 
 ---
 
-## Рекомендованный порядок
+## 6. Текущий docs‑only stage
 
-1. **Stage 8** — RAG Retrieval (неделя) → сразу полезно для Telegram и WebUI
-2. **Stage 15.1** — cluster-health-lite.sh (день) → операционная стабильность
-3. **Stage 9** — Agent Runtime (2-3 недели) → основа для автономной разработки
-4. **Stage 11** — Telegram Personas (неделя) → роли, персонажи, авто-чаты
-5. **Stage 10** — Tool Calling & MCP (неделя) → инструменты для агента
-6. **Stage 12** — Multi-Model & External API (неделя) → масштабирование
-7. **Stage 13** — Plugin System (2 недели) → расширяемость
-8. **Stage 14** — Cluster Orchestration (3-4 недели) → несколько серверов
-9. **Stage 15** — Ops Hardening (неделя) → финальная стабилизация
+### Stage 8 — Roadmap / documentation alignment  *(docs‑only)*
+
+| Поле | Значение |
+| --- | --- |
+| **Цель** | Сделать этот файл главным планом, удалить устаревшие ссылки, зафиксировать `ctx‑size 65000` для llama‑architect, указать telegram‑bot как always‑on сервис, отметить `ide-proxy` как эксперимент. |
+| **Scope** | Только правки Markdown / docs. |
+| **Non‑goals** | Нет runtime изменений, новых сервисов, миграций или рестартов. |
+| **Artifacts** | Обновлённые `docs/roadmap.md`, README, ссылки в docs, удалены мёртвые ссылки `docs/stage*-summary.md`, `docs/agents.md`. |
+| **Validation** | `git diff --check`, `scripts/docs-drift-agent.sh`, ручной просмотр. |
+| **Rollback** | `git checkout -- docs/roadmap.md README.md docs/`. |
+
+---
+
+## 7. Ближайшие этапы
+
+### Stage 9 — RAG Retrieval v1 для Telegram *(runtime)*
+
+* **Goal:** read‑only Retrieval API или модуль поверх `memory-db`, доступный Telegram‑боту (`/rag` или auto‑context).
+* **Depends on:** Stage 8 docs alignment.
+* **Non‑goals:** RAG hook для Open WebUI, chat history ingestion, Memory writes.
+* **Artifacts:** update `docs/memory.md`, `docs/telegram.md`, new retrieval code/tests.
+
+### Stage 10 — Agent Runtime design *(docs‑only)*
+
+* Shape & sandbox model, task state, approval flow, audit trail.
+* Decide if lightweight script/service is enough; no code.
+
+### Stage 11 — Agent Runtime minimal implementation *(runtime)*
+
+* One safe workflow: docs drift / patch assistant.
+* Isolated worktree, patch output, human approval gate.
+
+### Stage 12 — Tool permissions / approval v1 *(docs + optional small script)*
+
+* Diagnostics allowlist, dangerous action classes, approval format, audit log schema.
+
+### Stage 13 — MCP design decision *(docs‑only)*
+
+* Do we need MCP? boundaries, adapter vs server, interaction with tools.
+
+### Stage 14 — Telegram→Agent escalation *(runtime)*
+
+* Command or flow to trigger agent task from Telegram, keeping no‑shell boundary.
+
+### Stage 15 — Ops hardening continuation *(runtime + docs)*
+
+* Health‑lite automation decision (cron/timer), backup restore dry‑run, auth/policy hardening, direct ports decision, monitoring stack plan.
+
+---
+
+## 8. Long‑range options (отложены)
+
+* Multi‑node cluster & orchestrator.
+* Plugin System / extensible tools registry.
+* External UI integrations beyond Telegram & WebUI.
+
+---
+
+## 9. Открытые архитектурные развилки
+
+* **Agent Runtime** – runtime shape, task state storage, sandbox strategy.
+* **MCP** – нужен ли, если да – форма и безопасность.
+* **Plugin System** – когда понадобятся расширяемые tools / personas / RAG sources.
+* **RAG retrieval format** – DB query vs HTTP layer, provenance delivery.
+* **Security hardening** – VPN vs reverse proxy, direct backend ports, auth for WebUI.
+
+---
+
+## 10. Правила изменения roadmap
+
+1. Изменяй roadmap только после решения/approval.
+2. Завершённые стадии переносятся в `docs/changelog.md`; roadmap хранит **только будущее**.
+3. Не добавляй новые runtime‑зависимости здесь без отдельного design‑stage.
+4. Крупный форк? — сначала ADR + design doc, потом обновление roadmap.

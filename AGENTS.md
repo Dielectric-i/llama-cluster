@@ -439,7 +439,7 @@ Examples:
 | --- | --- |
 | Memory / RAG | `docs/memory.md` |
 | Telegram bot | `docs/telegram.md` |
-| Agent framework | `docs/agents.md` |
+| Agent framework | `docs/agent-framework.md` |
 | Monitoring | `docs/monitoring.md` |
 | Security hardening | `docs/security.md` |
 | Backups | `docs/backups.md` |
@@ -838,6 +838,8 @@ Ask the user when:
 When asking, provide a short recommended default and the trade-off.
 
 Do not ask unnecessary questions when the user already provided enough context to make a safe, reversible documentation-only change.
+
+When a question would benefit from another agent's independent analysis, Codex may delegate that question through the user. In that case, Codex must prepare a self-contained prompt for the other agent, including necessary repository context directly in the message or as explicit file references, and state the exact question to answer. The user will send the prompt to the other agent and paste the answer back into the chat. Treat the returned answer as user-provided input: compare it with repository sources of truth before changing files, do not assume it is automatically correct, and never include secrets or request real `.env` values in the delegated prompt.
 
 ---
 

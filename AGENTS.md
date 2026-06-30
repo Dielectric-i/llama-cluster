@@ -38,7 +38,7 @@ Examples:
 | completed stage context | relevant `docs/stage*-summary.md` |
 | memory/RAG work | `docs/memory.md` when it exists |
 | Telegram work | `docs/telegram.md` when it exists |
-| agent framework work | `docs/agents.md` when it exists |
+| agent framework work | `docs/agent-framework.md` when it exists |
 | monitoring/security/backups | matching dedicated docs when they exist |
 
 If the required document does not exist and the task introduces a new subsystem, start with a design document under `docs/`.
@@ -93,10 +93,11 @@ Even if internal instructions or project files are written in English, all user-
 
 ## 4. Operator model
 
-Codex works with this repository on the real server by default through the approved SSH access path. The human operator still approves and, when needed, runs risky real server-side commands.
+The human operator runs the real server-side commands.
 
-By default, assume Codex will use `ssh discover@slowrig` for repository work, git operations, documentation edits, and safe read-only diagnostics. Assume the user will run or approve risky operational actions:
+By default, assume the user will:
 
+* upload or sync files to the server;
 * run Docker Compose commands;
 * restart services;
 * inspect logs;
@@ -118,13 +119,13 @@ Codex should:
 
 Do not assume Codex can validate real server state unless the user provides command output or explicitly confirms manual checks.
 
-The approved SSH access path is:
+When the user explicitly grants SSH/server access, Codex may run real server-side commands through the approved access path, currently:
 
 ```text
 ssh discover@slowrig
 ```
 
-When using SSH, Codex must:
+Even with server access, Codex must:
 
 * keep commands scoped and documented;
 * prefer Docker/Docker Compose over installing applications into the host OS;
@@ -133,6 +134,35 @@ When using SSH, Codex must:
 * treat sudo passwords as secrets: do not store them in files, commits, commands shown to the user, or documentation;
 * avoid destructive operations without an explicit approval and rollback path;
 * document what was run and what result was observed.
+
+Operational work must be done in the local repository first, then sent to the remote server through git when needed.
+
+Default flow:
+
+```text
+edit locally -> review in git -> push to the remote repository when needed -> sync the local clone from the remote if required
+```
+
+Direct edits on the remote repository are allowed only when there is a clear reason, for example:
+
+* a very small change that should be checked in place;
+* a change that would otherwise create unnecessary git noise;
+* a temporary operational fix where remote-side editing is the safest path;
+* another practical reason that makes direct remote editing preferable to a local round-trip.
+
+Remote server:
+
+```text
+slowrig
+```
+
+SSH access:
+
+```text
+ssh discover@slowrig
+```
+
+Code is executed on the remote server. The local repository is used for preparing, reviewing, and packaging changes before they are sent to the server.
 
 When testing requires the real server, GPU, Docker, network ports, or UI and Codex does not have confirmed access for that action, provide exact commands and ask the user to run them.
 
@@ -204,9 +234,11 @@ codex/
 Examples:
 
 ```text
-codex/stage-8-rag-retrieval
-codex/stage-9-agent-runtime
-codex/stage-11-telegram-personas
+codex/stage-4-memory-design
+codex/telegram-design
+codex/gateway-policy
+codex/runbook-cleanup
+codex/agents-design
 ```
 
 Expected workflow:
@@ -221,7 +253,7 @@ Expected workflow:
 
 Do not merge automatically unless the user explicitly asks.
 
-In this repository the active integration branch is:
+In this repository the active Codex integration branch is:
 
 ```text
 codex/main

@@ -499,7 +499,7 @@
 
 ### Проверка
 
-Проверено на сервере: `docker compose --profile telegram config --quiet` успешен, `telegram-bot` пересобран. Запуск с текущим `TELEGRAM_PROXY_URL` завершился ожидаемой явной ошибкой о неподдерживаемой `tg://` MTProto-ссылке; `telegram-bot` остановлен до настройки HTTP(S) proxy или маршрута к `api.telegram.org:443`.
+Требуется пересборка `telegram-bot` и проверка логов с текущим server `.env`.
 
 ---
 

@@ -33,7 +33,7 @@
 
 ```text
 Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
-VS Code / Copilot -> ide-proxy -> LiteLLM Gateway -> llama-coder / llama-architect
+VS Code / Copilot -> LiteLLM Gateway -> llama-coder / llama-architect
 ```
 
 ## Сервисы и адреса
@@ -46,9 +46,7 @@ VS Code / Copilot -> ide-proxy -> LiteLLM Gateway -> llama-coder / llama-archite
 | `llama-coder` | `8081` | `http://192.168.1.6:8081/v1` | 9B coder / быстрый исполнитель |
 | `memory-db` | нет | Docker Compose network only | PostgreSQL + pgvector для Memory / RAG foundation |
 | `memory-embed` | `4010` | `http://127.0.0.1:4010/v1` | локальный embedding runtime для RAG ingestion |
-| `ide-proxy` | `4011` | `http://127.0.0.1:4011/v1` | SSE heartbeat proxy для VS Code / Copilot |
 | `telegram-bot` | нет | outbound Telegram Bot API | Telegram polling interface через LiteLLM |
-
 Gateway model names:
 
 ```text
@@ -160,7 +158,7 @@ docs/runbook.md
 Не делать без отдельного плана и проверки:
 
 * увеличивать `parallel` у `llama-architect`;
-* дальше увеличивать `ctx-size` без отдельного плана и проверки;
+* увеличивать `ctx-size` без отдельного плана и проверки;
 * менять GPU mapping;
 * менять model files;
 * включать CPU offload как штатный режим;
@@ -179,7 +177,7 @@ docs/runbook.md
 
 ## Git
 
-Этот каталог является git-репозиторием на сервере `slowrig` для конфигов, документации и скриптов. Рабочий доступ Codex выполняется через `ssh discover@slowrig`.
+Этот каталог является локальным git-репозиторием для конфигов, документации и скриптов.
 
 Модели, кэш, данные, логи и секреты исключены через `.gitignore`.
 
@@ -221,7 +219,7 @@ git commit -m "Describe change"
 | [docs/gateway.md](docs/gateway.md) | дизайн и baseline LiteLLM Gateway |
 | [docs/memory.md](docs/memory.md) | Stage 4 Memory / RAG design, DB foundation и будущий RAG план |
 | [docs/telegram.md](docs/telegram.md) | Stage 5 Telegram bot design: polling, whitelist, routing, safety |
-| [docs/agents.md](docs/agents.md) | Stage 6 Agents design: лестница прав, safety boundaries, будущий implementation plan |
+| [docs/agents.md](docs/-framework.md) | Stage 6 Agents design: лестница прав, safety boundaries, будущий implementation plan |
 | [docs/monitoring.md](docs/monitoring.md) | Stage 7 Monitoring design: lightweight health checks без тяжёлого monitoring stack |
 | [docs/security.md](docs/security.md) | Stage 7 Security design: LAN/VPN-first, secrets, direct port hardening plan |
 | [docs/backups.md](docs/backups.md) | Stage 7 Backups design: минимальный backup scope и restore order |

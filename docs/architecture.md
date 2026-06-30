@@ -1,6 +1,6 @@
 # slowrig AI Cluster — Architecture v0.2
 
-Дата актуализации: 2026-06-23
+Дата актуализации: 2026-06-22
 Статус: текущая и целевая архитектура проекта
 
 ## 1. Назначение документа
@@ -43,9 +43,9 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
-| Stage 5 | Telegram bot                    | runtime внедрён; Cloudflare short polling работает; thinking disabled через request params |
-| Stage 6 | Agents                          | baseline завершён; `docs-drift-agent.sh` реализован |
-| Stage 7 | Monitoring / Security / Backups | design docs добавлены; runtime не внедрён |
+| Stage 5 | Telegram bot                    | runtime code/config добавлены; Telegram UI validation pending |
+| Stage 6 | Agent framework                 | запланировано          |
+| Stage 7 | Monitoring / Security / Backups | запланировано          |
 
 Ключевое текущее состояние:
 
@@ -55,7 +55,6 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * прямые backend-порты сохранены для диагностики;
 * memory/RAG foundation внедрён, local docs ingestion добавлен;
 * Telegram bot runtime внедрён как C#/.NET service в Compose profile `telegram`; Cloudflare short polling и LiteLLM path проверены;
-* Stage 6 agents baseline завершён: docs drift helper реализован без framework и без опасных прав;
 * полноценный monitoring/security/backups stage ещё не внедрён.
 
 ---
@@ -388,7 +387,7 @@ dangerous actions require explicit human approval
 Статус:
 
 ```text
-baseline completed; docs drift helper implemented; no autonomous runtime service
+runtime code/config added; Telegram UI validation pending
 ```
 
 Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
@@ -409,32 +408,23 @@ LiteLLM Gateway
   +--> Task State
 ```
 
-Принятый первый вариант:
+Возможные варианты:
 
-```text
-custom lightweight orchestration / Codex-driven workflow
-```
-
-Первый concrete workflow:
-
-```text
-docs drift / repo patch assistant
-```
-
-Будущие возможные роли:
-
+* CrewAI;
+* OpenClaw;
+* custom lightweight orchestrator;
 * repo-auditor;
 * documentation worker;
 * code-review worker;
 * ops diagnostic worker.
 
-Основной документ:
+До внедрения нужен отдельный документ:
 
 ```text
-docs/agents.md
+docs/agent-framework.md
 ```
 
-Agent design определяет:
+Agent design должен определить:
 
 * какие агенты нужны;
 * какие модели они используют;
@@ -990,7 +980,7 @@ baseline completed; docs drift helper implemented; no autonomous runtime service
 Первый шаг:
 
 ```text
-docs/agents.md
+docs/agent-framework.md
 ```
 
 Цель:
@@ -1117,10 +1107,12 @@ routing по сложности лучше отложить до agent/memory de
 
 Открытые вопросы:
 
-* точный Level 2 diagnostics allowlist;
-* нужен ли task queue или достаточно git branches + markdown reports;
-* где хранить persistent agent state, если он понадобится;
-* когда подключать Telegram-to-agent escalation.
+* CrewAI, OpenClaw или custom orchestrator;
+* какие agent roles нужны;
+* где хранить task state;
+* какие tools разрешить;
+* как оформлять approvals;
+* где хранить результаты работы.
 
 ---
 

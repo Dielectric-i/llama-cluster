@@ -51,7 +51,7 @@ Memory / RAG должен помогать:
 
 ---
 
-## 3. Non-goals
+## 3. Не-цели
 
 Stage 4.1 не должен:
 
@@ -67,7 +67,7 @@ Stage 4.1 не должен:
 
 ---
 
-## 4. Current baseline
+## 4. Текущий baseline
 
 Текущий baseline:
 
@@ -85,7 +85,7 @@ slowrig/architect
 Текущее состояние Memory / RAG:
 
 ```text
-memory-db implemented; local docs ingestion implemented in Stage 4.4
+memory-db внедрён; local docs ingestion внедрён в Stage 4.4
 ```
 
 Текущий source of truth:
@@ -106,7 +106,7 @@ Markdown + Git
 
 ---
 
-## 5. Source of truth and derived data
+## 5. Source of truth и derived data
 
 Главное правило:
 
@@ -199,7 +199,7 @@ LiteLLM остаётся inference gateway, а не memory layer.
 
 ---
 
-## 8. Candidate stacks
+## 8. Кандидаты stack
 
 ## 8.1 Markdown + Git only
 
@@ -368,7 +368,7 @@ Qwen3-Embedding-0.6B-Q8_0.gguf
 
 ---
 
-## 10. Future minimal schema areas
+## 10. Будущие минимальные области schema
 
 Это не финальная SQL-схема, а список областей, которые нужно спроектировать перед implementation:
 
@@ -386,7 +386,7 @@ Qwen3-Embedding-0.6B-Q8_0.gguf
 
 ---
 
-## 11. Security and privacy
+## 11. Безопасность и приватность
 
 Memory / RAG увеличивает риск случайного сохранения чувствительных данных.
 
@@ -406,7 +406,7 @@ Memory / RAG увеличивает риск случайного сохране
 
 ---
 
-## 12. Backup and restore
+## 12. Backup и restore
 
 Минимальный backup/restore contract для будущего DB stage:
 
@@ -448,7 +448,7 @@ scripts/backup-memory-db.sh
 Статус:
 
 ```text
-documentation-only plan; runtime not implemented
+documentation-only plan; runtime не внедрён
 ```
 
 Цель Stage 4.2:
@@ -460,7 +460,7 @@ documentation-only plan; runtime not implemented
 * подготовить rollback для будущего Stage 4.3;
 * оставить embeddings runtime для отдельного Stage 4.4.
 
-Non-goals Stage 4.2:
+Не-цели Stage 4.2:
 
 * не менять `docker-compose.yaml`;
 * не добавлять PostgreSQL service;
@@ -515,7 +515,7 @@ sudo docker compose exec memory-db psql
 Статус:
 
 ```text
-implemented in config; requires operator validation on server
+внедрено в config; требуется operator validation на сервере
 ```
 
 Stage 4.3 добавляет:
@@ -581,7 +581,7 @@ docs/*.md
 
 ---
 
-## 16. Manual checks
+## 16. Ручные проверки
 
 Локальные проверки repository-side:
 
@@ -644,7 +644,7 @@ Codex не может считать Stage 4.3 server-validated, пока опе
 
 ---
 
-## 17. Rollback
+## 17. Откат
 
 Если `memory-db` ещё не содержит полезных данных:
 
@@ -696,7 +696,7 @@ sudo docker compose down -v
 Статус:
 
 ```text
-implemented and server-validated
+внедрено и проверено на сервере
 ```
 
 Stage 4.4 добавляет:

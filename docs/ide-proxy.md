@@ -71,7 +71,7 @@ Health check. Возвращает:
    - При завершении upstream корректно завершает downstream
 4. Non-streaming mode: простой pass-through
 
-## Environment variables
+## Переменные окружения
 
 | Переменная | По умолчанию | Описание |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ Health check. Возвращает:
 - Пока логи не показали `upstream_done` или `client_disconnect`
 - Второй запрос получит HTTP 429 (busy_rejected)
 
-## Troubleshooting
+## Диагностика проблем
 
 ### Прокси не отвечает
 
@@ -180,10 +180,10 @@ watch -n 2 'curl -sS http://127.0.0.1:4011/debug/active | jq'
 5. ✅ Big streaming request через curl живёт > 300 секунд и получает heartbeat
 6. ✅ Big streaming request через VS Code не падает через 300 секунд
 7. ✅ При занятом architect второй request получает 429
-8. ✅ Rollback простой
-9. ✅ Open WebUI не затронут
+8. Откат простой
+9. Open WebUI не затронут
 
-## Rollback
+## Откат
 
 1. В VS Code вернуть `serverUrl`:
    ```json
@@ -199,7 +199,7 @@ watch -n 2 'curl -sS http://127.0.0.1:4011/debug/active | jq'
 3. Если нужно полностью убрать:
    ```bash
    sudo docker compose rm -f ide-proxy
-   sudo docker compose down ide-proxy
+   sudo docker compose rm -f ide-proxy
    ```
 
 4. Вернуть изменения через git:

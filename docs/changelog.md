@@ -1,7 +1,32 @@
 # slowrig AI Cluster — Changelog v0.2
 
-Дата актуализации: 2026-06-30
+Дата актуализации: 2026-07-12
 Статус: журнал фактических изменений, проверок и измерений
+
+## 2026-07-12 — Stage 8 docs alignment
+
+### Изменено
+
+* `README.md` переписан как главный индекс и быстрый вход в документацию.
+* Удалены лишние документы `docs/index.md` и `proxy/ide-proxy/README.md`.
+* Актуальные ссылки `docs/agents.md` заменены на `docs/agent-framework.md`; текущие ссылки на удалённые stage summary-файлы убраны.
+* Документация синхронизирована с текущими фактами: `telegram-bot` без Compose profile, `llama-architect ctx-size 65000`, `ide-proxy` как реализованный эксперимент.
+* `docs/roadmap.md` переписан на русском и уточняет порядок Stage 9-15.
+* `scripts/docs-drift-agent.sh` обновлён под текущие paths и drift checks.
+
+### Проверка
+
+* Изменение documentation-only; server/runtime checks не требуются.
+* Проверить локально: `git diff --stat`, `git diff --check`, Markdown link check, drift search.
+* На Linux/сервере дополнительно проверить: `bash -n scripts/docs-drift-agent.sh` и `scripts/docs-drift-agent.sh`.
+
+### Результат
+
+* `README.md` заменяет отдельный `docs/index.md`.
+* Operational docs больше не подсказывают запускать `telegram-bot` через старый profile-mode.
+* Исторические записи changelog сохранены как история, даже если в них встречаются старые paths или старые команды.
+
+---
 
 ## 2026-06-30 — Codex SSH workflow and branch prefix restored
 
@@ -56,7 +81,7 @@
 
 * Порт 4011 выбран, так как 4010 занят memory-embed
 * Open WebUI не затронут — продолжает работать через LiteLLM:4000
-* Rollback: вернуть serverUrl на 4000 и остановить ide-proxy
+* Откат: вернуть serverUrl на 4000 и остановить ide-proxy
 
 ---
 

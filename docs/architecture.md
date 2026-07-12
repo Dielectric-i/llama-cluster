@@ -43,9 +43,9 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 | Stage 2 | Operational foundation          | завершён               |
 | Stage 3 | Gateway baseline                | завершён               |
 | Stage 4 | Memory / RAG                    | Stage 4.4 Local RAG ingestion внедрён и проверен |
-| Stage 5 | Telegram bot                    | runtime code/config добавлены; Telegram UI validation pending |
-| Stage 6 | Agent framework                 | запланировано          |
-| Stage 7 | Monitoring / Security / Backups | запланировано          |
+| Stage 5 | Telegram bot                    | runtime внедрён; Cloudflare short polling и LiteLLM path проверены |
+| Stage 6 | Agent framework                 | baseline завершён; docs drift helper внедрён |
+| Stage 7 | Monitoring / Security / Backups | design завершён; health/backup helpers внедрены частично |
 
 Ключевое текущее состояние:
 
@@ -54,8 +54,8 @@ Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 * Open WebUI подключён через LiteLLM;
 * прямые backend-порты сохранены для диагностики;
 * memory/RAG foundation внедрён, local docs ingestion добавлен;
-* Telegram bot runtime внедрён как C#/.NET service в Compose profile `telegram`; Cloudflare short polling и LiteLLM path проверены;
-* полноценный monitoring/security/backups stage ещё не внедрён.
+* Telegram bot runtime внедрён как C#/.NET service без Compose profile; Cloudflare short polling и LiteLLM path проверены;
+* Stage 7 design завершён; `cluster-health-lite.sh` и manual `memory-db` backup helper внедрены, но automation/hardening не включены.
 
 ---
 
@@ -280,7 +280,7 @@ docs/runbook.md
 Статус:
 
 ```text
-DB foundation implemented; local docs ingestion added in Stage 4.4
+DB foundation внедрён; local docs ingestion добавлен в Stage 4.4
 ```
 
 Текущий stage:
@@ -346,7 +346,7 @@ corpus: README.md, AGENTS.md, docs/*.md
 Статус:
 
 ```text
-not implemented as separate subsystem
+не внедрён как отдельный subsystem
 ```
 
 Tools layer нужен, чтобы будущие агенты и интерфейсы могли безопасно выполнять ограниченные действия.
@@ -387,7 +387,7 @@ dangerous actions require explicit human approval
 Статус:
 
 ```text
-runtime code/config added; Telegram UI validation pending
+baseline завершён; docs drift helper внедрён; autonomous runtime service отсутствует
 ```
 
 Будущий agent layer должен использовать gateway, memory и tools, а не обращаться хаотично к backend-ам напрямую.
@@ -442,7 +442,7 @@ Agent design должен определить:
 Статус:
 
 ```text
-runtime implemented; polling + whitelist through LiteLLM; no shell access
+runtime внедрён; polling + whitelist через LiteLLM; shell access отсутствует
 ```
 
 Telegram bot должен быть отдельным интерфейсом, а не заменой Open WebUI и не agent framework.
@@ -586,7 +586,7 @@ docs/security.md
 Статус:
 
 ```text
-partial: memory-db backup script exists; full backup subsystem not implemented
+частично: memory-db backup script есть; полный backup subsystem не внедрён
 ```
 
 Существующие компоненты:
@@ -679,7 +679,7 @@ dangerous operations require approval
 Статус:
 
 ```text
-implemented
+внедрено
 ```
 
 Схема:
@@ -702,7 +702,7 @@ User -> Open WebUI -> LiteLLM -> slowrig/coder or slowrig/architect
 Статус:
 
 ```text
-implemented for diagnostics
+внедрено для диагностики
 ```
 
 Схема:
@@ -727,7 +727,7 @@ User/admin -> 8081 -> llama-coder
 Статус:
 
 ```text
-implemented as polling bot service under Compose profile telegram
+внедрён как polling bot service без Compose profile
 ```
 
 Схема:
@@ -751,7 +751,7 @@ Runtime использует C#/.NET service `telegram-bot`, whitelist, LiteLLM 
 Статус:
 
 ```text
-planned
+запланировано
 ```
 
 Схема:
@@ -777,7 +777,7 @@ IDE -> LiteLLM -> slowrig/coder / slowrig/architect
 Статус:
 
 ```text
-planned
+запланировано
 ```
 
 Схема:
@@ -903,7 +903,7 @@ completed
 Статус:
 
 ```text
-Stage 4.4 Local RAG ingestion implemented and server-validated
+Stage 4.4 Local RAG ingestion внедрён и проверен на сервере
 ```
 
 Принятый порядок:
@@ -939,7 +939,7 @@ docs/memory.md
 Статус:
 
 ```text
-runtime implemented; transport and LiteLLM path validated
+runtime внедрён; transport и LiteLLM path проверены
 ```
 
 Первый шаг:
@@ -965,7 +965,7 @@ polling, whitelist, LiteLLM Gateway, default slowrig/coder, explicit slowrig/arc
 
 Stage 5.1 implementation plan выбирал минимальный runtime без отдельной Telegram framework/library. Stage 5.2 по запросу пользователя переделан на C#/.NET runtime с `HttpClient`.
 
-Stage 5.2 добавил `src/telegram-bot` и Compose service `telegram-bot` в profile `telegram`. Обычный `docker compose up -d` не стартует bot; запуск выполняется через profile `telegram`. Stage 5.5 перевёл Cloudflare transport на short polling, Stage 5.6 отключил Qwen/llama.cpp thinking через `chat_template_kwargs.enable_thinking=false`.
+Stage 5.2 добавил `src/telegram-bot` и Compose service `telegram-bot`. Позже профили удалены: `telegram-bot` запускается обычной командой `docker compose up -d telegram-bot` или вместе с текущим Compose state. Stage 5.5 перевёл Cloudflare transport на short polling, Stage 5.6 отключил Qwen/llama.cpp thinking через `chat_template_kwargs.enable_thinking=false`.
 
 ---
 
@@ -974,7 +974,7 @@ Stage 5.2 добавил `src/telegram-bot` и Compose service `telegram-bot` в
 Статус:
 
 ```text
-baseline completed; docs drift helper implemented; no autonomous runtime service
+baseline завершён; docs drift helper внедрён; autonomous runtime service отсутствует
 ```
 
 Первый шаг:
@@ -999,7 +999,7 @@ docs/agent-framework.md
 Статус:
 
 ```text
-design documented; runtime hardening/automation not implemented
+design задокументирован; runtime hardening/automation не внедрены
 ```
 
 Design docs:
@@ -1139,7 +1139,7 @@ routing по сложности лучше отложить до agent/memory de
 * model role;
 * stage roadmap;
 * subsystem boundaries;
-* planned architecture;
+* планируемая архитектура;
 * security posture на уровне архитектуры;
 * решение о memory, Telegram, agents, monitoring или backups.
 

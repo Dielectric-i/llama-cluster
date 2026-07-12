@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Monitoring Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 7 design; Stage 7.1 `cluster-health-lite.sh` implemented
+Статус: Stage 7 design; Stage 7.1 `cluster-health-lite.sh` внедрён
 
 ## 1. Назначение
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 2. Non-goals
+## 2. Не-цели
 
 Stage 7 monitoring design не добавляет:
 
@@ -74,7 +74,7 @@ Monitoring script не должен:
 Статус:
 
 ```text
-implemented
+внедрено
 ```
 
 ### Цель
@@ -93,7 +93,7 @@ implemented
 | --- | --- | --- | --- |
 | repo path | `/opt/llama-cluster` существует | нет каталога | git dirty не failure |
 | Docker daemon | `docker ps` отвечает | Docker недоступен | нет |
-| containers | expected containers running | core container stopped | optional/profile container stopped |
+| containers | expected containers running | core container stopped | optional/experimental container stopped |
 | disk | `/` и project filesystem usage | >= 95% | >= 85% |
 | memory | host memory pressure | swap активно и memory high | memory high |
 | GPU visibility | `nvidia-smi` видит GPU | no GPUs visible | high VRAM pressure |
@@ -101,7 +101,7 @@ implemented
 | backend readiness | `/v1/models` на `8080` и `8081` | no response | slow response |
 | memory-db readiness | container health / pg_isready if cheap | DB unhealthy | health unknown |
 | memory-embed readiness | `127.0.0.1:4010/v1/models` | no response if service expected | slow response |
-| telegram-bot | container running when profile enabled | stopped while expected | recent polling errors |
+| telegram-bot | container running | stopped while expected | recent polling errors |
 
 Не делать в v1:
 
@@ -121,7 +121,7 @@ implemented
 OK      service/litellm models endpoint answered
 WARN    disk/root usage=87%
 FAIL    docker daemon unavailable
-INFO    telegram-bot profile service not running
+INFO    optional service not running: ide-proxy
 ```
 
 Последняя строка:
@@ -157,7 +157,7 @@ set +a
 * писать `.env` values в logs;
 * отправлять secrets в Memory/RAG.
 
-### Rollback
+### Откат
 
 Если будущий script окажется шумным или неверным:
 
@@ -167,7 +167,7 @@ git checkout -- scripts/cluster-health-lite.sh docs/monitoring.md docs/changelog
 
 Если позже будет добавлен timer/cron, он должен иметь отдельный rollback.
 
-### Implementation boundary
+### Граница реализации
 
 Stage 7.1 реализовал `scripts/cluster-health-lite.sh`, но не добавил cron/systemd timer, alerting или automated remediation. Любая автоматизация запуска требует отдельного approval.
 

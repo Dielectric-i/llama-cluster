@@ -412,7 +412,7 @@ ctx-size 40000
 Текущий baseline:
 
 ```text
-llama-architect: ctx-size 60000, tensor-split 1.06,1, parallel 1
+llama-architect: ctx-size 65000, tensor-split 1.06,1, parallel 1
 llama-coder:     ctx-size 128000, parallel 1
 ```
 
@@ -420,7 +420,7 @@ llama-coder:     ctx-size 128000, parallel 1
 
 `llama-coder` используется как быстрый рабочий backend для Telegram, Open WebUI и обычных задач, где большой рабочий контекст полезен для логов, документации и кода.
 
-`llama-architect` остаётся тяжёлым backend для сложных задач. Умеренное увеличение контекста до `60000` принято вместе с `tensor-split 1.06,1`, так как текущая серверная конфигурация работает стабильно с такими параметрами.
+`llama-architect` остаётся тяжёлым backend для сложных задач. Увеличение контекста до `65000` принято вместе с `tensor-split 1.06,1`, так как текущая серверная конфигурация работает стабильно с такими параметрами.
 
 ### Компромисс
 
@@ -1070,7 +1070,7 @@ Direct backend-порты позволяют быстро понять:
 | ------------------ | -------------------- |
 | Memory / RAG       | `docs/memory.md`     |
 | Telegram bot       | `docs/telegram.md`   |
-| Agent framework    | `docs/agents.md`     |
+| Agent framework    | `docs/agent-framework.md` |
 | Monitoring         | `docs/monitoring.md` |
 | Security hardening | `docs/security.md`   |
 | Backups            | `docs/backups.md`    |
@@ -1608,7 +1608,7 @@ C# даёт типизированный компактный service без Pyt
 
 Дата: 2026-06-23
 Статус: принято; design добавлен
-Связанные документы: `docs/agents.md`, `docs/codex-context.md`, `docs/changelog.md`
+Связанные документы: `docs/agent-framework.md`, `docs/codex-context.md`, `docs/changelog.md`
 
 ### Контекст
 
@@ -1652,7 +1652,7 @@ read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox
 
 Дата: 2026-06-23
 Статус: принято и внедрено
-Связанные документы: `docs/agents.md`, `docs/codex-context.md`, `docs/changelog.md`
+Связанные документы: `docs/agent-framework.md`, `docs/codex-context.md`, `docs/changelog.md`
 
 ### Контекст
 
@@ -1759,7 +1759,7 @@ Lite-check не доказывает качество генерации мод�
 
 Дата: 2026-06-23
 Статус: принято и внедрено
-Связанные документы: `scripts/docs-drift-agent.sh`, `docs/agents.md`, `docs/stage6-summary.md`, `docs/changelog.md`
+Связанные документы: `scripts/docs-drift-agent.sh`, `docs/agent-framework.md`, `docs/changelog.md`
 
 ### Контекст
 
@@ -1868,7 +1868,7 @@ Helper:
 
 Дата: 2026-06-23
 Статус: принято
-Связанные документы: `docs/backups.md`, `docs/stage7-summary.md`, `docs/changelog.md`, `docs/codex-context.md`
+Связанные документы: `docs/backups.md`, `docs/changelog.md`, `docs/codex-context.md`
 
 ### Контекст
 

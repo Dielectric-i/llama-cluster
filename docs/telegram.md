@@ -17,7 +17,7 @@ Telegram должен быть интерфейсом к кластеру, а н
 
 ---
 
-## 2. Non-goals
+## 2. Не-цели
 
 Stage 5.2 не должен:
 
@@ -296,7 +296,7 @@ Functional checks:
 
 ---
 
-## 11. Rollback
+## 11. Откат
 
 Если `telegram-bot` ломает только себя:
 
@@ -468,7 +468,7 @@ Transport hardening defaults после Stage 5.4:
 
 Будущая опция: увеличить `max_tokens`, если понадобится отдельный Telegram режим с включённым reasoning и финальным ответом. Это отдельный tuning step, не текущий default.
 
-Rollback:
+Откат:
 
 ```bash
 cd /opt/llama-cluster

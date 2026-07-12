@@ -1,7 +1,7 @@
 # slowrig AI Cluster — Backups Design v0.1
 
 Дата: 2026-06-23
-Статус: Stage 7 design; manual backup helper implemented; first manual backup completed; restore dry run deferred; automation не внедрена
+Статус: Stage 7 design; manual backup helper внедрён; первый manual backup выполнен; restore dry run отложен; automation не внедрена
 
 ## 1. Назначение
 
@@ -78,7 +78,7 @@ pg_dump -> backups/ -> offline copy
 Статус:
 
 ```text
-manual helper implemented; automation and restore are not implemented
+manual helper внедрён; automation и restore не внедрены
 ```
 
 ### Цель
@@ -123,7 +123,7 @@ Metadata может содержать:
 * command version;
 * restore notes.
 
-### Manual backup helper
+### Ручной backup helper
 
 Ручной helper:
 
@@ -133,7 +133,7 @@ scripts/backup-memory-db.sh --check-only
 scripts/backup-memory-db.sh
 ```
 
-`--check-only` проверяет prerequisites и показывает planned paths, но не создаёт dump.
+`--check-only` проверяет prerequisites и показывает планируемые пути, но не создаёт dump.
 
 Helper создаёт:
 
@@ -144,7 +144,7 @@ backups/memory-db/slowrig-memory-YYYYMMDD-HHMMSS.txt
 
 Metadata sidecar не должен содержать secrets.
 
-### Manual backup commands
+### Ручные backup commands
 
 Создать каталог:
 
@@ -168,7 +168,7 @@ ls -lh backups/memory-db/slowrig-memory-*.dump
 
 Не коммитить `backups/`.
 
-### Manual restore dry run plan
+### План ручного restore dry run
 
 Restore dry run нельзя выполнять поверх текущей production DB без отдельного approval.
 
@@ -189,7 +189,7 @@ docker compose exec -T memory-db sh -lc 'pg_restore --list' < backups/memory-db/
 * Не добавлять `.env` в backup tarball, который может попасть в git или чат.
 * Не индексировать dump или `.env` в Memory/RAG.
 
-### Rollback
+### Откат
 
 Если backup helper окажется неверным:
 
@@ -199,7 +199,7 @@ git checkout -- scripts/backup-memory-db.sh README.md docs/backups.md docs/chang
 
 Если был создан плохой dump file, удалить только явно выбранный файл в `backups/memory-db/` после проверки пути.
 
-### First manual backup check
+### Первая ручная проверка backup
 
 Stage 7.3 first manual backup был выполнен 2026-06-23 через:
 
@@ -217,7 +217,7 @@ pg_restore metadata check passed
 
 Файлы находятся под `backups/`, ignored by git. Restore не выполнялся. Offline copy остаётся operator task.
 
-### Restore dry run status
+### Статус restore dry run
 
 Решение Stage 7.5: restore dry run намеренно отложен.
 
@@ -233,6 +233,6 @@ pg_restore metadata check passed
 
 До отдельного approval не выполнять restore command поверх текущей memory-db.
 
-### Implementation boundary
+### Граница реализации
 
 Stage 7.2 добавляет manual backup helper. Cron/systemd timer, encryption automation, DB dump execution и restore dry run требуют отдельного approval.

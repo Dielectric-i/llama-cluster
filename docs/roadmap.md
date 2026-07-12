@@ -1,17 +1,17 @@
-# slowrig AI Cluster — Roadmap v0.3
+# slowrig AI Cluster — Roadmap v0.4
 
-Дата актуализации: 2026‑07‑01
-Статус: **главный план действий** (docs‑as‑source‑of‑truth). Этот файл описывает _следующие_ этапы и критический путь. Завершённые стадии, подробные факты стенда, история изменений и ADR живут в других документах (см. §2).
+Дата актуализации: 2026-07-12
+Статус: главный план будущих stages
+
+## 1. Назначение
+
+`docs/roadmap.md` фиксирует порядок будущих stages, зависимости и открытые развилки. Завершённые изменения живут в `docs/changelog.md`, причины решений — в `docs/decisions.md`, фактическое состояние стенда — в `docs/passport.md`.
+
+Roadmap не заменяет `README.md`: полный индекс документации находится в `README.md`.
 
 ---
 
-## 1. Назначение документа
-
-`docs/roadmap.md` фиксирует **порядок будущих этапов**, их цели, зависимости и открытые развилки. Он **не** заменяет паспорт стенда, runbook, changelog, audit‑reports или branch workflow.
-
----
-
-## 2. Source‑of‑truth boundaries
+## 2. Источники истины
 
 | Тема | Главный источник |
 | --- | --- |
@@ -20,126 +20,223 @@
 | Эксплуатация и rollback | `docs/runbook.md` |
 | Текущая и целевая архитектура | `docs/architecture.md` |
 | Gateway baseline | `docs/gateway.md` |
-| Memory / RAG | `docs/memory.md` |
+| Memory/RAG | `docs/memory.md` |
 | Telegram bot | `docs/telegram.md` |
-| Agent framework | `docs/agent-framework.md` |
+| Agent layer | `docs/agent-framework.md` |
 | Monitoring | `docs/monitoring.md` |
 | Security | `docs/security.md` |
 | Backups | `docs/backups.md` |
-| ADR / причины решений | `docs/decisions.md` |
+| IDE proxy | `docs/ide-proxy.md` |
+| ADR | `docs/decisions.md` |
 | История изменений | `docs/changelog.md` |
-| План действий | `docs/roadmap.md` (этот файл) |
 
 ---
 
-## 3. Текущий baseline (2026‑07‑01)
+## 3. Текущий baseline
 
-* Home server `slowrig`, Docker Compose‑based.
-* Логическая цепочка:
-  ```text
-  Open WebUI (manual UI) → LiteLLM Gateway :4000 → llama‑coder (9B/fast, ctx 128k) :8081
-                                               ↘ llama‑architect (27B/deep, ctx 65000) :8080
-  ```
-* Сервисы в compose: `llama‑architect`, `llama‑coder`, `litellm`, `open-webui`, `memory-db`, `memory-embed`, `telegram-bot`, `ide-proxy` (IDE SSE heartbeat experiment).
-* Memory DB (`postgresql+pgvector`) и локальный embedding service (`memory-embed`) существуют; индексирован только проектный docs‑корпус.
-* Telegram bot — отдельный контейнер, всегда запускается, **без** profile.
-* Direct backend порт 8080/8081 оставлены для диагностики в LAN.
-* Multi‑node кластер — дальняя опция, не план ближайших стадий.
+Текущее состояние на начало Stage 8:
+
+* `slowrig` — single-node home server под Docker Compose.
+* Основной LLM path:
+
+```text
+Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
+```
+
+* IDE path:
+
+```text
+VS Code / Copilot -> ide-proxy -> LiteLLM Gateway -> llama-coder / llama-architect
+```
+
+* Telegram path:
+
+```text
+Telegram -> telegram-bot -> LiteLLM Gateway -> slowrig/coder by default
+```
+
+* Compose services: `llama-architect`, `llama-coder`, `litellm`, `open-webui`, `memory-db`, `memory-embed`, `telegram-bot`, `ide-proxy`.
+* `telegram-bot` запускается как обычный Compose service без `profile`.
+* `ide-proxy` — экспериментальный SSE heartbeat proxy для VS Code/Copilot, не центральный архитектурный слой.
+* Memory DB и local docs ingestion внедрены; retrieval API для клиентов ещё нет.
+* Direct backend ports `8080` и `8081` остаются LAN diagnostics/rollback path.
 
 ---
 
 ## 4. Стратегическая цель
 
-> **Autonomous Development Agent** — контролируемый агент, способный готовить патчи, отчёты и выполнять согласованные действия, используя Gateway, Memory/RAG и безопасные tools с audit trail и rollback.
+Цель ближайших stages — controlled local AI system:
 
-Open WebUI остаётся ручным интерфейсом, Telegram — отдельным пользовательским интерфейсом, `ide-proxy` — эксперимент для VS Code/Copilot, **не** осевая архитектура. Никаких новых runtime‑зависимостей без отдельного design/approval stage.
+```text
+Gateway + Memory/RAG + Telegram/IDE interfaces + safe agent workflows
+```
+
+Долгосрочная цель — контролируемый development agent, который умеет готовить patches, отчёты и ограниченные действия через явно разрешённые tools, audit trail и rollback.
+
+Приоритеты:
+
+```text
+стабильность > количество features
+понятность > clever automation
+human approval > silent autonomy
+rollback > one-way migration
+```
 
 ---
 
 ## 5. Критический путь
 
 ```text
-Stage 8  Docs alignment  →  Stage 9  RAG Retrieval v1 (Telegram)  →
-Stage 10 Agent Runtime design  →  Stage 11 Agent Runtime MVP  →
-Stage 12 Tool permissions/Approval v1  →  Stage 13 MCP decision  →
-Stage 14 Telegram→Agent escalation  →  Stage 15 Ops hardening continuation
+Stage 8  Docs alignment
+Stage 9  RAG Retrieval v1 for Telegram
+Stage 10 Agent Runtime design
+Stage 11 Agent Runtime MVP
+Stage 12 Tool permissions / approval v1
+Stage 13 MCP decision
+Stage 14 Telegram -> Agent escalation
+Stage 15 Ops hardening continuation
 ```
 
 ---
 
-## 6. Текущий docs‑only stage
+## 6. Текущий stage
 
-### Stage 8 — Roadmap / documentation alignment  *(docs‑only)*
+### Stage 8 — Docs alignment
 
 | Поле | Значение |
 | --- | --- |
-| **Цель** | Сделать этот файл главным планом, удалить устаревшие ссылки, зафиксировать `ctx‑size 65000` для llama‑architect, указать telegram‑bot как always‑on сервис, отметить `ide-proxy` как эксперимент. |
-| **Scope** | Только правки Markdown / docs. |
-| **Non‑goals** | Нет runtime изменений, новых сервисов, миграций или рестартов. |
-| **Artifacts** | Обновлённые `docs/roadmap.md`, README, ссылки в docs, удалены мёртвые ссылки `docs/stage*-summary.md`, `docs/agents.md`. |
-| **Validation** | `git diff --check`, `scripts/docs-drift-agent.sh`, ручной просмотр. |
-| **Rollback** | `git checkout -- docs/roadmap.md README.md docs/`. |
+| Цель | Сделать `README.md` главным индексом, удалить лишние docs, убрать drift и русифицировать документацию. |
+| Scope | Markdown docs и read-only docs drift helper. |
+| Не-цели | Runtime changes, новые services, migrations, restarts, image pulls. |
+| Артефакты | `README.md`, актуальные `docs/*.md`, `AGENTS.md`, `scripts/docs-drift-agent.sh`; удалены отдельный docs index и дублирующий local README для `ide-proxy`. |
+| Проверка | `git diff --check`, локальный link check, drift search, `bash -n scripts/docs-drift-agent.sh` на Linux. |
+| Откат | Вернуть affected docs через git; runtime state не затрагивается. |
 
 ---
 
-## 7. Ближайшие этапы
+## 7. Ближайшие stages
 
-### Stage 9 — RAG Retrieval v1 для Telegram *(runtime)*
+### Stage 9 — RAG Retrieval v1 для Telegram
 
-* **Goal:** read‑only Retrieval API или модуль поверх `memory-db`, доступный Telegram‑боту (`/rag` или auto‑context).
-* **Depends on:** Stage 8 docs alignment.
-* **Non‑goals:** RAG hook для Open WebUI, chat history ingestion, Memory writes.
-* **Artifacts:** update `docs/memory.md`, `docs/telegram.md`, new retrieval code/tests.
+Цель: добавить read-only retrieval поверх `memory-db`, сначала доступный Telegram bot, но спроектированный как reusable слой для будущих agents.
 
-### Stage 10 — Agent Runtime design *(docs‑only)*
+Зависит от: Stage 8 docs alignment.
 
-* Shape & sandbox model, task state, approval flow, audit trail.
-* Decide if lightweight script/service is enough; no code.
+Не-цели:
 
-### Stage 11 — Agent Runtime minimal implementation *(runtime)*
+* RAG hook для Open WebUI;
+* chat history ingestion;
+* запись Memory из Telegram;
+* agent runtime;
+* новые внешние APIs.
 
-* One safe workflow: docs drift / patch assistant.
-* Isolated worktree, patch output, human approval gate.
+Ожидаемые артефакты:
 
-### Stage 12 — Tool permissions / approval v1 *(docs + optional small script)*
+* update `docs/memory.md`;
+* update `docs/telegram.md`;
+* retrieval code/tests;
+* validation и rollback в `docs/runbook.md`, если появятся новые команды.
 
-* Diagnostics allowlist, dangerous action classes, approval format, audit log schema.
+### Stage 10 — Agent Runtime design
 
-### Stage 13 — MCP design decision *(docs‑only)*
+Цель: описать shape первого agent runtime до implementation.
 
-* Do we need MCP? boundaries, adapter vs server, interaction with tools.
+Решить:
 
-### Stage 14 — Telegram→Agent escalation *(runtime)*
+* task state;
+* sandbox/worktree strategy;
+* approval flow;
+* audit trail;
+* связь с Memory/RAG retrieval;
+* нужен ли отдельный service или достаточно lightweight workflow.
 
-* Command or flow to trigger agent task from Telegram, keeping no‑shell boundary.
+Код на Stage 10 не добавлять.
 
-### Stage 15 — Ops hardening continuation *(runtime + docs)*
+### Stage 11 — Agent Runtime MVP
 
-* Health‑lite automation decision (cron/timer), backup restore dry‑run, auth/policy hardening, direct ports decision, monitoring stack plan.
+Цель: реализовать минимальный agent workflow поверх уже проверенной идеи docs drift assistant.
+
+Важно: это не повтор `scripts/docs-drift-agent.sh`. MVP должен добавить runtime/workflow boundary: isolated worktree или equivalent sandbox, patch output, human approval gate и audit trail.
+
+Не-цели:
+
+* production shell autonomy;
+* Docker mutations без approval;
+* Telegram escalation;
+* broad tools framework.
+
+### Stage 12 — Tool permissions / approval v1
+
+Цель: формализовать permissions для будущих tools.
+
+Ожидаемые решения:
+
+* diagnostics allowlist;
+* dangerous action classes;
+* approval format;
+* audit log schema;
+* rollback contract.
+
+### Stage 13 — MCP decision
+
+Цель: решить, нужен ли MCP layer.
+
+Вопросы:
+
+* MCP server или adapter?
+* какие tools безопасно expose-ить?
+* где проходят approvals?
+* как не дать MCP обойти `AGENTS.md` и runbook rules?
+
+### Stage 14 — Telegram -> Agent escalation
+
+Цель: дать Telegram безопасный способ инициировать agent task.
+
+Граница безопасности:
+
+```text
+Telegram command -> request/approval -> agent task -> patch/report
+```
+
+Telegram не получает shell, Docker socket или filesystem access напрямую.
+
+### Stage 15 — Ops hardening continuation
+
+Цель: продолжить operational hardening после RAG/agent foundations.
+
+Кандидаты:
+
+* restore dry run для `memory-db`;
+* решение по automation для `cluster-health-lite.sh`;
+* Open WebUI auth;
+* direct backend ports policy;
+* backup retention/encryption;
+* monitoring stack decision.
 
 ---
 
-## 8. Long‑range options (отложены)
+## 8. Отложенные направления
 
-* Multi‑node cluster & orchestrator.
-* Plugin System / extensible tools registry.
-* External UI integrations beyond Telegram & WebUI.
+* Multi-node cluster.
+* Полноценный plugin system.
+* Расширенные UI integrations beyond Telegram, Open WebUI и VS Code/Copilot.
+* Qdrant или hybrid vector stack, если pgvector станет недостаточным.
 
 ---
 
-## 9. Открытые архитектурные развилки
+## 9. Открытые развилки
 
-* **Agent Runtime** – runtime shape, task state storage, sandbox strategy.
-* **MCP** – нужен ли, если да – форма и безопасность.
-* **Plugin System** – когда понадобятся расширяемые tools / personas / RAG sources.
-* **RAG retrieval format** – DB query vs HTTP layer, provenance delivery.
-* **Security hardening** – VPN vs reverse proxy, direct backend ports, auth for WebUI.
+* **RAG retrieval format** — DB query layer или HTTP service, формат provenance.
+* **Agent runtime** — process model, sandbox, task state.
+* **MCP** — нужен ли вообще и где провести security boundary.
+* **Security hardening** — VPN vs reverse proxy, direct ports, auth policy.
+* **Backups** — restore rehearsal, retention, encryption, Open WebUI data scope.
 
 ---
 
 ## 10. Правила изменения roadmap
 
-1. Изменяй roadmap только после решения/approval.
-2. Завершённые стадии переносятся в `docs/changelog.md`; roadmap хранит **только будущее**.
-3. Не добавляй новые runtime‑зависимости здесь без отдельного design‑stage.
-4. Крупный форк? — сначала ADR + design doc, потом обновление roadmap.
+1. Roadmap менять после решения или явного approval.
+2. Завершённые stages переносить в `docs/changelog.md`; roadmap хранит будущее и текущий active stage.
+3. Не добавлять runtime dependencies через roadmap без отдельного design stage.
+4. Крупная развилка требует ADR или subsystem design doc до implementation.

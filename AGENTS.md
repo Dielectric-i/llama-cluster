@@ -1,45 +1,43 @@
 # AGENTS.md — slowrig AI Cluster
 
-## 1. Scope
+## 1. Область действия
 
-This file applies to the entire repository.
+Этот файл действует для всего репозитория.
 
-`slowrig` is real operational infrastructure. Treat changes as changes to a live local AI cluster, not as disposable experiments.
+`slowrig` — реальная локальная инфраструктура. Любые изменения нужно рассматривать как изменения live AI-кластера, а не как одноразовый эксперимент.
 
-`AGENTS.md` defines how Codex works in this repository. It should contain operating rules, safety rules, workflow rules, and documentation discipline. It must not duplicate the full content of `README.md`, `docs/passport.md`, `docs/runbook.md`, `docs/architecture.md`, `docs/gateway.md`, `docs/decisions.md`, `docs/changelog.md`, or `docs/roadmap.md`.
+`AGENTS.md` задаёт правила работы Codex: workflow, безопасность, git-дисциплину, валидацию и документационную дисциплину. Он не должен дублировать подробное содержимое `README.md`, `docs/passport.md`, `docs/runbook.md`, `docs/architecture.md`, `docs/gateway.md`, `docs/decisions.md`, `docs/changelog.md` или `docs/roadmap.md`.
 
 ---
 
-## 2. Required reading
+## 2. Что читать перед работой
 
-Before non-trivial work, read:
+Перед нетривиальной задачей сначала читать:
 
 ```text
 README.md
 docs/codex-context.md
 ```
 
-Use `README.md` as the authoritative documentation index.
+`README.md` — главный индекс документации.
 
-Then read only the task-relevant documents:
+Затем читать только документы, относящиеся к задаче:
 
-* current factual state, hardware, GPU mapping, ports: `docs/passport.md`;
-* operations, diagnostics, restart, rollback: `docs/runbook.md`;
+* факты стенда, hardware, GPU mapping, ports: `docs/passport.md`;
+* эксплуатация, диагностика, restart, rollback: `docs/runbook.md`;
 * topology, routing, target design: `docs/architecture.md`, `docs/gateway.md`;
-* trade-offs and history: `docs/decisions.md`, `docs/changelog.md`, `docs/roadmap.md`;
-* subsystem work: the matching dedicated document under `docs/`, when it exists.
+* trade-offs и история: `docs/decisions.md`, `docs/changelog.md`, `docs/roadmap.md`;
+* subsystem work: соответствующий dedicated document под `docs/`, если он существует.
 
-If a task introduces a new subsystem and no dedicated document exists yet, start with a design document under `docs/` and update the README documentation index.
+Если задача вводит новый subsystem и dedicated document ещё нет, сначала подготовить design document под `docs/` и добавить ссылку в `README.md`.
 
 ---
 
-## 3. User-facing language
+## 3. Язык общения
 
-Communicate with the user in Russian unless the user explicitly asks otherwise.
+С пользователем общаться на русском языке, если пользователь явно не попросил иначе.
 
-Use Russian labels in status reports, validation notes, rollback notes, questions, and next-step sections. Keep exact technical identifiers unchanged.
-
-Examples of Russian labels:
+Русские labels использовать в статусах, validation notes, rollback notes, вопросах и next steps:
 
 ```text
 Этап:
@@ -51,7 +49,7 @@ Examples of Russian labels:
 Следующий этап:
 ```
 
-Do not translate identifiers such as:
+Технические идентификаторы не переводить:
 
 ```text
 slowrig/coder
@@ -65,39 +63,39 @@ LITELLM_SALT_KEY
 docker-compose.yaml
 ```
 
-Repository files may use Russian, English, or mixed language when practical.
+Документация должна быть на русском языке. Технические термины на английском допустимы, если они являются identifiers, protocol names, product names, command names или устойчивыми engineering terms.
 
 ---
 
-## 4. Work model
+## 4. Рабочая модель
 
-The human operator runs real server-side commands unless Codex has explicit approved access for the current action.
+Оператор-человек выполняет реальные server-side команды, если Codex не получил явный доступ для текущего действия.
 
-Approved SSH path, when access is explicitly granted:
+Разрешённый SSH path, если доступ явно выдан:
 
 ```text
 ssh discover@slowrig
 ```
 
-Do not claim real server validation succeeded unless Codex actually ran the check or the user provided the output.
+Не утверждать, что проверка на сервере прошла, если Codex реально её не запускал и пользователь не предоставил вывод.
 
-Default flow:
+Обычный поток работы:
 
 ```text
 edit locally -> review in git -> push when needed -> sync/run on slowrig when needed
 ```
 
-Prefer Docker and Docker Compose over host OS changes. Use Docker without `sudo` only when the active SSH user already has Docker group access.
+Предпочитать Docker и Docker Compose изменениям host OS. Docker без `sudo` использовать только если активный SSH user уже имеет Docker group access.
 
-If validation requires the real server, GPU, Docker, network ports, UI, logs, or secrets and Codex does not have confirmed access, provide exact commands and expected results for the user to run.
+Если проверка требует реального сервера, GPU, Docker, network ports, UI, logs или secrets, а у Codex нет подтверждённого доступа, дать пользователю точные команды и ожидаемый результат.
 
 ---
 
 ## 5. Stage workflow
 
-Work in small, reviewable stages.
+Работать маленькими reviewable stages.
 
-For non-trivial work, start with:
+Для нетривиальной работы начинать с:
 
 ```text
 Этап:
@@ -109,9 +107,9 @@ For non-trivial work, start with:
 Идея отката:
 ```
 
-Then make the smallest safe change.
+Затем делать минимальное безопасное изменение.
 
-After a stage, report:
+После stage отчитаться:
 
 ```text
 Этап:
@@ -125,58 +123,58 @@ After a stage, report:
 Рекомендуемый следующий этап:
 ```
 
-Stop at genuine stage boundaries and architectural forks. Do not silently continue into the next stage unless the user asks.
+Останавливаться на настоящих stage boundaries и архитектурных развилках. Не продолжать молча в следующий stage, если пользователь этого не просил.
 
-Ask the user only when a real decision or missing input is needed: architecture, security posture, new dependencies, risky operational state, conflicting documentation/config/output, real server validation, logs, secrets, or explicit user pause.
+Спрашивать пользователя только когда нужно реальное решение или отсутствующий input: архитектура, security posture, новые dependencies, рискованное operational state, конфликт docs/config/output, real server validation, logs, secrets или явная пауза.
 
-Do not ask unnecessary questions when the user already provided enough context for a safe reversible documentation-only change.
+Не задавать лишних вопросов, если контекста достаточно для безопасной обратимой documentation-only правки.
 
-If the user gives a durable repository instruction, update `AGENTS.md` in the same stage when compatible with higher-priority rules and repository constraints. If it conflicts, explain the conflict instead of changing the rule.
+Если пользователь даёт устойчивое правило работы с репозиторием, обновить `AGENTS.md` в том же stage, если это не конфликтует с более приоритетными правилами.
 
 ---
 
-## 6. Branch and git rules
+## 6. Branch и git
 
-Use a dedicated `codex/...` branch for non-trivial work.
+Для нетривиальной работы использовать отдельную ветку `codex/...`.
 
-The active Codex integration branch is:
+Активная интеграционная ветка Codex:
 
 ```text
 codex/main
 ```
 
-`master` is legacy and must not be used for new work, stage integration, or routine pushes unless the user explicitly overrides this rule.
+`master` — legacy. Не использовать его для новой работы, stage integration или routine pushes без явного override от пользователя.
 
-Do not work directly on `codex/main` for significant changes unless the user explicitly requests it. Tiny documentation-only corrections are acceptable.
+Не работать напрямую на `codex/main` для значимых изменений, если пользователь явно не попросил. Мелкие documentation-only исправления допустимы.
 
-Expected workflow:
+Ожидаемый workflow:
 
 ```text
 inspect state -> create/continue codex/... branch -> make focused change -> verify -> user review -> merge/fast-forward only after approval
 ```
 
-Before changing files, inspect repository state when possible:
+Перед изменениями по возможности проверить:
 
 ```bash
 git status --short
 ```
 
-After changing files, summarize:
+После изменений показать:
 
 ```bash
 git status --short
 git diff --stat
 ```
 
-Do not commit automatically unless the user explicitly asks for a commit. When a commit is appropriate, propose a clear commit message.
+Не коммитить автоматически без явной просьбы пользователя. Если commit уместен, предложить понятное commit message.
 
-Stage files explicitly by purpose. Do not use:
+Stage files явно по назначению. Не использовать:
 
 ```bash
 git add .
 ```
 
-Never run destructive git commands without explicit approval:
+Никогда не запускать destructive git commands без явного approval:
 
 ```text
 git reset --hard
@@ -186,33 +184,33 @@ git rebase
 git filter-branch
 ```
 
-If unrelated changes already exist, do not overwrite them. Report them and ask how to proceed.
+Если уже есть unrelated changes, не перетирать их. Сообщить о них и работать вокруг них.
 
 ---
 
 ## 7. Change discipline
 
-Prefer small, reversible patches.
+Предпочитать маленькие обратимые patches.
 
-Do not make broad unrelated edits, reformat whole files, rename files, move directories, or reorganize documentation unless that is the actual approved task.
+Не делать широкие unrelated edits, массовое форматирование, переименование файлов, перенос directories или реорганизацию документации, если это не является согласованной задачей.
 
-For operational changes, prefer:
+Для operational changes придерживаться:
 
 ```text
 one change -> one service -> one test -> logs -> rollback known
 ```
 
-Avoid combining multiple operational parameter changes in one stage unless the user explicitly approves the combined migration.
+Не объединять несколько operational parameter changes в один stage без явного approval.
 
 ---
 
-## 8. Secrets and large files
+## 8. Secrets и большие файлы
 
-Never print, copy, commit, or expose real secrets.
+Никогда не печатать, копировать, коммитить или раскрывать реальные secrets.
 
-Do not ask the user to paste `.env`.
+Не просить пользователя вставлять `.env`.
 
-Sensitive and runtime data must not be committed:
+Нельзя коммитить sensitive/runtime data:
 
 ```text
 .env
@@ -224,104 +222,104 @@ logs/
 backups/
 ```
 
-It is allowed to document variable names, but not real values.
+Можно документировать имена переменных, но не реальные значения.
 
-If `.env` appears in `git status`, stop and tell the user to fix `.gitignore` before committing.
+Если `.env` появился в `git status`, остановиться и сказать пользователю исправить `.gitignore` до commit.
 
 ---
 
-## 9. Dependency and design policy
+## 9. Dependencies и design policy
 
-Do not add new runtime dependencies without explicit approval.
+Не добавлять новые runtime dependencies без явного approval.
 
-This includes Docker services, databases, packages, model files, monitoring stacks, agent frameworks, MCP servers, and external APIs.
+Это включает Docker services, databases, packages, model files, monitoring stacks, agent frameworks, MCP servers и external APIs.
 
-Before adding a dependency, explain:
+Перед добавлением dependency объяснить:
 
 ```text
-Why it is needed:
-What problem it solves:
+Зачем нужно:
+Какую проблему решает:
 Operational cost:
 Security impact:
 Backup/restore impact:
-Rollback:
-Alternative with fewer dependencies:
+Откат:
+Альтернатива с меньшим числом dependencies:
 ```
 
-Major new subsystems require a design document before implementation. Prefer the existing stack unless the new dependency clearly unlocks a needed capability.
+Крупные новые subsystem-ы требуют design document перед implementation. Предпочитать существующий stack, если новая dependency явно не открывает нужную возможность.
 
 ---
 
 ## 10. Operational safety
 
-Warn and ask before changes that may affect the stable baseline, including:
+Предупреждать и спрашивать перед изменениями, которые могут затронуть stable baseline:
 
-* restarting all services or running `docker compose down`;
-* pulling new Docker images;
-* changing GPU mapping, model files, context size, `parallel`, CPU offload, or Unified Memory;
-* changing LiteLLM routing or Open WebUI auth/security;
-* exposing ports outside LAN;
-* installing system packages;
-* changing NVIDIA, CUDA, Docker, firewall, reverse proxy, or VPN settings;
-* deleting volumes, cache, model data, logs, backups, or Memory DB data.
+* restart всех services или `docker compose down`;
+* pull новых Docker images;
+* изменение GPU mapping, model files, context size, `parallel`, CPU offload или Unified Memory;
+* изменение LiteLLM routing или Open WebUI auth/security;
+* публикация ports за пределы LAN;
+* установка system packages;
+* изменение NVIDIA, CUDA, Docker, firewall, reverse proxy или VPN settings;
+* удаление volumes, cache, model data, logs, backups или Memory DB data.
 
-Keep direct backend ports `8080` and `8081` available for diagnostics unless the user explicitly decides to lock them down.
+Прямые backend-порты `8080` и `8081` должны оставаться доступными для диагностики, пока пользователь явно не решил закрыть их.
 
-Do not treat CPU offload, Unified Memory, increased context size, or increased parallelism as routine tuning. They require a separate test plan.
+CPU offload, Unified Memory, увеличение context size и увеличение parallelism не являются routine tuning. Для них нужен отдельный test plan.
 
-Avoid destructive operations without explicit approval and a rollback path.
+Не выполнять destructive operations без явного approval и rollback path.
 
 ---
 
-## 11. Architecture and hardware guardrails
+## 11. Architecture и hardware guardrails
 
-Ordinary clients should go through LiteLLM Gateway unless a documented exception exists:
+Обычные клиенты должны идти через LiteLLM Gateway, если нет documented exception:
 
 ```text
 Client -> LiteLLM Gateway -> llama.cpp backend
 ```
 
-Direct backend access is diagnostic:
+Direct backend access — диагностический:
 
 ```text
 8080 -> llama-architect
 8081 -> llama-coder
 ```
 
-Use established gateway model names from project documentation. Do not invent public model names without a documented decision.
+Использовать established gateway model names из документации. Не придумывать public model names без documented decision.
 
-Do not change hardware assumptions, GPU mapping, model placement, context size, or parallelism based on guesswork.
+Не менять hardware assumptions, GPU mapping, model placement, context size или parallelism на догадках.
 
-Before hardware-sensitive changes, read `docs/passport.md`, `docs/architecture.md`, `docs/decisions.md`, and `docs/runbook.md`.
+Перед hardware-sensitive changes читать `docs/passport.md`, `docs/architecture.md`, `docs/decisions.md` и `docs/runbook.md`.
 
-Preserve these assumptions unless the user explicitly approves a change:
+Сохранять assumptions, если пользователь явно не одобрил изменение:
 
-* the fast worker model should stay on the fast GPU;
-* the heavy model is not a low-latency backend;
-* constrained PCIe links make aggressive multi-GPU experiments risky;
-* VRAM headroom matters more than theoretical maximum model size;
-* CPU offload is not a normal operating mode;
-* unnecessary model reloads should be avoided.
+* fast worker model должен оставаться на fast GPU;
+* heavy model не является low-latency backend;
+* constrained PCIe links делают агрессивные multi-GPU experiments рискованными;
+* VRAM headroom важнее теоретического максимального размера model;
+* CPU offload не является нормальным operating mode;
+* unnecessary model reloads нужно избегать.
 
 ---
 
-## 12. Validation policy
+## 12. Политика проверки
 
-For infrastructure changes, provide:
+Для infrastructure changes давать:
 
-1. exact commands;
-2. expected successful output;
-3. how to collect logs if something fails;
+1. точные команды;
+2. ожидаемый успешный вывод;
+3. как собрать logs при ошибке;
 4. rollback steps.
 
-Primary checks:
+Основные checks:
 
 ```bash
 /opt/llama-cluster/scripts/cluster-health-lite.sh
 /opt/llama-cluster/scripts/cluster-status.sh
 ```
 
-For Docker Compose changes:
+Для Docker Compose changes:
 
 ```bash
 cd /opt/llama-cluster
@@ -329,20 +327,20 @@ sudo docker compose config --quiet
 sudo docker compose ps
 ```
 
-For Bash scripts:
+Для Bash scripts:
 
 ```bash
 bash -n scripts/<script-name>.sh
 ```
 
-For Markdown-only changes:
+Для Markdown-only changes:
 
 ```bash
 git diff --stat
 git diff -- AGENTS.md README.md docs/
 ```
 
-For LiteLLM checks, load secrets without printing them:
+Для LiteLLM checks загружать secrets без печати:
 
 ```bash
 cd /opt/llama-cluster
@@ -351,7 +349,7 @@ source .env
 set +a
 ```
 
-Then check:
+Затем:
 
 ```bash
 curl -sS \
@@ -359,33 +357,33 @@ curl -sS \
   http://127.0.0.1:4000/v1/models
 ```
 
-Do not claim validation succeeded unless Codex actually ran the check or the user provided the output.
+Не утверждать, что validation прошла, если Codex реально не запускал check и пользователь не предоставил вывод.
 
 ---
 
 ## 13. Documentation rules
 
-This repository is documentation-first.
+Репозиторий documentation-first.
 
-When behavior, architecture, services, ports, routing, security, memory, agents, Telegram integration, monitoring, backups, scripts, or operational workflows change, update the affected documentation in the same stage unless the user explicitly asks not to.
+Когда меняется behavior, architecture, services, ports, routing, security, memory, agents, Telegram integration, monitoring, backups, scripts или operational workflows, обновить affected docs в том же stage, если пользователь явно не попросил иначе.
 
-Use factual language and distinguish clearly between:
+Писать фактически и явно различать:
 
 ```text
-implemented
-planned
-recommended
-experimental
-not implemented
-tested by user
-requires manual check
+внедрено
+запланировано
+рекомендовано
+экспериментально
+не внедрено
+проверено пользователем
+требует ручной проверки
 ```
 
-`README.md` is the documentation index. When creating a new documentation file under `docs/`, update the README table.
+`README.md` — главный documentation index. При создании нового файла под `docs/` обновить README table.
 
-Do not duplicate large blocks across many docs. Link to the source of truth instead.
+Не дублировать большие блоки в нескольких документах. Ссылаться на source of truth.
 
-If documentation, configuration, and observed server output disagree, report the contradiction instead of silently choosing one:
+Если docs, config и observed server output расходятся, не выбирать молча:
 
 ```text
 Несоответствие:
@@ -396,41 +394,41 @@ If documentation, configuration, and observed server output disagree, report the
 Вопрос к пользователю:
 ```
 
-When the user confirms the correct state, update affected documentation in the same stage.
+После подтверждения правильного состояния обновить affected docs в том же stage.
 
 ---
 
 ## 14. Failure protocol
 
-If a command fails, do not continue blindly.
+Если команда завершилась ошибкой, не продолжать вслепую.
 
-On failure:
+При failure:
 
-1. stop the current stage;
-2. summarize what failed;
-3. quote only relevant error lines;
-4. explain the likely cause and uncertainty;
-5. ask for missing logs only if needed;
-6. propose the smallest safe diagnostic step;
-7. provide rollback if the system may be partially changed.
+1. остановить текущий stage;
+2. кратко описать, что failed;
+3. процитировать только relevant error lines;
+4. объяснить likely cause и uncertainty;
+5. запросить missing logs только если нужно;
+6. предложить минимальный safe diagnostic step;
+7. дать rollback, если system мог быть частично изменён.
 
-Do not stack multiple speculative fixes in one step.
+Не накладывать несколько speculative fixes в один step.
 
-If the failure could affect running services, preserve the current stable baseline first.
+Если failure может повлиять на running services, сначала сохранить stable baseline.
 
 ---
 
 ## 15. Done definition
 
-A change is done only when:
+Change считается done, когда:
 
-* files are updated;
-* affected documentation matches actual behavior;
-* risks are noted;
-* validation commands and expected results are provided;
-* rollback is documented when relevant;
-* no secrets are exposed;
-* git status implications are clear;
-* the user has the information needed to test on the server.
+* files updated;
+* affected docs соответствуют actual behavior;
+* risks noted;
+* validation commands и expected results provided;
+* rollback documented when relevant;
+* secrets не раскрыты;
+* git status implications понятны;
+* пользователь имеет всё нужное для server test.
 
-For server-dependent work, do not claim the stage is fully verified until the user provides output or confirms manual testing.
+Для server-dependent work не считать stage полностью verified, пока пользователь не предоставил output или не подтвердил manual testing.

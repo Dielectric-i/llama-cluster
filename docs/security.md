@@ -66,7 +66,7 @@ Secrets должны жить вне git:
 
 ---
 
-## 5. Future hardening order
+## 5. Будущий порядок hardening
 
 Рекомендуемый порядок:
 

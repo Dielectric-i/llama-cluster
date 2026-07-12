@@ -64,7 +64,7 @@ Docker network endpoint:
 http://litellm:4000/v1
 ```
 
-Gateway model names:
+Имена моделей Gateway:
 
 ```text
 slowrig/coder
@@ -473,7 +473,7 @@ direct backend -> LiteLLM -> Open WebUI -> client behavior
 
 ---
 
-## 13. Rollback: Open WebUI direct backend mode
+## 13. Откат: Open WebUI direct backend mode
 
 Если LiteLLM нужно временно обойти, Open WebUI можно вернуть на прямые backend-и.
 
@@ -539,7 +539,7 @@ sudo docker compose up -d open-webui
 
 ---
 
-## 15. Known limitations
+## 15. Известные ограничения
 
 Текущие ограничения:
 
@@ -549,8 +549,8 @@ sudo docker compose up -d open-webui
 * pipeline `9B -> 27B` не реализован;
 * LiteLLM не является memory/RAG-слоем;
 * LiteLLM не является agent framework;
-* Telegram подключён через `telegram-bot` -> LiteLLM в profile `telegram`;
-* IDE-клиенты ещё не подключены;
+* Telegram подключён через `telegram-bot` -> LiteLLM без Compose profile;
+* IDE/Copilot experiment подключён через `ide-proxy`;
 * CrewAI/OpenClaw ещё не подключены;
 * прямые порты `8080` и `8081` пока оставлены для диагностики;
 * частый автоматический healthcheck через реальные LLM-запросы не настроен и не должен использовать `cluster-status.sh` без упрощения.

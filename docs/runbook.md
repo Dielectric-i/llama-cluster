@@ -38,14 +38,18 @@ Runbook не заменяет:
 | `open-webui` | `3000` | ручной WebUI через gateway |
 | `memory-db` | нет | PostgreSQL + pgvector Memory DB |
 | `memory-embed` | `4010` | локальный embedding runtime, только `127.0.0.1` |
+| `telegram-bot` | нет | Telegram polling client через LiteLLM |
+| `ide-proxy` | `4011` | экспериментальный SSE heartbeat proxy для IDE/Copilot |
 
 Нормальная цепочка запросов:
 
 ```text
 Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
+Telegram -> telegram-bot -> LiteLLM Gateway -> llama-coder / llama-architect
+VS Code / Copilot -> ide-proxy -> LiteLLM Gateway -> llama-coder / llama-architect
 ```
 
-Gateway model names:
+Имена моделей Gateway:
 
 ```text
 slowrig/coder
@@ -133,7 +137,9 @@ sudo docker ps
 * `litellm`;
 * `open-webui`;
 * `memory-db`;
-* `memory-embed`.
+* `memory-embed`;
+* `telegram-bot`;
+* `ide-proxy`.
 
 Нормально:
 
@@ -141,6 +147,8 @@ sudo docker ps
 * желательно `healthy`;
 * порты `8080`, `8081`, `4000`, `3000` опубликованы.
 * `memory-embed` опубликован только как `127.0.0.1:4010`.
+* `telegram-bot` не публикует inbound port.
+* `ide-proxy` публикует `4011`.
 
 Проблема:
 
@@ -411,13 +419,13 @@ docker compose exec -T memory-db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_
 
 ## 4.9 Проверить Telegram bot config
 
-`telegram-bot` находится в отдельном Compose profile и не стартует обычной командой `docker compose up -d`.
+`telegram-bot` — обычный Compose service без `profile`. Он не публикует inbound port и работает через outbound Telegram Bot API polling.
 
 Проверить compose config без реальных Telegram secrets:
 
 ```bash
 cd /opt/llama-cluster
-TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose config --quiet
 ```
 
 Проверить C# build, если на host установлен `dotnet`:
@@ -431,7 +439,7 @@ dotnet build
 
 ```bash
 cd /opt/llama-cluster
-TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram build telegram-bot
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose build telegram-bot
 ```
 
 Перед реальным запуском добавить в `/opt/llama-cluster/.env`:
@@ -779,13 +787,13 @@ curl http://127.0.0.1:4010/v1/models
 
 ```bash
 cd /opt/llama-cluster
-sudo docker compose --profile telegram up -d telegram-bot
+sudo docker compose up -d telegram-bot
 ```
 
 После этого проверить:
 
 ```bash
-sudo docker compose --profile telegram ps telegram-bot
+sudo docker compose ps telegram-bot
 sudo docker logs --tail=120 telegram-bot
 ```
 
@@ -793,7 +801,7 @@ sudo docker logs --tail=120 telegram-bot
 
 ```bash
 cd /opt/llama-cluster
-sudo docker compose --profile telegram stop telegram-bot
+sudo docker compose stop telegram-bot
 ```
 
 ---
@@ -816,7 +824,7 @@ sudo docker compose up -d llama-coder
 sudo docker compose up -d llama-architect
 sudo docker compose up -d memory-db
 sudo docker compose up -d memory-embed
-sudo docker compose --profile telegram up -d telegram-bot
+sudo docker compose up -d telegram-bot
 ```
 
 ---
@@ -1083,7 +1091,7 @@ docker-compose.stage1-baseline.yaml является историческим St
 Он может не содержать более поздние Stage 2/3 изменения и не должен считаться текущим stable compose.
 ```
 
-Если нужно откатить только gateway/Open WebUI routing, использовать rollback из раздела 10.
+Если нужно откатить только gateway/Open WebUI routing, использовать rollback из раздела 11.1.
 
 ---
 
@@ -1119,7 +1127,7 @@ sudo docker compose exec -T memory-db sh -lc 'dropdb -U "$POSTGRES_USER" slowrig
 
 ---
 
-## 11. Rollback
+## 11. Откат
 
 ### 11.1 Откат Open WebUI на прямые backend-и
 
@@ -1361,11 +1369,11 @@ cd /opt/llama-cluster
 sudo docker compose config --quiet
 ```
 
-После изменения Telegram profile:
+После изменения Telegram bot config:
 
 ```bash
 cd /opt/llama-cluster
-TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose --profile telegram config --quiet
+TELEGRAM_BOT_TOKEN=dummy TELEGRAM_ALLOWED_USER_IDS=123 docker compose config --quiet
 ```
 
 После изменения работающего сервиса:

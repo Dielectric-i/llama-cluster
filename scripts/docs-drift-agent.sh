@@ -33,9 +33,9 @@ search_fixed() {
   pattern="$1"
   shift
   if has_cmd rg; then
-    rg -n --fixed-strings "$pattern" "$@" || true
+    rg -n --fixed-strings -- "$pattern" "$@" || true
   else
-    grep -R -n -F "$pattern" "$@" || true
+    grep -R -n -F -- "$pattern" "$@" || true
   fi
 }
 
@@ -53,7 +53,7 @@ else
   ok "git repository found"
 fi
 
-required_files="README.md AGENTS.md docs/codex-context.md docs/agents.md docs/decisions.md docs/changelog.md docker-compose.yaml"
+required_files="README.md AGENTS.md docs/codex-context.md docs/agent-framework.md docs/decisions.md docs/changelog.md docker-compose.yaml"
 for file in $required_files; do
   if [ -f "$file" ]; then
     ok "required file exists: $file"
@@ -123,15 +123,15 @@ check_value_in_docs() {
   fi
 }
 
-check_value_in_docs "architect ctx-size" "ctx-size 60000" README.md docs/passport.md docs/decisions.md
+check_value_in_docs "architect ctx-size" "ctx-size 65000" README.md docs/passport.md docs/decisions.md
 check_value_in_docs "coder ctx-size" "ctx-size 128000" README.md docs/passport.md docs/decisions.md
 check_value_in_docs "architect tensor-split" "tensor-split 1.06,1" docs/passport.md docs/decisions.md docs/changelog.md
 check_value_in_docs "Telegram thinking disable" "chat_template_kwargs.enable_thinking=false" docs/telegram.md docs/codex-context.md docs/changelog.md
-check_value_in_docs "Stage 6 workflow" "docs drift / repo patch assistant" docs/agents.md docs/codex-context.md docs/decisions.md
+check_value_in_docs "Stage 6 workflow" "docs drift / repo patch assistant" docs/agent-framework.md docs/codex-context.md docs/decisions.md
 
 scan_stale_current_docs() {
   pattern="$1"
-  hits=$(search_fixed "$pattern" README.md docs/*.md | grep -v 'docs/changelog.md' | grep -v 'docs/stage2-summary.md' | grep -v 'docs/stage3-summary.md' || true)
+  hits=$(search_fixed "$pattern" README.md docs/*.md | grep -v 'docs/changelog.md' || true)
   if [ -n "$hits" ]; then
     warn "possible stale wording outside historical docs: $pattern"
     printf '%s\n' "$hits" | sed 's/^/INFO    /'
@@ -140,11 +140,14 @@ scan_stale_current_docs() {
   fi
 }
 
-scan_stale_current_docs "Telegram UI validation pending"
+scan_stale_current_docs "$(printf '%s%s' 'Telegram UI validation' ' pending')"
 scan_stale_current_docs "Telegram ещё не подключён"
-scan_stale_current_docs "design documented; runtime not implemented"
+scan_stale_current_docs "$(printf '%s%s' 'design documented; runtime' ' not implemented')"
 scan_stale_current_docs "Stage 6 | Agent framework"
-ctx_hits=$(search_fixed "ctx-size 40000" README.md docs/*.md | grep -v 'docs/changelog.md' | grep -v 'docs/decisions.md' | grep -v 'docs/stage2-summary.md' | grep -v 'docs/stage3-summary.md' || true)
+scan_stale_current_docs "$(printf '%s%s' 'docs/' 'index.md')"
+scan_stale_current_docs "$(printf '%s%s' 'docs/' 'agents.md')"
+scan_stale_current_docs "$(printf '%s%s' '--profile' ' telegram')"
+ctx_hits=$(search_fixed "ctx-size 40000" README.md docs/*.md | grep -v 'docs/changelog.md' | grep -v 'docs/decisions.md' || true)
 if [ -n "$ctx_hits" ]; then
   warn "possible stale wording outside historical docs: ctx-size 40000"
   printf '%s\n' "$ctx_hits" | sed 's/^/INFO    /'

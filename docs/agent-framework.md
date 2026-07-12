@@ -26,7 +26,7 @@ Agent layer не должен становиться shell gateway, root automat
 
 ---
 
-## 2. Non-goals
+## 2. Не-цели
 
 Stage 6 design не должен:
 
@@ -239,7 +239,7 @@ docs drift / repo patch assistant
 Статус:
 
 ```text
-implemented as read-only helper script
+внедрён как read-only helper script
 ```
 
 ### Цель
@@ -309,28 +309,28 @@ Level 2 diagnostics allowlist в Stage 6.1 не включается.
 Для audit-only режима:
 
 ```text
-Stage:
-Scope:
-Files read:
-Findings:
-Risks:
-Recommended patch:
-Validation:
-Rollback:
-Next stage:
+Этап:
+Область:
+Прочитанные файлы:
+Находки:
+Риски:
+Рекомендуемый patch:
+Проверка:
+Откат:
+Следующий stage:
 ```
 
 Для patch режима:
 
 ```text
-Stage:
-What changed:
-Files changed:
-Checks performed:
-Checks not performed:
-Rollback:
-Remaining forks:
-Recommended next stage:
+Этап:
+Что изменилось:
+Изменённые файлы:
+Выполненные проверки:
+Невыполненные проверки:
+Откат:
+Оставшиеся развилки:
+Рекомендуемый следующий stage:
 ```
 
 ### Patch rules
@@ -361,17 +361,17 @@ git diff -- docker-compose.yaml config/ scripts/
 
 Server/runtime checks не требуются, пока workflow не меняет `docker-compose.yaml`, LiteLLM config, ports, volumes, services или scripts with operational behavior.
 
-### Rollback
+### Откат
 
 Откатить только файлы Stage 6.1:
 
 ```bash
-git checkout -- docs/agents.md docs/decisions.md docs/codex-context.md docs/changelog.md
+git checkout -- docs/agent-framework.md docs/decisions.md docs/codex-context.md docs/changelog.md
 ```
 
 Если был создан отдельный audit report file в будущем stage, откатывать его отдельно.
 
-### Non-goals Stage 6.1
+### Не-цели Stage 6.1
 
 Stage 6.1 не добавляет:
 

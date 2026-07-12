@@ -1,109 +1,63 @@
 # Codex Context — slowrig AI Cluster
 
-Created: 2026-06-21
-Last updated: 2026-06-23
-Status: supplemental context for Codex
+Создано: 2026-06-21
+Обновлено: 2026-07-12
+Статус: краткий дополнительный контекст для Codex
 
-## 1. Purpose
+## 1. Назначение
 
-This document provides compact project context for Codex.
+Этот документ помогает Codex быстро вспомнить рабочие предпочтения, принятые defaults и открытые развилки проекта.
 
-It is not the source of truth for hardware, ports, services, commands, architecture decisions, changelog entries, or operational procedures. Those details live in the dedicated project documents.
+Он не является источником истины для hardware, ports, services, commands, architecture decisions, changelog или operational procedures. За этими фактами идти в dedicated docs, перечисленные в `README.md`.
 
-Use this file to understand:
-
-* how Александр wants the project to be developed;
-* which defaults and trade-offs were already approved;
-* which future forks still require discussion;
-* how to avoid turning `slowrig` into an unmaintainable pile of services;
-* what context should guide Stage 4+ work.
-
-This file should stay short, contextual, and non-duplicative.
+Если этот файл конфликтует с dedicated document, считать dedicated document главным.
 
 ---
 
-## 2. Source-of-truth boundaries
+## 2. Источники истины
 
-Use these documents as authoritative sources:
-
-| Topic | Primary source |
+| Тема | Главный источник |
 | --- | --- |
-| Documentation index and quick entry | `README.md` |
-| Codex operating rules | `AGENTS.md` |
-| Current hardware/software facts | `docs/passport.md` |
-| Operations, diagnostics, rollback | `docs/runbook.md` |
-| Current and target architecture | `docs/architecture.md` |
-| LiteLLM Gateway design/baseline | `docs/gateway.md` |
-| Memory / RAG design | `docs/memory.md` |
-| Architectural reasons and trade-offs | `docs/decisions.md` |
-| Factual change history and tests | `docs/changelog.md` |
-| Completed stage summaries | `docs/stage*-summary.md` |
+| Главный вход и индекс | `README.md` |
+| Правила Codex | `AGENTS.md` |
+| Факты стенда | `docs/passport.md` |
+| Эксплуатация и rollback | `docs/runbook.md` |
+| Архитектура | `docs/architecture.md` |
+| LiteLLM Gateway | `docs/gateway.md` |
+| Memory/RAG | `docs/memory.md` |
+| Telegram bot | `docs/telegram.md` |
+| Agent layer | `docs/agent-framework.md` |
+| Monitoring/Security/Backups | `docs/monitoring.md`, `docs/security.md`, `docs/backups.md` |
+| ADR | `docs/decisions.md` |
+| История изменений | `docs/changelog.md` |
+| План будущих stages | `docs/roadmap.md` |
 
-If this file conflicts with a dedicated document, prefer the dedicated document.
-
-If documentation conflicts with actual config or server output, do not guess silently. Report the mismatch and ask Александр which state is correct.
+При расхождении docs, config и server output не угадывать. Нужно явно описать mismatch и спросить Александра, какое состояние считать правильным.
 
 ---
 
-## 3. Operator and workflow preferences
+## 3. Рабочие предпочтения
 
-The primary operator is Александр.
+Основной оператор — Александр.
 
-Codex works with the repository on the real server through:
+Codex может работать с реальным сервером через:
 
 ```text
 ssh discover@slowrig
 ```
 
-Codex may perform repository work, git operations, documentation edits, and safe read-only diagnostics over SSH when access is available. Александр remains the human operator for risky operational actions and approvals:
+Рискованные действия остаются за оператором или требуют явного approval:
 
-* Docker Compose mutations and service restarts;
-* log inspection that may expose sensitive data;
-* browser UI checks;
-* network/API checks that require secrets or real external services;
-* manual approval of architectural forks;
-* destructive or security-sensitive actions.
+* Docker Compose mutations, restarts, `down`;
+* actions с secrets и `.env`;
+* GPU/model/context/parallel changes;
+* firewall, reverse proxy, VPN;
+* destructive git/database/volume operations;
+* log inspection, если логи могут содержать sensitive data.
 
-Codex prepares or performs, depending on risk and access:
+Пользовательское общение — на русском. Технические identifiers не переводить.
 
-* plans;
-* patches;
-* documentation;
-* git branch/commit operations for approved stages;
-* test commands;
-* expected results;
-* rollback steps;
-* stage reports.
-
-User-facing communication must be in Russian. Technical identifiers must keep their exact spelling.
-
-Important working preferences:
-
-* explain architectural forks in detail before asking for a decision;
-* for each fork, describe options and how each option affects the final result and process;
-* stop only when an architectural decision, problem, real-server check, security/runtime risk, or explicit user request requires it;
-* do not stop after every small progress update;
-* when Александр gives a durable behavior rule, preserve it in `AGENTS.md`;
-* keep changes small, staged, documented, and reversible.
-
----
-
-## 4. Project intent
-
-`slowrig` is not only a local inference box.
-
-The intended long-term direction is a local AI system for:
-
-* coding assistance;
-* long code and log audits;
-* local project analysis;
-* documentation work;
-* controlled agent workflows;
-* Telegram/IDE/API access;
-* project memory and RAG;
-* repeatable operations with rollback.
-
-Preferred engineering bias:
+Рабочий стиль:
 
 ```text
 stability > number of features
@@ -116,275 +70,186 @@ rollback path > one-way migration
 
 ---
 
-## 5. Current baseline
+## 4. Текущий baseline
 
-Current baseline:
+Основной path:
 
 ```text
 Open WebUI -> LiteLLM Gateway -> llama-coder / llama-architect
 ```
 
-Current gateway model names:
+Дополнительные interfaces:
+
+```text
+Telegram -> telegram-bot -> LiteLLM Gateway
+VS Code / Copilot -> ide-proxy -> LiteLLM Gateway
+```
+
+Имена моделей Gateway:
 
 ```text
 slowrig/coder
 slowrig/architect
 ```
 
-Direct backend ports `8080` and `8081` remain available in LAN for diagnostics until a separate security hardening stage decides otherwise.
-
-Future ordinary clients should use LiteLLM Gateway, not direct backend ports.
+Direct backend ports `8080` и `8081` остаются LAN diagnostics/rollback path до отдельного security decision.
 
 ---
 
-## 6. Approved roadmap defaults
-
-The approved high-level order is:
+## 5. Завершённые основные stages
 
 ```text
-Stage 4.2 — Memory implementation plan (done)
-Stage 4.3 — Memory DB foundation (done and server-validated)
-Stage 4.4 — Local RAG ingestion (done and server-validated)
-Stage 5   — Telegram bot design (done)
-Stage 5.1 — Telegram implementation plan (done; superseded by C# runtime decision)
-Stage 5.2 — Telegram runtime code/config (done)
-Stage 5.5 — Telegram Cloudflare short polling transport (done)
-Stage 5.6 — Telegram thinking disabled through request params (done)
-Stage 6   — Agents baseline (done; docs drift helper implemented)
-Stage 6.1 — Docs drift / repo patch assistant plan (done)
-Stage 6.3 — docs-drift-agent.sh helper (done)
-Stage 7   — Monitoring / Security / Backups design (done; runtime not implemented)
-Stage 7.1 — cluster-health-lite.sh implemented (done; no timer/automation)
-Stage 7.2 — manual memory-db backup helper (done; no automation/restore)
-Stage 7.3 — first manual memory-db backup completed (done; no restore)
-Stage 7.4 — post-backup docs drift audit completed (done; no drift found)
-Stage 7 summary — monitoring/security/backups baseline summarized (done)
-Stage 7.5 — restore dry run deferred by operator choice (done; no restore)
+Stage 4.3 — Memory DB foundation внедрён и проверен
+Stage 4.4 — Local RAG ingestion внедрён и проверен
+Stage 5   — Telegram bot runtime внедрён
+Stage 5.5 — Cloudflare short polling transport внедрён
+Stage 5.6 — Telegram thinking disabled через request params
+Stage 6   — Agent baseline завершён; docs drift helper внедрён
+Stage 7   — Monitoring/Security/Backups design завершён
+Stage 7.1 — cluster-health-lite.sh внедрён без timer/automation
+Stage 7.2 — manual memory-db backup helper внедрён
+Stage 7.5 — restore dry run отложен по решению оператора
+Stage 8   — docs alignment: текущий stage
 ```
 
-No new runtime dependencies should be installed before the relevant design/implementation plan is approved.
+Новые runtime dependencies не добавлять без отдельного design/approval stage.
 
 ---
 
-## 7. Memory / RAG decisions
+## 6. Memory/RAG defaults
 
-Memory / RAG is the next major subsystem.
-
-Approved direction:
+Принятое направление:
 
 ```text
 PostgreSQL + pgvector
 ```
 
-Meaning:
+Текущий статус:
 
-* Stage 4.2 prepared the implementation plan around PostgreSQL + pgvector;
-* Stage 4.3 added and validated `memory-db`;
-* Stage 4.4 adds local RAG ingestion after the DB foundation exists;
-* embeddings are local through `memory-embed`;
-* first indexed corpus is only `README.md`, `AGENTS.md`, and `docs/*.md`;
-* chats, raw logs, secrets, Open WebUI history, and Telegram history are not indexed in the first RAG corpus.
+* `memory-db` внедрён как internal PostgreSQL + pgvector service без host port;
+* `memory-embed` внедрён как локальный loopback embedding runtime на `127.0.0.1:4010`;
+* первый corpus: `README.md`, `AGENTS.md`, `docs/*.md`;
+* Markdown + Git остаются source of truth;
+* PostgreSQL хранит rebuildable derived chunks/embeddings и будущий structured state.
 
-Source-of-truth rule:
+Не индексировать без отдельного privacy/security decision:
 
-```text
-Markdown + Git remain source of truth.
-PostgreSQL + pgvector stores structured state, metadata, chunks, and derived vector data.
-```
+* `.env`, secrets;
+* raw logs;
+* Telegram history;
+* Open WebUI history;
+* произвольные пользовательские чаты.
 
-Stage 4.3 DB foundation defaults:
-
-* Compose service: `memory-db`;
-* image: `pgvector/pgvector:0.8.3-pg17`;
-* volume: `memory-db-data`;
-* DB network exposure: Docker Compose network only, no host port by default;
-* env names: `MEMORY_POSTGRES_DB`, `MEMORY_POSTGRES_USER`, `MEMORY_POSTGRES_PASSWORD`;
-* bootstrap SQL: `config/memory/init/001-memory-foundation.sql`;
-* backup dumps path: `backups/`, ignored by git.
-
-Stage 4.4 ingestion defaults:
-
-* Compose service: `memory-embed`;
-* runtime: `llama.cpp server`, CPU-only;
-* model: `Qwen3-Embedding-0.6B-Q8_0.gguf`;
-* model path: `/opt/llama-cluster/models/embeddings/Qwen3-Embedding-0.6B-Q8_0.gguf`;
-* endpoint: `127.0.0.1:4010`, not LAN/public;
-* ingestion script: `scripts/memory-ingest-docs.py`;
-* chunks and embeddings are rebuildable derived data.
+Ближайший Memory/RAG fork: read-only retrieval API или module поверх `memory-db`, сначала для Telegram, затем reusable для agents.
 
 ---
 
-## 8. Telegram decisions
+## 7. Telegram defaults
 
-Approved first Telegram shape:
-
-```text
-Telegram bot via polling + whitelist -> LiteLLM Gateway
-```
-
-Defaults:
-
-* no webhook in the first Telegram stage;
-* no public inbound port for Telegram;
-* default model is `slowrig/coder`;
-* `slowrig/architect` is used only by explicit command or clearly defined escalation;
-* Telegram has no shell/Docker access;
-* Telegram history is not stored in Memory/RAG until a dedicated decision defines privacy, retention, deletion, and backup rules.
-
-First artifact:
+Принятый shape:
 
 ```text
-docs/telegram.md
+Telegram Bot API polling + whitelist -> LiteLLM Gateway
 ```
 
-Stage 5 design is captured in `docs/telegram.md`. Stage 5.2 was revised by user request to C#/.NET: current runtime uses `src/telegram-bot`, `HttpClient`, Telegram Bot API HTTP polling, and local Docker build. `.env.example` contains placeholders only; real `TELEGRAM_BOT_TOKEN` and allowed user IDs stay in `.env`.
+Текущий runtime:
 
-Stage 5.2 adds `src/telegram-bot` and a `telegram-bot` Compose service under profile `telegram`. The bot has been started on the server with real `.env` secrets and optional Cloudflare Worker base URL. Keep Telegram no-shell/no-Docker/no-filesystem-access boundaries.
+* C#/.NET service `src/telegram-bot`;
+* Compose service `telegram-bot` без `profile`;
+* default model: `slowrig/coder`;
+* `slowrig/architect` только по явной команде или documented escalation;
+* no shell, no Docker socket, no host filesystem access;
+* Telegram history не пишется в Memory/RAG.
 
-If the server cannot reach `api.telegram.org:443`, Telegram needs server routing/VPN, a reverse proxy base URL in `TELEGRAM_API_BASE_URL`, or an HTTP(S) proxy in `TELEGRAM_PROXY_URL`. Telegram `tg://proxy?...` MTProto links are not supported by Bot API HTTP polling. If Cloudflare Worker is used, keep it narrow and use short polling in the bot: only Bot API paths, no public generic proxy behavior, no long polling through Workers. Telegram prompts currently disable Qwen/llama.cpp thinking through `chat_template_kwargs.enable_thinking=false`; text `/no_think` was tested and did not work for this runtime path. Increasing `max_tokens` for reasoning+answer can be considered later as a tuning step.
+Если server не может reach `api.telegram.org:443`, использовать `TELEGRAM_API_BASE_URL` для narrow reverse proxy mode или `TELEGRAM_PROXY_URL` для HTTP(S) proxy. `tg://proxy?...` не подходит для Bot API HTTP polling.
+
+Thinking отключён через:
+
+```text
+chat_template_kwargs.enable_thinking=false
+```
 
 ---
 
-## 9. Agents decisions
+## 8. Agent defaults
 
-Approved first agents direction:
+Принятое направление:
 
 ```text
 custom lightweight orchestration / Codex-driven workflow
 ```
 
-Do not install CrewAI, OpenClaw, or another full agent framework before a dedicated implementation stage proves that lightweight orchestration is insufficient and Александр approves the dependency.
-
-Agent permission ladder:
-
-1. read/report;
-2. patches/reports;
-3. predefined diagnostics allowlist;
-4. approved mutations;
-5. sandbox/worktree autonomy.
-
-First concrete Stage 6.1 workflow:
+Текущий внедрённый helper:
 
 ```text
-docs drift / repo patch assistant
+scripts/docs-drift-agent.sh
 ```
 
-Stage 6 completed with `scripts/docs-drift-agent.sh`, a read-only Level 0/1 helper. Do not add diagnostics command execution, Telegram escalation, queues, persistent state, or new dependencies without a future stage.
+Он read-only: проверяет docs/config drift, не читает `.env`, не запускает Docker, не вызывает LLM generation, не пишет в Memory/RAG и не меняет файлы.
 
-Dangerous real-infrastructure actions still require approval:
-
-* Docker restart/down;
-* compose/config mutation;
-* `.env` or secrets changes;
-* model/GPU/context/parallel changes;
-* volume/cache deletion;
-* firewall/reverse proxy/VPN changes;
-* package installation;
-* image pulls.
-
-First artifact:
+Permission ladder:
 
 ```text
-docs/agents.md
+read/report -> patches -> diagnostics allowlist -> approved mutations -> sandbox autonomy
 ```
+
+Не устанавливать CrewAI, OpenClaw или другой agent framework без отдельного implementation stage и approval.
 
 ---
 
-## 10. Monitoring, security, and backups decisions
+## 9. Monitoring, security, backups
 
-Monitoring direction:
+Monitoring:
 
 ```text
-cluster-health-lite.sh -> implemented cheap frequent read-only health check; no timer/automation
-scripts/cluster-status.sh    -> deep manual diagnostic
+scripts/cluster-health-lite.sh -> дешёвый read-only healthcheck
+scripts/cluster-status.sh      -> глубокая ручная диагностика с LLM checks
 ```
 
-Do not turn deep LLM-generating checks into frequent automated health checks.
-
-Security/access direction:
+Security:
 
 ```text
 LAN/VPN first
-no public WebUI/Gateway exposure before security hardening
-direct ports 8080/8081 remain in LAN for diagnostics until a security stage decides otherwise
+no public WebUI/Gateway exposure before hardening
+direct ports 8080/8081 remain for diagnostics
 ```
 
-Backup scope for first stateful stages:
+Backups:
 
-* git-backed docs/config/scripts;
-* `.env` stored separately offline, never in git;
-* manual PostgreSQL dump helper for `memory-db` added in Stage 7.2; automation/restore not implemented;
-* model files are documented by filename/source, but not backed up in the first backup scope;
-* Open WebUI data is not included until a dedicated backup decision includes it.
-
-Stage 7 artifacts:
-
-```text
-docs/monitoring.md
-docs/security.md
-docs/backups.md
-```
+* docs/config/scripts/source files — через git;
+* `.env` — offline secret storage, не в git;
+* `memory-db` — manual `scripts/backup-memory-db.sh`;
+* restore dry run отложен до отдельного stage;
+* Open WebUI data пока не включён в backup scope.
 
 ---
 
-## 11. Gateway and routing defaults
+## 10. Открытые развилки
 
-Current public model names remain:
+Обсуждать только когда они становятся relevant для следующего stage:
 
-```text
-slowrig/coder
-slowrig/architect
-```
+* shape read-only retrieval поверх `memory-db`;
+* prompt/context assembly для Telegram и agents;
+* migration mechanism для PostgreSQL schema;
+* backup encryption и restore rehearsal;
+* Telegram command surface для RAG/agent escalation;
+* exact diagnostics allowlist для agents;
+* когда закрывать direct backend ports;
+* нужен ли Qdrant позже;
+* включать ли Open WebUI data в backup/index scope.
 
-Do not add aliases such as `slowrig/default`, `slowrig/fast`, `slowrig/deep`, `slowrig/telegram`, or task-specific model names until a client stage needs them and the decision is documented.
-
-Routing by task complexity and `9B -> 27B` pipelines should live in a future agent/router layer, not in LiteLLM by default.
-
----
-
-## 12. Remaining forks
-
-Remaining forks should be discussed only when they become relevant to the next implementation plan.
-
-Known future forks:
-
-* retrieval API shape over `memory-db`;
-* prompt/context assembly format for future clients;
-* PostgreSQL schema details;
-* backup encryption and restore rehearsal details;
-* Telegram command surface;
-* exact agent diagnostics allowlist for Stage 6.1;
-* when to restrict or close direct backend ports;
-* whether Qdrant is needed later if pgvector becomes insufficient;
-* whether Open WebUI data should be backed up or indexed.
-
-On each fork, Codex must explain options and consequences before asking Александр to choose.
+При каждой развилке Codex должен объяснить options и consequences до запроса решения.
 
 ---
 
-## 13. How to update this file
+## 11. Как обновлять этот файл
 
-Update this file only when there is new supplemental context that does not fit better elsewhere.
+Обновлять только краткий supplemental context, который не лучше хранить в dedicated docs.
 
-Before adding content, ask:
-
-```text
-Is this already covered by README, AGENTS, passport, runbook, architecture, gateway, memory, decisions, changelog, or a stage summary?
-```
-
-If yes, do not duplicate it here.
-
-If no, add it briefly.
-
-When a new subsystem becomes real, prefer creating or updating its own document:
+Перед добавлением спросить:
 
 ```text
-docs/memory.md
-docs/telegram.md
-docs/agents.md
-docs/monitoring.md
-docs/security.md
-docs/backups.md
+Это уже покрыто README, AGENTS, passport, runbook, architecture, gateway, memory, decisions, changelog или roadmap?
 ```
 
-This file should remain a compact orientation layer for Codex, not a second README.
+Если да — не дублировать.
